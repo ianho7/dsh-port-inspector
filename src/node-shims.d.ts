@@ -2,6 +2,14 @@ declare module 'node:fs' {
   export function readFileSync(path: string, encoding: 'utf8'): string
 }
 
+declare module 'node:child_process' {
+  export function spawnSync(
+    file: string,
+    args?: readonly string[],
+    options?: { readonly encoding?: string; readonly windowsHide?: boolean },
+  ): { readonly stdout?: unknown; readonly stderr?: unknown; readonly status?: number; readonly error?: unknown }
+}
+
 declare module 'node:process' {
   export const platform: string
 }

@@ -13,6 +13,7 @@ import {
 } from './attribution.js'
 import { readInstalledDshVersion } from './version.js'
 import { readWindowsProcessIdentity } from './process-identity.js'
+import { createWindowsListenerScanner, type ListenerRecord } from './windows-scanner.js'
 
 export { evaluateCompatibility, SUPPORTED_DSH_VERSION }
 export type * from './compatibility.js'
@@ -27,6 +28,7 @@ export interface RuntimeInspectorService {
   readonly health: RuntimeInspectorHealth
   readonly isActive: () => boolean
   readonly origins: () => readonly ProcessOrigin[]
+  readonly listeners: () => readonly ListenerRecord[]
 }
 
 interface PluginContext {
@@ -68,6 +70,7 @@ function readSubprocessProbe(ctx: PluginContext): {
 export function apply(ctx: PluginContext): void {
   let attributionEnabled = false
   const registry = new ProcessOriginRegistry()
+  const scanner = createWindowsListenerScanner()
   const attribution = new RuntimeAttribution({
     registry,
     enabled: () => attributionEnabled,
@@ -116,6 +119,7 @@ export function apply(ctx: PluginContext): void {
     },
     isActive: () => active,
     origins: () => registry.list(),
+    listeners: () => scanner.scan(registry.list()),
   }
   ctx.provide('runtimeInspector', service)
   refresh(0)

@@ -26,6 +26,7 @@ test('plugin publishes health and unload only disables its own service', async (
   assert.equal(published[0].service.health.verifiedAttributionEnabled, false)
   assert.equal(published[0].service.health.terminationEnabled, false)
   assert.equal(published[0].service.isActive(), true)
+  assert.equal(typeof published[0].service.listeners, 'function')
   assert.equal(effects.length, 1)
 
   await effects[0]()

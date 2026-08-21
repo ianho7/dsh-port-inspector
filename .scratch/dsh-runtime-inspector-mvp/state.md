@@ -2,8 +2,8 @@
 
 status: running
 phase: handoff
-current_ticket: 03
-current_hypothesis: A bounded Windows listener scanner can match PID plus creation identity through a cycle-safe ParentProcessId chain without upgrading ambiguous ancestry to verified attribution.
+current_ticket: 04
+current_hypothesis: Managed Job and Terminal owner APIs can associate background and persistent-terminal roots without changing the scanner's read-only process boundary.
 attempts:
   - id: ticket-01-start
     action: Claim Ticket 01 and define the plugin health seam.
@@ -35,7 +35,13 @@ attempts:
     raw_evidence: "Reviews identified provider mutation gating and partial-install rollback risks. The implementation now gates on active+verified LocalSubprocessRuntime, preflights descriptors, rolls back partial patches, disables wrappers on compatibility drop, and adds regression tests. Node/Stock DSH suite passes 24/24."
     conclusion: Ticket 02 is ready for handoff; the fallback is explicitly documented as a pinned, reversible observation seam rather than provider replacement.
     next_action_rule: Begin Ticket 03 scanner work; preserve the FILETIME identity contract and fail-closed attribution states.
+  - id: ticket-03-scanner
+    action: Implement bounded Windows TCP listener discovery and PID-plus-creation-identity ancestry matching.
+    failure_class: none
+    raw_evidence: "TypeScript build and no-emit typecheck pass; authoritative Node suite passes 32/32, including the real Stock DSH dsh-0.1.0-rc.8 smoke and Windows native scanner smoke. Focused tests cover IPv4/IPv6 parsing, verified PowerShell-to-npm-to-Node ancestry, concurrent roots, PID reuse, unreadable identities, cycles, ambiguity, and bounds."
+    conclusion: Ticket 03 is resolved; listener rows remain visible when metadata is denied, while verified attribution is fail-closed and the scanner takes no process ownership.
+    next_action_rule: Begin Ticket 04 managed Job/Terminal lifecycle association; preserve owner-fenced shutdown semantics and do not add PID escalation.
 evidence_gaps:
   - The final end-to-end Runtime Inspector acceptance path has not been executed.
 blocked_reason: none
-next_action: Begin Ticket 03 Windows listener/ancestry scanner using the canonical PID plus FILETIME identity helper.
+next_action: Begin Ticket 04 managed Job/Terminal lifecycle association using the existing origin registry and DSH owner APIs.

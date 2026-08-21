@@ -220,6 +220,8 @@ Windows TCP scanner → PID / parent chain
                  人工确认并终止
 ```
 
+Ticket 03 的最小 scanner 使用 `netstat.exe -ano -p tcp` 获取当前 TCP LISTENING 快照，再用 Toolhelp32 的 `(PID, ParentProcessId, executable)` 表和 `GetProcessTimes` creation identity 做父链匹配。只有整条链的身份都可读、root PID 与 creation time 唯一匹配时才标记 `verified`；身份缺失最多标记 `inferred`，PID reuse、循环、父进程不可读或链路逃逸均保持 `unattributed`。输出有 4,096 条 high-water bound，且不承担进程关闭 ownership。
+
 建议的最小契约：
 
 ```ts
