@@ -2,8 +2,8 @@
 
 status: running
 phase: handoff
-current_ticket: 05
-current_hypothesis: External single-PID actions can be identity-fenced on one process handle without crossing the managed owner or process-tree boundary.
+current_ticket: 07
+current_hypothesis: A model-facing listener snapshot can remain useful while exposing detailed attribution only to its current DSH Session and no process action capability.
 attempts:
   - id: ticket-01-start
     action: Claim Ticket 01 and define the plugin health seam.
@@ -65,8 +65,20 @@ attempts:
     raw_evidence: "Bundled TypeScript emit build and no-emit typecheck pass; Bun suite passes 45/45 with one pre-existing Stock DSH smoke skipped because DSH_REPO is unset; git diff --check passes. npm test cannot start because the managed Volta shim cannot create C:\\Users\\admin\\AppData\\Local\\Volta in this environment."
     conclusion: Ticket 05 implementation and deterministic safety coverage pass. The remaining evidence gap is the disposable same-user Windows listener smoke and final G1-G6 integration, not the single-PID safety contract.
     next_action_rule: Hand off Ticket 05 and begin the next unblocked privacy-scoped port_list ticket while retaining the real external action smoke as final integration evidence.
+  - id: ticket-06-implementation
+    action: Implement the read-only port_list Tool, Session privacy projection, shared path redaction boundary, and reversible Tool registration.
+    failure_class: none
+    raw_evidence: "Added src/port-list.ts; registered port_list through injected tools; current-Session attribution includes bounded redacted origin and verified lifecycle owner, other Sessions expose only coarse ownership, and degraded mode passes no origins. Tool output is bounded to 128 rows and marked readOnly: true; no action callback is exposed. Added focused privacy and plugin lifecycle tests."
+    conclusion: Ticket 06 behavior is implemented without expanding model-facing process authority; inferred matches never expose managed-owner authority and unload unregisters the Tool.
+    next_action_rule: Run build, no-emit typecheck, full deterministic suite, diff checks, and attempt the real Stock DSH smoke before resolving Ticket 06.
+  - id: ticket-06-verification
+    action: Verify Ticket 06 build, typecheck, privacy tests, full suite, and Stock DSH smoke boundary.
+    failure_class: environment
+    raw_evidence: "Bundled TypeScript build and no-emit typecheck pass; Bun suite passes 50/50 with one pre-existing Stock DSH smoke skipped when DSH_REPO is unset; enabled DSH_REPO smoke is blocked by EPERM while copying the pinned native koffi package; git diff --check passes."
+    conclusion: Ticket 06 implementation and deterministic privacy/read-only coverage pass. The only open evidence remains the pre-existing real Stock DSH and final G1-G6 lifecycle gap.
+    next_action_rule: Hand off Ticket 06 and claim Ticket 07 UI/Host inventory and action-state boundary while retaining the real Stock DSH smoke gap.
 evidence_gaps:
   - The final end-to-end Runtime Inspector acceptance path has not been executed.
   - The real Stock DSH smoke still covers Bundle load/dispose; background Job and persistent Terminal behavior is covered by focused lifecycle tests and remains to be exercised in a dedicated real fixture.
 blocked_reason: none
-next_action: Hand off Ticket 05 and claim Ticket 06; retain the real disposable-listener smoke as a final integration evidence gap.
+next_action: Hand off Ticket 06 and claim Ticket 07; retain the real disposable-listener and final G1-G6 smoke as integration evidence gaps.

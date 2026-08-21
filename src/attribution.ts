@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
-import { commandAndWorkdir, redactCommand } from './redaction.js'
+import { commandAndWorkdir, redactCommand, redactPath } from './redaction.js'
 import { readWindowsProcessIdentity, type ProcessCreationIdentity } from './process-identity.js'
 import { LifecycleOwnerRegistry, type LifecycleCapture } from './lifecycle.js'
 
@@ -556,7 +556,7 @@ export class RuntimeAttribution {
         rootCallId: frame.rootCallId,
         tool: frame.tool,
         command: frame.command,
-        workdir: stringValue(spec?.cwd) ?? frame.workdir,
+        workdir: redactPath(spec?.cwd) ?? frame.workdir,
         kind,
         ...terminalSessionId === undefined ? {} : { terminalSessionId },
       })

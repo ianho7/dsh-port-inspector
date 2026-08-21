@@ -25,6 +25,11 @@ import {
   type ExternalTerminationResult,
   type ExternalTerminationSelection,
 } from './external-termination.js'
+import {
+  projectPortList,
+  registerPortListTool,
+  type PortListToolExecution,
+} from './port-list.js'
 
 export { evaluateCompatibility, SUPPORTED_DSH_VERSION }
 export type * from './compatibility.js'
@@ -41,8 +46,20 @@ export {
   type ExternalProcessLease,
   type ExternalProcessSnapshot,
 } from './process-actions.js'
+export {
+  createPortListTool,
+  projectPortList,
+  registerPortListTool,
+  type PortListListener,
+  type PortListLifecycleOwner,
+  type PortListMode,
+  type PortListOrigin,
+  type PortListOwnership,
+  type PortListResult,
+} from './port-list.js'
 
 export const name = 'dsh-runtime-inspector'
+export const inject = ['tools'] as const
 
 export interface RuntimeInspectorHealth extends CompatibilitySnapshot {
   readonly lifecycle: 'active' | 'disposed'
@@ -63,6 +80,9 @@ export interface RuntimeInspectorService {
 
 interface PluginContext {
   provide(name: string, value: unknown): void
+  readonly tools?: {
+    register(definition: unknown): () => void
+  }
   get?(name: string): unknown
   on?(name: string, listener: (...args: unknown[]) => unknown): unknown
   effect(factory: () => void | (() => void | Promise<void>), label?: string): void
@@ -80,6 +100,24 @@ function readSubprocessService(ctx: PluginContext): unknown {
   } catch {
     return undefined
   }
+}
+
+function readToolRegistry(ctx: PluginContext): PluginContext['tools'] {
+  if (ctx.tools !== undefined) return ctx.tools
+  try {
+    const tools = ctx.get?.('tools')
+    if (tools !== null && typeof tools === 'object' && typeof (tools as { register?: unknown }).register === 'function') {
+      return tools as PluginContext['tools']
+    }
+  } catch {
+    // Tool injection may be unavailable during degraded composition.
+  }
+  return undefined
+}
+
+function sessionIdForTool(execution: PortListToolExecution): string | undefined {
+  const value = execution.agent?.session?.id
+  return typeof value === 'string' && value.length > 0 ? value : undefined
 }
 
 function readSubprocessProbe(ctx: PluginContext): {
@@ -126,6 +164,16 @@ export function apply(ctx: PluginContext): void {
     origins: () => registry.list(),
     enabled: () => active && attributionEnabled && snapshot.terminationEnabled,
   })
+  const visibleOrigins = (): readonly ProcessOrigin[] => attributionEnabled ? registry.list() : []
+  const unregisterPortListTool = registerPortListTool(readToolRegistry(ctx), execution => {
+    const origins = visibleOrigins()
+    return projectPortList(
+      scanner.scanWithStatus(origins),
+      origins,
+      sessionIdForTool(execution),
+      active && attributionEnabled ? snapshot.mode : 'read-only-degraded',
+    )
+  })
   const syncProviderFallback = (): void => {
     if (snapshot.verifiedAttributionEnabled) attribution.patchSubprocessProvider(readSubprocessService(ctx))
     else attribution.disableProviderPatches()
@@ -155,8 +203,8 @@ export function apply(ctx: PluginContext): void {
       return Object.freeze({ ...snapshot, lifecycle: active ? 'active' : 'disposed' })
     },
     isActive: () => active,
-    origins: () => registry.list(),
-    listeners: () => scanner.scan(registry.list()),
+    origins: visibleOrigins,
+    listeners: () => scanner.scan(visibleOrigins()),
     shutdown: (originId, options) => lifecycle.shutdown(originId, options),
     terminateExternal: (target, request) => externalTerminator.terminate(target, request),
   }
@@ -165,6 +213,7 @@ export function apply(ctx: PluginContext): void {
   ctx.effect(() => () => {
     active = false
     attributionEnabled = false
+    unregisterPortListTool?.()
     if (retryTimer !== undefined) clearTimeout(retryTimer)
     attribution.dispose()
     lifecycle.dispose()

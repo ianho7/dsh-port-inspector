@@ -3,6 +3,7 @@ import { createRequire } from 'node:module'
 import { platform } from 'node:process'
 import type { ProcessOrigin } from './attribution.js'
 import { readWindowsProcessIdentity } from './process-identity.js'
+import { redactPath } from './redaction.js'
 
 export type AttributionConfidence = 'verified' | 'inferred' | 'unattributed'
 
@@ -249,8 +250,8 @@ export class WindowsListenerScanner {
       rows.push(Object.freeze({
         ...listener,
         processCreatedAt: process?.processCreatedAt,
-        executable: boundedString(process?.executable, MAX_EXECUTABLE_LENGTH),
-        project: boundedString(origin?.workdir, MAX_ADDRESS_LENGTH),
+        executable: redactPath(boundedString(process?.executable, MAX_EXECUTABLE_LENGTH)),
+        project: redactPath(boundedString(origin?.workdir, MAX_ADDRESS_LENGTH)),
         ...origin?.jobId === undefined ? {} : { jobId: origin.jobId },
         ...origin?.terminalSessionId === undefined ? {} : { terminalSessionId: origin.terminalSessionId },
         ...match,
