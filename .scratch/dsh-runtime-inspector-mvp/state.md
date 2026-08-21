@@ -2,8 +2,8 @@
 
 status: running
 phase: handoff
-current_ticket: 07
-current_hypothesis: A model-facing listener snapshot can remain useful while exposing detailed attribution only to its current DSH Session and no process action capability.
+current_ticket: 08
+current_hypothesis: The final two-Session lifecycle can validate the existing observer, ancestry, owner, privacy, and Host/UI action boundaries without expanding process ownership.
 attempts:
   - id: ticket-01-start
     action: Claim Ticket 01 and define the plugin health seam.
@@ -77,8 +77,20 @@ attempts:
     raw_evidence: "Bundled TypeScript build and no-emit typecheck pass; Bun suite passes 50/50 with one pre-existing Stock DSH smoke skipped when DSH_REPO is unset; enabled DSH_REPO smoke is blocked by EPERM while copying the pinned native koffi package; git diff --check passes."
     conclusion: Ticket 06 implementation and deterministic privacy/read-only coverage pass. The only open evidence remains the pre-existing real Stock DSH and final G1-G6 lifecycle gap.
     next_action_rule: Hand off Ticket 06 and claim Ticket 07 UI/Host inventory and action-state boundary while retaining the real Stock DSH smoke gap.
+  - id: ticket-07-implementation
+    action: Implement the trusted Host/UI inventory, search/sort, redacted copy, safe project-directory opening, and explicit managed/external/read-only/degraded action states.
+    failure_class: none
+    raw_evidence: "Added src/host-ui.ts and tests/host-ui.test.mjs; runtimeInspector.host exposes only serializable inventory/copy/open/action methods. Actions re-scan before dispatch, require confirmation, route managed rows only through Job/Terminal owners, route external rows only through the identity-fenced single-PID terminator, and always return a fresh scan with observed portReleased state."
+    conclusion: Ticket 07 behavior is implemented without adding process primitives to the model-facing port_list Tool or the Host RPC surface.
+    next_action_rule: Run bundled build/no-emit checks, focused/full Bun tests, diff checks, and the permitted Stock DSH smoke before resolving Ticket 07.
+  - id: ticket-07-verification
+    action: Run Ticket 07 build, typecheck, focused/full tests, diff checks, and the Stock DSH smoke boundary.
+    failure_class: environment
+    raw_evidence: "Bundled TypeScript emit and no-emit checks pass; Bun suite passes 56/56 with one pre-existing Stock DSH smoke skipped because DSH_REPO is unset; git diff --check passes. npm run build cannot find tsc and npm run typecheck/npm test are blocked by the Volta shim failing to create C:\\Users\\admin\\AppData\\Local\\Volta."
+    conclusion: Ticket 07 deterministic implementation and safety coverage pass. Real Stock DSH UI/Host lifecycle execution and final G1-G6 acceptance remain open integration evidence, not a deterministic Ticket 07 failure.
+    next_action_rule: Hand off Ticket 07 and claim Ticket 08 final two-Session integration/release gate while retaining the native dependency and disposable-listener evidence gaps.
 evidence_gaps:
   - The final end-to-end Runtime Inspector acceptance path has not been executed.
   - The real Stock DSH smoke still covers Bundle load/dispose; background Job and persistent Terminal behavior is covered by focused lifecycle tests and remains to be exercised in a dedicated real fixture.
 blocked_reason: none
-next_action: Hand off Ticket 06 and claim Ticket 07; retain the real disposable-listener and final G1-G6 smoke as integration evidence gaps.
+next_action: Hand off Ticket 07 and claim Ticket 08 final two-Session integration/release gate; retain the real disposable-listener, native dependency, and final G1-G6 smoke as integration evidence gaps.

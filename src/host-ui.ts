@@ -1,0 +1,700 @@
+import type { ProcessOrigin } from './attribution.js'
+import type {
+  ExternalTerminationRequest,
+  ExternalTerminationResult,
+  ExternalTerminationSelection,
+} from './external-termination.js'
+import type {
+  LifecycleShutdownOptions,
+  ManagedShutdownResult,
+} from './lifecycle.js'
+import { redactCommand, redactPath } from './redaction.js'
+import type {
+  AttributionConfidence,
+  ListenerRecord,
+  WindowsListenerScan,
+  WindowsListenerScanner,
+} from './windows-scanner.js'
+
+const MAX_ID_LENGTH = 512
+const MAX_DISPLAY_LENGTH = 1_024
+const MAX_COPY_LENGTH = 16_384
+const MAX_SEARCH_LENGTH = 256
+const MAX_INVENTORY_ROWS = 4_096
+
+export type HostInventoryMode = 'observing' | 'read-only-degraded'
+export type HostSessionVisibility =
+  | 'current-session'
+  | 'another-dsh-session'
+  | 'unknown-session'
+  | 'unattributed'
+export type HostActionKind = 'managed-shutdown' | 'external-single-pid' | 'read-only' | 'degraded'
+export type HostActionStatus = 'completed' | 'denied' | 'failed'
+export type HostSortKey = 'port' | 'application' | 'pid' | 'project' | 'session'
+export type HostSortDirection = 'asc' | 'desc'
+
+export interface HostInventoryQuery {
+  readonly search?: string
+  readonly sort?: {
+    readonly key: HostSortKey
+    readonly direction?: HostSortDirection
+  }
+}
+
+export interface HostListenerAttribution {
+  readonly sessionId: string
+  readonly agentId: string
+  readonly turn: number
+  readonly step: number
+  readonly callId: string
+  readonly rootCallId: string
+  readonly tool: string
+  readonly command?: string
+  readonly workdir?: string
+  readonly kind: ProcessOrigin['kind']
+}
+
+export interface HostLifecycleOwner {
+  readonly kind: 'job' | 'terminal'
+  readonly id: string
+}
+
+export interface HostActionState {
+  readonly kind: HostActionKind
+  readonly label: string
+  readonly available: boolean
+  readonly requiresConfirmation: boolean
+  readonly confirmation?: string
+  readonly reason?: string
+}
+
+export interface HostListenerRow {
+  readonly listenerId: string
+  readonly protocol: 'tcp4' | 'tcp6'
+  readonly address: string
+  readonly port: number
+  readonly pid: number
+  readonly processCreatedAt?: string
+  readonly executable?: string
+  readonly project?: string
+  readonly confidence: AttributionConfidence
+  readonly sessionVisibility: HostSessionVisibility
+  readonly session?: HostListenerAttribution
+  readonly lifecycleOwner?: HostLifecycleOwner
+  readonly action: HostActionState
+}
+
+export interface HostInventorySnapshot {
+  readonly mode: HostInventoryMode
+  readonly scanComplete: boolean
+  readonly truncated: boolean
+  readonly listeners: readonly HostListenerRow[]
+}
+
+export interface HostCopyResult {
+  readonly ok: boolean
+  readonly text: string
+  readonly copied: boolean
+  readonly reason?: 'listener-not-found' | 'clipboard-failed'
+  readonly error?: string
+}
+
+export interface HostOpenDirectoryResult {
+  readonly ok: boolean
+  readonly reason?: 'listener-not-found' | 'project-unavailable' | 'opener-unavailable' | 'open-failed'
+  readonly error?: string
+}
+
+export interface HostActionRequest {
+  readonly listenerId: string
+  readonly kind: HostActionKind
+  readonly confirmed?: boolean
+}
+
+export interface HostManagedOutcome {
+  readonly ok: boolean
+  readonly status: ManagedShutdownResult['status']
+  readonly ownerKind?: ManagedShutdownResult['ownerKind']
+  readonly ownerId?: string
+  readonly stage?: ManagedShutdownResult['stage']
+  readonly reason?: string
+  readonly error?: string
+}
+
+export interface HostExternalOutcome {
+  readonly ok: boolean
+  readonly status: ExternalTerminationResult['status']
+  readonly pid?: number
+  readonly port?: number
+  readonly revalidated: boolean
+  readonly reason?: string
+  readonly error?: string
+}
+
+export interface HostActionResult {
+  readonly ok: boolean
+  readonly action: HostActionKind
+  readonly status: HostActionStatus
+  readonly listenerId: string
+  readonly port?: number
+  readonly portReleased?: boolean
+  readonly scanComplete: boolean
+  readonly freshScan: HostInventorySnapshot
+  readonly message: string
+  readonly reason?: string
+  readonly managed?: HostManagedOutcome
+  readonly external?: HostExternalOutcome
+}
+
+export interface RuntimeInspectorHostOptions {
+  readonly scanner: Pick<WindowsListenerScanner, 'scanWithStatus'>
+  readonly origins: () => readonly ProcessOrigin[]
+  readonly mode: () => HostInventoryMode
+  readonly currentSessionId?: () => string | undefined
+  readonly shutdown: (originId: number, options?: LifecycleShutdownOptions) => Promise<ManagedShutdownResult>
+  readonly terminateExternal: (
+    target: ExternalTerminationSelection,
+    request?: ExternalTerminationRequest,
+  ) => Promise<ExternalTerminationResult>
+  /** Optional host-owned clipboard adapter. The redacted text is returned even without it. */
+  readonly clipboard?: (text: string) => void | Promise<void>
+  /** Optional host-owned directory opener. Raw paths never cross the RPC result. */
+  readonly openDirectory?: (path: string) => void | Promise<void>
+}
+
+export interface RuntimeInspectorHostRpc {
+  readonly inventory: (query?: HostInventoryQuery) => HostInventorySnapshot
+  readonly copyDetails: (request: { readonly listenerId: string }) => Promise<HostCopyResult>
+  readonly openProjectDirectory: (request: { readonly listenerId: string }) => Promise<HostOpenDirectoryResult>
+  readonly performAction: (request: HostActionRequest) => Promise<HostActionResult>
+}
+
+export interface RuntimeInspectorHost extends RuntimeInspectorHostRpc {
+  readonly rpc: RuntimeInspectorHostRpc
+}
+
+interface InternalEntry {
+  readonly row: ListenerRecord
+  readonly origin?: ProcessOrigin
+  readonly listenerId: string
+}
+
+interface InternalScan {
+  readonly scan: WindowsListenerScan
+  readonly entries: readonly InternalEntry[]
+}
+
+function bounded(value: unknown, maxLength: number): string | undefined {
+  if (typeof value !== 'string' || value.length === 0) return undefined
+  return value.length > maxLength ? `${value.slice(0, maxLength)}…` : value
+}
+
+function boundedId(value: unknown): string | undefined {
+  return bounded(value, MAX_ID_LENGTH)
+}
+
+function safeError(error: unknown): string | undefined {
+  if (error === undefined || error === null) return undefined
+  try {
+    return bounded(error instanceof Error ? error.message : String(error), MAX_DISPLAY_LENGTH)
+  } catch {
+    return '<unprintable host error>'
+  }
+}
+
+function safeMode(read: () => HostInventoryMode): HostInventoryMode {
+  try {
+    return read() === 'observing' ? 'observing' : 'read-only-degraded'
+  } catch {
+    return 'read-only-degraded'
+  }
+}
+
+function safeOrigins(read: () => readonly ProcessOrigin[]): readonly ProcessOrigin[] {
+  try {
+    const origins = read()
+    return Array.isArray(origins) ? origins : []
+  } catch {
+    return []
+  }
+}
+
+function listenerFingerprint(row: ListenerRecord): string {
+  return [
+    row.protocol,
+    row.localAddress,
+    row.localPort,
+    row.owningPid,
+    row.processCreatedAt ?? '',
+  ].join('|')
+}
+
+/**
+ * The UI receives an opaque, stable row key. It contains only listener
+ * identity fields and never an origin object or an action callback.
+ */
+function listenerId(row: ListenerRecord): string {
+  return `listener:${encodeURIComponent(listenerFingerprint(row))}`
+}
+
+function displayCommand(value: unknown): string | undefined {
+  return bounded(redactCommand(value), MAX_DISPLAY_LENGTH)
+}
+
+function displayPath(value: unknown): string | undefined {
+  return bounded(redactPath(value), MAX_DISPLAY_LENGTH)
+}
+
+function displayId(value: unknown): string | undefined {
+  return boundedId(value)
+}
+
+function displayOrigin(origin: ProcessOrigin): HostListenerAttribution {
+  const command = displayCommand(origin.command)
+  const workdir = displayPath(origin.workdir)
+  return Object.freeze({
+    sessionId: displayId(origin.sessionId) ?? '',
+    agentId: displayId(origin.agentId) ?? '',
+    turn: origin.turn,
+    step: origin.step,
+    callId: displayId(origin.callId) ?? '',
+    rootCallId: displayId(origin.rootCallId) ?? '',
+    tool: displayId(origin.tool) ?? '',
+    ...command === undefined ? {} : { command },
+    ...workdir === undefined ? {} : { workdir },
+    kind: origin.kind,
+  })
+}
+
+function lifecycleOwner(row: ListenerRecord, origin: ProcessOrigin | undefined): HostLifecycleOwner | undefined {
+  // A heuristic ancestry match may identify a candidate origin, but cannot
+  // turn that candidate into a managed lifecycle authority.
+  if (row.confidence !== 'verified' || origin === undefined) return undefined
+  const jobId = displayId(origin.jobId)
+  if (jobId !== undefined) return Object.freeze({ kind: 'job', id: jobId })
+  const terminalSessionId = displayId(origin.terminalSessionId)
+  if (terminalSessionId !== undefined) return Object.freeze({ kind: 'terminal', id: terminalSessionId })
+  return undefined
+}
+
+function actionState(
+  mode: HostInventoryMode,
+  scanComplete: boolean,
+  row: ListenerRecord,
+  owner: HostLifecycleOwner | undefined,
+): HostActionState {
+  if (mode !== 'observing') {
+    return Object.freeze({
+      kind: 'degraded',
+      label: 'Read-only (degraded compatibility)',
+      available: false,
+      requiresConfirmation: false,
+      reason: 'compatibility-degraded',
+    })
+  }
+  if (!scanComplete) {
+    return Object.freeze({
+      kind: 'read-only',
+      label: 'Read-only',
+      available: false,
+      requiresConfirmation: false,
+      reason: 'listener-scan-incomplete',
+    })
+  }
+  if (owner !== undefined) {
+    return Object.freeze({
+      kind: 'managed-shutdown',
+      label: 'Managed shutdown',
+      available: true,
+      requiresConfirmation: true,
+      confirmation: `Confirm DSH ${owner.kind} shutdown for ${owner.id}.`,
+    })
+  }
+  if (Number.isSafeInteger(row.owningPid) && row.owningPid > 0
+    && typeof row.processCreatedAt === 'string' && row.processCreatedAt.length > 0
+    && typeof row.executable === 'string' && row.executable.length > 0) {
+    return Object.freeze({
+      kind: 'external-single-pid',
+      label: 'External single-PID termination',
+      available: true,
+      requiresConfirmation: true,
+      confirmation: `Confirm direct termination of PID ${row.owningPid}. Identity will be rechecked first.`,
+    })
+  }
+  return Object.freeze({
+    kind: 'read-only',
+    label: 'Read-only',
+    available: false,
+    requiresConfirmation: false,
+    reason: 'identity-incomplete',
+  })
+}
+
+function sessionVisibility(
+  origin: ProcessOrigin | undefined,
+  currentSessionId: string | undefined,
+): HostSessionVisibility {
+  if (origin === undefined) return 'unattributed'
+  if (currentSessionId === undefined) return 'unknown-session'
+  return origin.sessionId === currentSessionId ? 'current-session' : 'another-dsh-session'
+}
+
+function projectFor(row: ListenerRecord, origin: ProcessOrigin | undefined): string | undefined {
+  return displayPath(origin?.workdir ?? row.project)
+}
+
+function projectPathForOpen(origin: ProcessOrigin | undefined): string | undefined {
+  const path = typeof origin?.workdir === 'string' ? origin.workdir : undefined
+  const redacted = redactPath(path)
+  if (path === undefined || path.length === 0 || redacted === undefined || redacted.includes('[REDACTED]')) return undefined
+  return path
+}
+
+function toPublicEntry(
+  entry: InternalEntry,
+  mode: HostInventoryMode,
+  scanComplete: boolean,
+  currentSessionId: string | undefined,
+): HostListenerRow {
+  const { row, origin } = entry
+  const owner = lifecycleOwner(row, origin)
+  const attribution = origin === undefined ? undefined : displayOrigin(origin)
+  const project = projectFor(row, origin)
+  return Object.freeze({
+    listenerId: entry.listenerId,
+    protocol: row.protocol,
+    address: bounded(row.localAddress, MAX_DISPLAY_LENGTH) ?? '',
+    port: row.localPort,
+    pid: row.owningPid,
+    ...bounded(row.processCreatedAt, MAX_ID_LENGTH) === undefined
+      ? {}
+      : { processCreatedAt: bounded(row.processCreatedAt, MAX_ID_LENGTH) },
+    ...displayPath(row.executable) === undefined
+      ? {}
+      : { executable: displayPath(row.executable) },
+    ...project === undefined ? {} : { project },
+    confidence: row.confidence,
+    sessionVisibility: sessionVisibility(origin, currentSessionId),
+    ...attribution === undefined ? {} : { session: attribution },
+    ...owner === undefined ? {} : { lifecycleOwner: owner },
+    action: actionState(mode, scanComplete, row, owner),
+  })
+}
+
+function compareText(left: string | undefined, right: string | undefined): number {
+  if (left === undefined && right === undefined) return 0
+  if (left === undefined) return 1
+  if (right === undefined) return -1
+  const a = left.toLocaleLowerCase()
+  const b = right.toLocaleLowerCase()
+  return a < b ? -1 : a > b ? 1 : 0
+}
+
+function sortValue(entry: InternalEntry, key: HostSortKey): number | string | undefined {
+  const { row, origin } = entry
+  if (key === 'port') return row.localPort
+  if (key === 'pid') return row.owningPid
+  if (key === 'application') return displayPath(row.executable) ?? displayId(origin?.tool)
+  if (key === 'project') return projectFor(row, origin)
+  return displayId(origin?.sessionId)
+}
+
+function sortEntries(entries: readonly InternalEntry[], sort: HostInventoryQuery['sort']): InternalEntry[] {
+  if (sort === undefined) return [...entries]
+  const direction = sort.direction === 'desc' ? -1 : 1
+  return [...entries].sort((left, right) => {
+    const a = sortValue(left, sort.key)
+    const b = sortValue(right, sort.key)
+    const comparison = typeof a === 'number' && typeof b === 'number'
+      ? a - b
+      : compareText(typeof a === 'string' ? a : undefined, typeof b === 'string' ? b : undefined)
+    if (comparison !== 0) return comparison * direction
+    return compareText(left.listenerId, right.listenerId)
+  })
+}
+
+function searchText(entry: InternalEntry): string {
+  const row = entry.row
+  const origin = entry.origin
+  return [
+    row.localPort,
+    row.localAddress,
+    row.owningPid,
+    displayPath(row.executable),
+    projectFor(row, origin),
+    displayId(origin?.sessionId),
+    displayId(origin?.agentId),
+    displayId(origin?.tool),
+    displayCommand(origin?.command),
+    row.confidence,
+  ].filter(value => value !== undefined).join(' ').toLocaleLowerCase()
+}
+
+function matchesSearch(entry: InternalEntry, query: string | undefined): boolean {
+  const search = bounded(query?.trim(), MAX_SEARCH_LENGTH)?.toLocaleLowerCase()
+  return search === undefined || search.length === 0 || searchText(entry).includes(search)
+}
+
+function readInternalScan(options: RuntimeInspectorHostOptions): InternalScan {
+  const origins = safeOrigins(options.origins)
+  let scan: WindowsListenerScan
+  try {
+    const candidate = options.scanner.scanWithStatus(origins)
+    scan = candidate !== null && typeof candidate === 'object' && Array.isArray(candidate.rows)
+      ? candidate
+      : { rows: [], complete: false }
+  } catch {
+    scan = { rows: [], complete: false }
+  }
+  const originsById = new Map(origins.map(origin => [origin.id, origin]))
+  const entries = scan.rows.slice(0, MAX_INVENTORY_ROWS).map(row => ({
+    row,
+    origin: row.originId === undefined ? undefined : originsById.get(row.originId),
+    listenerId: listenerId(row),
+  }))
+  return { scan, entries }
+}
+
+function readCurrentSession(options: RuntimeInspectorHostOptions): string | undefined {
+  try {
+    return boundedId(options.currentSessionId?.())
+  } catch {
+    return undefined
+  }
+}
+
+function snapshotFrom(
+  internal: InternalScan,
+  mode: HostInventoryMode,
+  currentSessionId: string | undefined,
+  query: HostInventoryQuery = {},
+): HostInventorySnapshot {
+  const filtered = internal.entries.filter(entry => matchesSearch(entry, query.search))
+  const sorted = sortEntries(filtered, query.sort)
+  const visible = sorted.slice(0, MAX_INVENTORY_ROWS)
+  return Object.freeze({
+    mode,
+    scanComplete: internal.scan.complete,
+    truncated: filtered.length > visible.length || internal.scan.rows.length > MAX_INVENTORY_ROWS,
+    listeners: Object.freeze(visible.map(entry => toPublicEntry(entry, mode, internal.scan.complete, currentSessionId))),
+  })
+}
+
+function rowFor(entries: readonly InternalEntry[], listenerId: string): InternalEntry | undefined {
+  return entries.find(entry => entry.listenerId === listenerId)
+}
+
+function samePort(left: ListenerRecord, right: ListenerRecord): boolean {
+  return left.protocol === right.protocol && left.localPort === right.localPort
+}
+
+function releasedAfter(row: ListenerRecord, scan: WindowsListenerScan): boolean | undefined {
+  if (!scan.complete) return undefined
+  return !scan.rows.some(candidate => samePort(row, candidate))
+}
+
+function actionMessage(
+  action: string,
+  status: HostActionStatus,
+  port: number | undefined,
+  portReleased: boolean | undefined,
+  detail?: string,
+): string {
+  const portText = port === undefined ? 'the selected port' : `port ${port}`
+  if (status === 'denied') return detail ?? `${action} is not available for this listener.`
+  if (status === 'failed') return detail ?? `${action} failed; no process escalation was attempted.`
+  if (portReleased === true) return `${action} completed; ${portText} is no longer listening.`
+  if (portReleased === false) return `${action} completed, but ${portText} is still listening.`
+  return `${action} completed, but the fresh scan could not confirm whether ${portText} was released.`
+}
+
+function safeManagedOutcome(result: ManagedShutdownResult): HostManagedOutcome {
+  return Object.freeze({
+    ok: result.ok,
+    status: result.status,
+    ...result.ownerKind === undefined ? {} : { ownerKind: result.ownerKind },
+    ...boundedId(result.ownerId) === undefined ? {} : { ownerId: boundedId(result.ownerId) },
+    ...result.stage === undefined ? {} : { stage: result.stage },
+    ...bounded(result.reason, MAX_DISPLAY_LENGTH) === undefined ? {} : { reason: bounded(result.reason, MAX_DISPLAY_LENGTH) },
+    ...safeError(result.error) === undefined ? {} : { error: safeError(result.error) },
+  })
+}
+
+function safeExternalOutcome(result: ExternalTerminationResult): HostExternalOutcome {
+  return Object.freeze({
+    ok: result.ok,
+    status: result.status,
+    ...result.pid === undefined ? {} : { pid: result.pid },
+    ...result.port === undefined ? {} : { port: result.port },
+    revalidated: result.revalidated,
+    ...bounded(result.reason, MAX_DISPLAY_LENGTH) === undefined ? {} : { reason: bounded(result.reason, MAX_DISPLAY_LENGTH) },
+    ...safeError(result.error) === undefined ? {} : { error: safeError(result.error) },
+  })
+}
+
+function redactedDetails(entry: InternalEntry, publicRow: HostListenerRow): string {
+  const origin = entry.origin
+  const lines = [
+    `Port: ${publicRow.port}`,
+    `Address: ${publicRow.address}`,
+    `PID: ${publicRow.pid}`,
+    `Executable: ${publicRow.executable ?? '<unavailable>'}`,
+    `Project: ${publicRow.project ?? '<unavailable>'}`,
+    `Confidence: ${publicRow.confidence}`,
+    `Session visibility: ${publicRow.sessionVisibility}`,
+    `Session: ${publicRow.session?.sessionId ?? '<unattributed>'}`,
+    `Lifecycle owner: ${publicRow.lifecycleOwner === undefined ? '<none>' : `${publicRow.lifecycleOwner.kind}:${publicRow.lifecycleOwner.id}`}`,
+    `Action: ${publicRow.action.label}`,
+    `Command: ${displayCommand(origin?.command) ?? '<unavailable>'}`,
+  ]
+  return bounded(lines.join('\n'), MAX_COPY_LENGTH) ?? ''
+}
+
+function emptyActionResult(request: HostActionRequest, message: string, internal: InternalScan, mode: HostInventoryMode, currentSessionId: string | undefined, reason: string): HostActionResult {
+  const freshScan = snapshotFrom(internal, mode, currentSessionId)
+  return Object.freeze({
+    ok: false,
+    action: request.kind,
+    status: 'denied',
+    listenerId: request.listenerId,
+    scanComplete: freshScan.scanComplete,
+    freshScan,
+    message,
+    reason,
+  })
+}
+
+/**
+ * Create the trusted Host/UI boundary. It owns no process handles and exposes
+ * no scanner, origin registry, or termination callback in its RPC surface.
+ */
+export function createRuntimeInspectorHost(options: RuntimeInspectorHostOptions): RuntimeInspectorHost {
+  const inventory = (query: HostInventoryQuery = {}): HostInventorySnapshot => {
+    const internal = readInternalScan(options)
+    return snapshotFrom(internal, safeMode(options.mode), readCurrentSession(options), query)
+  }
+
+  const copyDetails = async (request: { readonly listenerId: string }): Promise<HostCopyResult> => {
+    const internal = readInternalScan(options)
+    const entry = rowFor(internal.entries, request.listenerId)
+    if (entry === undefined) return Object.freeze({ ok: false, text: '', copied: false, reason: 'listener-not-found' })
+    const mode = safeMode(options.mode)
+    const publicRow = toPublicEntry(entry, mode, internal.scan.complete, readCurrentSession(options))
+    const text = redactedDetails(entry, publicRow)
+    if (options.clipboard === undefined) return Object.freeze({ ok: true, text, copied: false })
+    try {
+      await options.clipboard(text)
+      return Object.freeze({ ok: true, text, copied: true })
+    } catch (error) {
+      return Object.freeze({ ok: false, text, copied: false, reason: 'clipboard-failed', error: safeError(error) })
+    }
+  }
+
+  const openProjectDirectory = async (request: { readonly listenerId: string }): Promise<HostOpenDirectoryResult> => {
+    const entry = rowFor(readInternalScan(options).entries, request.listenerId)
+    if (entry === undefined) return Object.freeze({ ok: false, reason: 'listener-not-found' })
+    const path = projectPathForOpen(entry.origin)
+    if (path === undefined) return Object.freeze({ ok: false, reason: 'project-unavailable' })
+    if (options.openDirectory === undefined) return Object.freeze({ ok: false, reason: 'opener-unavailable' })
+    try {
+      await options.openDirectory(path)
+      return Object.freeze({ ok: true })
+    } catch (error) {
+      return Object.freeze({ ok: false, reason: 'open-failed', error: safeError(error) })
+    }
+  }
+
+  const performAction = async (request: HostActionRequest): Promise<HostActionResult> => {
+    const mode = safeMode(options.mode)
+    const currentSessionId = readCurrentSession(options)
+    // Re-scan before dispatch so a stale UI row cannot select a reused PID or
+    // a managed owner that has already changed state.
+    const before = readInternalScan(options)
+    const entry = rowFor(before.entries, request.listenerId)
+    if (entry === undefined) {
+      return emptyActionResult(request, 'The listener is no longer present; refresh the inventory.', before, mode, currentSessionId, 'listener-not-found')
+    }
+    const publicRow = toPublicEntry(entry, mode, before.scan.complete, currentSessionId)
+    if (!publicRow.action.available || publicRow.action.kind !== request.kind) {
+      return emptyActionResult(request, publicRow.action.reason === 'compatibility-degraded'
+        ? 'Runtime Inspector is in read-only degraded mode; no process action is available.'
+        : 'The requested action is not allowed for this listener.', before, mode, currentSessionId, 'action-not-allowed')
+    }
+    if (request.confirmed !== true) {
+      return emptyActionResult(request, publicRow.action.confirmation ?? 'Explicit confirmation is required before this action.', before, mode, currentSessionId, 'confirmation-required')
+    }
+
+    let managed: HostManagedOutcome | undefined
+    let external: HostExternalOutcome | undefined
+    let status: HostActionStatus = 'failed'
+    let ok = false
+    let detail: string | undefined
+    if (request.kind === 'managed-shutdown') {
+      if (entry.row.originId === undefined || entry.origin === undefined) {
+        return emptyActionResult(request, 'The managed lifecycle owner is no longer available.', before, mode, currentSessionId, 'managed-owner-unavailable')
+      }
+      try {
+        const result = await options.shutdown(entry.row.originId, { reason: 'Runtime Inspector UI request' })
+        managed = safeManagedOutcome(result)
+        ok = result.ok
+        status = result.ok ? 'completed' : 'failed'
+        detail = result.error ?? result.reason
+      } catch (error) {
+        detail = safeError(error)
+      }
+    } else if (request.kind === 'external-single-pid') {
+      const selection: ExternalTerminationSelection = {
+        owningPid: entry.row.owningPid,
+        processCreatedAt: entry.row.processCreatedAt,
+        executable: entry.row.executable,
+        localPort: entry.row.localPort,
+        protocol: entry.row.protocol,
+        localAddress: entry.row.localAddress,
+        confidence: entry.row.confidence,
+      }
+      try {
+        const result = await options.terminateExternal(selection, { confirmed: true })
+        external = safeExternalOutcome(result)
+        ok = result.ok
+        status = result.ok ? 'completed' : result.status === 'denied' ? 'denied' : 'failed'
+        detail = result.error ?? result.reason
+      } catch (error) {
+        detail = safeError(error)
+      }
+    }
+
+    const after = readInternalScan(options)
+    const released = releasedAfter(entry.row, after.scan)
+    const freshScan = snapshotFrom(after, mode, currentSessionId)
+    const message = actionMessage(publicRow.action.label, status, entry.row.localPort, released, status === 'failed' && detail !== undefined
+      ? `${publicRow.action.label} failed: ${bounded(detail, MAX_DISPLAY_LENGTH)}`
+      : status === 'denied' && detail !== undefined ? bounded(detail, MAX_DISPLAY_LENGTH) : undefined)
+    return Object.freeze({
+      ok,
+      action: request.kind,
+      status,
+      listenerId: request.listenerId,
+      port: entry.row.localPort,
+      ...released === undefined ? {} : { portReleased: released },
+      scanComplete: freshScan.scanComplete,
+      freshScan,
+      message,
+      ...managed === undefined ? {} : { managed },
+      ...external === undefined ? {} : { external },
+    })
+  }
+
+  const rpc: RuntimeInspectorHostRpc = Object.freeze({
+    inventory,
+    copyDetails,
+    openProjectDirectory,
+    performAction,
+  })
+  return Object.freeze({
+    inventory,
+    copyDetails,
+    openProjectDirectory,
+    performAction,
+    rpc,
+  })
+}

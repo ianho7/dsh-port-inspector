@@ -30,6 +30,10 @@ import {
   registerPortListTool,
   type PortListToolExecution,
 } from './port-list.js'
+import {
+  createRuntimeInspectorHost,
+  type RuntimeInspectorHost,
+} from './host-ui.js'
 
 export { evaluateCompatibility, SUPPORTED_DSH_VERSION }
 export type * from './compatibility.js'
@@ -57,6 +61,30 @@ export {
   type PortListOwnership,
   type PortListResult,
 } from './port-list.js'
+export {
+  createRuntimeInspectorHost,
+  type HostActionKind,
+  type HostActionRequest,
+  type HostActionResult,
+  type HostActionState,
+  type HostActionStatus,
+  type HostCopyResult,
+  type HostExternalOutcome,
+  type HostInventoryMode,
+  type HostInventoryQuery,
+  type HostInventorySnapshot,
+  type HostLifecycleOwner,
+  type HostListenerAttribution,
+  type HostListenerRow,
+  type HostManagedOutcome,
+  type HostOpenDirectoryResult,
+  type HostSessionVisibility,
+  type HostSortDirection,
+  type HostSortKey,
+  type RuntimeInspectorHost,
+  type RuntimeInspectorHostOptions,
+  type RuntimeInspectorHostRpc,
+} from './host-ui.js'
 
 export const name = 'dsh-runtime-inspector'
 export const inject = ['tools'] as const
@@ -68,6 +96,8 @@ export interface RuntimeInspectorHealth extends CompatibilitySnapshot {
 export interface RuntimeInspectorService {
   readonly health: RuntimeInspectorHealth
   readonly isActive: () => boolean
+  /** Trusted Host/UI surface; the model-facing `port_list` remains read-only. */
+  readonly host: RuntimeInspectorHost
   readonly origins: () => readonly ProcessOrigin[]
   readonly listeners: () => readonly ListenerRecord[]
   readonly shutdown: (originId: number, options?: LifecycleShutdownOptions) => Promise<ManagedShutdownResult>
@@ -120,6 +150,19 @@ function sessionIdForTool(execution: PortListToolExecution): string | undefined 
   return typeof value === 'string' && value.length > 0 ? value : undefined
 }
 
+function sessionIdForHost(ctx: PluginContext): string | undefined {
+  try {
+    const session = ctx.get?.('session')
+    if (session !== null && typeof session === 'object') {
+      const id = (session as { readonly id?: unknown }).id
+      return typeof id === 'string' && id.length > 0 ? id : undefined
+    }
+  } catch {
+    // Host inventory remains available without a current Session scope.
+  }
+  return undefined
+}
+
 function readSubprocessProbe(ctx: PluginContext): {
   subprocessProvider: string | undefined
   hasSpawn: boolean
@@ -165,6 +208,16 @@ export function apply(ctx: PluginContext): void {
     enabled: () => active && attributionEnabled && snapshot.terminationEnabled,
   })
   const visibleOrigins = (): readonly ProcessOrigin[] => attributionEnabled ? registry.list() : []
+  const host = createRuntimeInspectorHost({
+    scanner,
+    origins: visibleOrigins,
+    mode: () => active && attributionEnabled && snapshot.mode === 'observing'
+      ? 'observing'
+      : 'read-only-degraded',
+    currentSessionId: () => sessionIdForHost(ctx),
+    shutdown: (originId, options) => lifecycle.shutdown(originId, options),
+    terminateExternal: (target, request) => externalTerminator.terminate(target, request),
+  })
   const unregisterPortListTool = registerPortListTool(readToolRegistry(ctx), execution => {
     const origins = visibleOrigins()
     return projectPortList(
@@ -203,6 +256,7 @@ export function apply(ctx: PluginContext): void {
       return Object.freeze({ ...snapshot, lifecycle: active ? 'active' : 'disposed' })
     },
     isActive: () => active,
+    host,
     origins: visibleOrigins,
     listeners: () => scanner.scan(visibleOrigins()),
     shutdown: (originId, options) => lifecycle.shutdown(originId, options),

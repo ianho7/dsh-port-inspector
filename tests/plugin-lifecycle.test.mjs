@@ -27,6 +27,8 @@ test('plugin publishes health and unload only disables its own service', async (
   assert.equal(published[0].service.health.terminationEnabled, false)
   assert.equal(published[0].service.isActive(), true)
   assert.equal(typeof published[0].service.listeners, 'function')
+  assert.equal(typeof published[0].service.host.inventory, 'function')
+  assert.equal(typeof published[0].service.host.performAction, 'function')
   assert.equal(typeof published[0].service.terminateExternal, 'function')
   const externalResult = await published[0].service.terminateExternal({
     owningPid: 123,
