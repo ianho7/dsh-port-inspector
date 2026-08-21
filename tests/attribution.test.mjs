@@ -30,6 +30,30 @@ function serviceFor(pids) {
   }
 }
 
+class LocalTerminalHandle {
+  constructor(pid, started) {
+    this.pid = 0
+    this.rootIdentity = undefined
+    this.done = new Promise(() => {})
+    this.listeners = new Set()
+    this.terminal = {
+      pid: 0,
+      onData: listener => {
+        this.listeners.add(listener)
+        return { dispose: () => this.listeners.delete(listener) }
+      },
+    }
+    this.inspector = {
+      processTree: candidate => candidate === pid ? [{ pid, started }] : [],
+    }
+  }
+
+  ready(pid) {
+    this.terminal.pid = pid
+    for (const listener of [...this.listeners]) listener('READY')
+  }
+}
+
 test('records valid spawn roots with Session/Turn/Step/Call context and redacted command', () => {
   const runtime = new RuntimeAttribution({
     enabled: () => true,
@@ -156,6 +180,39 @@ test('spawn and terminal handles, arguments, cancellation, and tool errors keep 
   assert.equal(returnedTerminal, terminalHandle)
   assert.deepEqual(received, [spawnSpec, { cwd: 'C:\\terminal' }])
   assert.deepEqual(runtime.registry.list().map(origin => origin.rootPid), [220, 221])
+})
+
+test('a delayed Stock DSH Terminal PID is repaired and attributed before spawnTerminal returns', async () => {
+  const terminalHandle = new LocalTerminalHandle(271, '2:71')
+  const runtime = new RuntimeAttribution({
+    enabled: () => true,
+    readIdentity: pid => ({ pid, createdAt: `created-${pid}` }),
+  })
+  const proxy = runtime.decorateSubprocessService({
+    async spawnTerminal() {
+      return terminalHandle
+    },
+  })
+
+  const returnedPromise = runtime.runToolExecution(execution('terminal-delayed', 'start-terminal'), () =>
+    proxy.spawnTerminal({ cwd: 'C:\\terminal', env: { DSH_PTY_SESSION_ID: 'pty-271' } }),
+  )
+  terminalHandle.ready(271)
+  const returned = await returnedPromise
+
+  assert.equal(returned, terminalHandle)
+  assert.equal(returned.pid, 271)
+  assert.deepEqual(runtime.registry.list().map(origin => ({
+    rootPid: origin.rootPid,
+    processCreatedAt: origin.processCreatedAt,
+    callId: origin.callId,
+    terminalSessionId: origin.terminalSessionId,
+  })), [{
+    rootPid: 271,
+    processCreatedAt: 'created-271',
+    callId: 'terminal-delayed',
+    terminalSessionId: 'pty-271',
+  }])
 })
 
 test('nested Code Mode execution inherits the outer Turn and Step while keeping its own call root', () => {

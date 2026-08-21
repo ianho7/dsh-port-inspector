@@ -234,6 +234,37 @@ test('links only first persistent terminal creation and closes it with the exact
   assert.equal(terminals.sessions.length, 0)
 })
 
+test('Stock-style uninjected lifecycle properties fall back to the public service lookup', async () => {
+  const registry = new ProcessOriginRegistry()
+  const lifecycle = new LifecycleOwnerRegistry(registry)
+  const terminals = makeTerminals()
+  const agent = makeAgent({ terminals })
+  Object.defineProperties(agent.ctx, {
+    jobs: { get: () => { throw new Error('jobs is not injected') } },
+    terminals: { get: () => { throw new Error('terminals is not injected') } },
+  })
+  const runtime = new RuntimeAttribution({
+    registry,
+    lifecycle,
+    enabled: () => true,
+    readIdentity: pid => ({ pid, createdAt: `created-${pid}` }),
+  })
+  const proxy = runtime.decorateSubprocessService({
+    async spawnTerminal() {
+      return { pid: 611 }
+    },
+  })
+
+  await runtime.runToolExecution(execution(agent, 'stock-terminal'), async () => {
+    const handle = await proxy.spawnTerminal({ env: { DSH_PTY_SESSION_ID: 'pty-stock' } })
+    terminals.sessions.push({ owner: agent, sessionId: 'pty-stock', pid: handle.pid, status: { kind: 'running' } })
+    return { value: { kind: 'foreground' } }
+  })
+
+  const origin = registry.list()[0]
+  assert.equal(lifecycle.bindingFor(origin.id)?.ownerId, 'pty-stock')
+})
+
 test('managed shutdown is owner-fenced and never escalates after Job failure', async () => {
   const registry = new ProcessOriginRegistry()
   const lifecycle = new LifecycleOwnerRegistry(registry)

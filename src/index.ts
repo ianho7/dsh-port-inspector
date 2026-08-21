@@ -2,6 +2,7 @@ import { platform } from 'node:process'
 import {
   evaluateCompatibility,
   SUPPORTED_DSH_VERSION,
+  SUPPORTED_DSH_VERSIONS,
   type CompatibilitySnapshot,
 } from './compatibility.js'
 import {
@@ -114,7 +115,7 @@ interface PluginContext {
     register(definition: unknown): () => void
   }
   get?(name: string): unknown
-  on?(name: string, listener: (...args: unknown[]) => unknown): unknown
+  on?(name: string, listener: (...args: unknown[]) => unknown, options?: { readonly global?: boolean }): unknown
   effect(factory: () => void | (() => void | Promise<void>), label?: string): void
 }
 
@@ -133,7 +134,15 @@ function readSubprocessService(ctx: PluginContext): unknown {
 }
 
 function readToolRegistry(ctx: PluginContext): PluginContext['tools'] {
-  if (ctx.tools !== undefined) return ctx.tools
+  try {
+    // Stock Bundle composition does not inject every service property even
+    // when the service is available through the public lookup API. Accessing
+    // an uninjected Cordis property throws, so probe it inside the same
+    // containment boundary as the fallback lookup.
+    if (ctx.tools !== undefined) return ctx.tools
+  } catch {
+    // Continue with the public service lookup below.
+  }
   try {
     const tools = ctx.get?.('tools')
     if (tools !== null && typeof tools === 'object' && typeof (tools as { register?: unknown }).register === 'function') {
@@ -197,6 +206,7 @@ export function apply(ctx: PluginContext): void {
     platform,
     detectedDshVersion: readInstalledDshVersion(),
     expectedDshVersion: SUPPORTED_DSH_VERSION,
+    compatibleDshVersions: SUPPORTED_DSH_VERSIONS,
     hasObserverContract: observer.available,
     ...subprocess,
   })
@@ -218,7 +228,7 @@ export function apply(ctx: PluginContext): void {
     shutdown: (originId, options) => lifecycle.shutdown(originId, options),
     terminateExternal: (target, request) => externalTerminator.terminate(target, request),
   })
-  const unregisterPortListTool = registerPortListTool(readToolRegistry(ctx), execution => {
+  const readPortList = (execution: PortListToolExecution) => {
     const origins = visibleOrigins()
     return projectPortList(
       scanner.scanWithStatus(origins),
@@ -226,7 +236,26 @@ export function apply(ctx: PluginContext): void {
       sessionIdForTool(execution),
       active && attributionEnabled ? snapshot.mode : 'read-only-degraded',
     )
-  })
+  }
+  let unregisterPortListTool: (() => void) | undefined
+  const registerPortListWhenAvailable = (registry: PluginContext['tools']): void => {
+    if (unregisterPortListTool !== undefined) return
+    unregisterPortListTool = registerPortListTool(registry, readPortList)
+  }
+  registerPortListWhenAvailable(readToolRegistry(ctx))
+  let unregisterToolServiceObserver: (() => void) | undefined
+  if (typeof ctx.on === 'function') {
+    try {
+      const disposer = ctx.on('internal/service', (serviceName, value) => {
+        if (serviceName !== 'tools' || value === null || typeof value !== 'object') return
+        if (typeof (value as { readonly register?: unknown }).register !== 'function') return
+        registerPortListWhenAvailable(value as PluginContext['tools'])
+      }, { global: true })
+      if (typeof disposer === 'function') unregisterToolServiceObserver = disposer as () => void
+    } catch {
+      // Initial lookup remains authoritative when the publication observer is unavailable.
+    }
+  }
   const syncProviderFallback = (): void => {
     if (snapshot.verifiedAttributionEnabled) attribution.patchSubprocessProvider(readSubprocessService(ctx))
     else attribution.disableProviderPatches()
@@ -240,6 +269,7 @@ export function apply(ctx: PluginContext): void {
       platform,
       detectedDshVersion: readInstalledDshVersion(),
       expectedDshVersion: SUPPORTED_DSH_VERSION,
+      compatibleDshVersions: SUPPORTED_DSH_VERSIONS,
       hasObserverContract: observer.available,
       ...probe,
     })
@@ -267,6 +297,7 @@ export function apply(ctx: PluginContext): void {
   ctx.effect(() => () => {
     active = false
     attributionEnabled = false
+    unregisterToolServiceObserver?.()
     unregisterPortListTool?.()
     if (retryTimer !== undefined) clearTimeout(retryTimer)
     attribution.dispose()

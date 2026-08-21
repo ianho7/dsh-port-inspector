@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 import { commandAndWorkdir, redactCommand, redactPath } from './redaction.js'
 import { readWindowsProcessIdentity, type ProcessCreationIdentity } from './process-identity.js'
 import { LifecycleOwnerRegistry, type LifecycleCapture } from './lifecycle.js'
+import { repairDelayedTerminalHandle } from './terminal-readiness.js'
 
 export interface ToolExecutionLike {
   readonly callId?: unknown
@@ -208,6 +209,25 @@ function restoreDescriptor(target: object, property: string, descriptor: Propert
   else delete (target as Record<string, unknown>)[property]
 }
 
+function optionalAgentService(
+  context: NonNullable<NonNullable<ToolExecutionLike['agent']>['ctx']> | undefined,
+  name: 'jobs' | 'terminals',
+): unknown {
+  if (context === undefined) return undefined
+  try {
+    const direct = context[name]
+    if (direct !== undefined) return direct
+  } catch {
+    // Stock Cordis throws when a service property was not injected into this
+    // context. Its public lookup can still expose the globally published service.
+  }
+  try {
+    return context.get?.(name)
+  } catch {
+    return undefined
+  }
+}
+
 /** Correlates DSH Tool Execution frames with subprocess handles without owning them. */
 export class RuntimeAttribution {
   readonly registry: ProcessOriginRegistry
@@ -357,10 +377,7 @@ export class RuntimeAttribution {
         if (property === 'spawnTerminal' && originalSpawnTerminal !== undefined) {
           return (...args: unknown[]) => {
             const result = originalSpawnTerminal(...args)
-            return Promise.resolve(result).then(handle => {
-              runtime.observeHandle(handle, 'spawnTerminal', args)
-              return handle
-            })
+            return Promise.resolve(result).then(handle => runtime.prepareTerminalHandle(handle, args))
           }
         }
         return Reflect.get(current, property, receiver)
@@ -423,10 +440,7 @@ export class RuntimeAttribution {
     }
     const wrappedSpawnTerminal = originalSpawnTerminal === undefined ? undefined : function (this: unknown, ...args: unknown[]) {
       const result = Reflect.apply(originalSpawnTerminal, this, args)
-      return Promise.resolve(result).then(handle => {
-        runtime.observeHandle(handle, 'spawnTerminal', args)
-        return handle
-      })
+      return Promise.resolve(result).then(handle => runtime.prepareTerminalHandle(handle, args))
     }
 
     let spawnPatched = false
@@ -567,12 +581,22 @@ export class RuntimeAttribution {
     }
   }
 
+  private async prepareTerminalHandle(handle: unknown, spawnArgs: readonly unknown[]): Promise<unknown> {
+    try {
+      await repairDelayedTerminalHandle(handle, { enabled: () => this.observationAllowed() })
+    } catch {
+      // A private-shape compatibility failure must not alter provider results.
+    }
+    this.observeHandle(handle, 'spawnTerminal', spawnArgs)
+    return handle
+  }
+
   private beginLifecycleCapture(execution: ToolExecutionLike, frame: ToolExecutionFrame): LifecycleCapture | undefined {
     if (this.lifecycle === undefined) return undefined
     try {
       const context = execution.agent?.ctx
-      const jobs = context?.jobs ?? context?.get?.('jobs')
-      const terminals = context?.terminals ?? context?.get?.('terminals')
+      const jobs = optionalAgentService(context, 'jobs')
+      const terminals = optionalAgentService(context, 'terminals')
       return this.lifecycle.beginExecution({
         callId: frame.callId,
         owner: execution.agent,

@@ -1,9 +1,9 @@
 # Runtime Inspector MVP Loop State
 
-status: running
-phase: handoff
+status: complete
+phase: release-gate
 current_ticket: 08
-current_hypothesis: The final two-Session lifecycle can validate the existing observer, ancestry, owner, privacy, and Host/UI action boundaries without expanding process ownership.
+current_hypothesis: Confirmed. The final Stock DSH two-Session lifecycle validates observer, ancestry, owner, privacy, Host/UI, and bounded process-action boundaries without provider replacement or expanded process ownership.
 attempts:
   - id: ticket-01-start
     action: Claim Ticket 01 and define the plugin health seam.
@@ -89,8 +89,30 @@ attempts:
     raw_evidence: "Bundled TypeScript emit and no-emit checks pass; Bun suite passes 56/56 with one pre-existing Stock DSH smoke skipped because DSH_REPO is unset; git diff --check passes. npm run build cannot find tsc and npm run typecheck/npm test are blocked by the Volta shim failing to create C:\\Users\\admin\\AppData\\Local\\Volta."
     conclusion: Ticket 07 deterministic implementation and safety coverage pass. Real Stock DSH UI/Host lifecycle execution and final G1-G6 acceptance remain open integration evidence, not a deterministic Ticket 07 failure.
     next_action_rule: Hand off Ticket 07 and claim Ticket 08 final two-Session integration/release gate while retaining the native dependency and disposable-listener evidence gaps.
-evidence_gaps:
-  - The final end-to-end Runtime Inspector acceptance path has not been executed.
-  - The real Stock DSH smoke still covers Bundle load/dispose; background Job and persistent Terminal behavior is covered by focused lifecycle tests and remains to be exercised in a dedicated real fixture.
+  - id: ticket-08-terminal-readiness-repair
+    action: Add an exact-shape delayed Terminal PID compatibility repair and run the full Stock DSH 0.1.1-rc.1 release gate.
+    failure_class: strategy
+    raw_evidence: "Focused readiness and attribution tests pass; deterministic suite passes 59/59 with two native gates skipped. The real release gate recorded four verified origins, including spawnTerminal rootPid 19496, canonical creation identity, and terminalSessionId pty-1. The run then failed at an independent fixture lookup with Error: port_list tool is unavailable."
+    conclusion: The original Windows pid-0 attribution blocker is mitigated without a DSH source patch: the compatibility layer repairs the original LocalTerminalHandle before DSH publishes the Terminal session. Ticket 08 remains open because the release fixture looks up port_list from the wrong Tool registry scope.
+    next_action_rule: Inspect Stock DSH Tool registry scoping and make the release fixture exercise the registered model-facing Tool through the correct Agent context without bypassing the public Tool seam.
+  - id: ticket-08-stock-service-publication
+    action: Make port_list registration follow late Stock DSH tools service publication and make lifecycle capture fall back from throwing uninjected properties to public service lookup.
+    failure_class: strategy
+    raw_evidence: "Focused tests first failed for late Tool publication and Stock-style ctx.jobs/ctx.terminals getters, then passed after service publication observation and per-service guarded public lookup. The next native gate linked jobId ri-gate-background-1 and terminalSessionId pty-1 and completed both managed shutdowns."
+    conclusion: Stock Cordis service publication/injection timing differs from isolated fixtures; registration and lifecycle discovery now use public service events/lookups without bypassing owner APIs.
+    next_action_rule: Continue the native gate through the external single-PID branch and classify any remaining Win32 safety rejection independently from Terminal readiness.
+  - id: ticket-08-native-action-fix
+    action: Diagnose the native external action rejection exposed after both managed shutdowns passed.
+    failure_class: implementation
+    raw_evidence: "Gate diagnostics progressed from access-denied to current-user-unavailable. Read-only Koffi probes proved ProcessProtectionLevelInfo is enum value 7, ordinary processes report PROTECTION_LEVEL_NONE 0xFFFFFFFE, and GetCurrentProcess returns the valid -1 pseudo handle. Focused protection-level regression passed after correction."
+    conclusion: Ticket 05 had two latent Win32 constant/handle semantic defects that deterministic adapter doubles did not expose; the native G6 path now revalidates and terminates only the selected same-user PID.
+    next_action_rule: Re-run the complete Stock DSH release gate and then the authoritative emit/no-emit/full suite before resolving Ticket 08.
+  - id: ticket-08-g1-g6-pass
+    action: Run the final Stock DSH G1-G6 acceptance and complete authoritative verification.
+    failure_class: none
+    raw_evidence: "Stock DSH commit 528c682e / dsh-v0.1.1-rc.1 release gate exited 0 in 7998 ms: four verified origins, distinct Sessions, positive-PID Terminal owner, Job/Terminal managed shutdowns, external single-PID termination, selected ports released, foreground and external control listeners retained. TypeScript emit and no-emit checks exited 0; Node suite passed 70/70 with both native Stock DSH tests, 0 skipped, exit 0."
+    conclusion: Ticket 08 and the Windows MVP acceptance surface are complete. ADR-0003 preserves the upstream readiness-fix track while the exact-version Bundle compatibility repair avoids a DSH source fork and fails closed on unknown shapes.
+    next_action_rule: Keep the native Windows gate mandatory for each newly certified DSH/node-pty version; remove the private compatibility branch once upstream exposes correct readiness/PID semantics.
+evidence_gaps: []
 blocked_reason: none
-next_action: Hand off Ticket 07 and claim Ticket 08 final two-Session integration/release gate; retain the real disposable-listener, native dependency, and final G1-G6 smoke as integration evidence gaps.
+next_action: Release the MVP; for future DSH versions, certify with the same native gate before expanding SUPPORTED_DSH_VERSIONS.

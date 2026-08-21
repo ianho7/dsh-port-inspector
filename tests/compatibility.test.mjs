@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { evaluateCompatibility, SUPPORTED_DSH_VERSION } from '../lib/compatibility.js'
+import {
+  evaluateCompatibility,
+  SUPPORTED_DSH_VERSION,
+  SUPPORTED_DSH_VERSIONS,
+} from '../lib/compatibility.js'
 
 const supported = {
   platform: 'win32',
@@ -19,6 +23,17 @@ test('supported Stock DSH Windows local probe activates observing mode', () => {
   assert.equal(result.verifiedAttributionEnabled, true)
   assert.equal(result.terminationEnabled, true)
   assert.equal(result.reason, undefined)
+})
+
+test('a separately certified follow-up DSH release activates without dropping the rc.8 baseline', () => {
+  const result = evaluateCompatibility({
+    ...supported,
+    detectedDshVersion: '0.1.1-rc.1',
+    compatibleDshVersions: SUPPORTED_DSH_VERSIONS,
+  })
+  assert.deepEqual(SUPPORTED_DSH_VERSIONS, ['0.1.0-rc.8', '0.1.1-rc.1'])
+  assert.equal(result.mode, 'observing')
+  assert.equal(result.expectedDshVersion, '0.1.0-rc.8')
 })
 
 test('unknown DSH version fails closed to read-only degraded mode', () => {

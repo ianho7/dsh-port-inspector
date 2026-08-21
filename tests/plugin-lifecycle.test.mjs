@@ -110,3 +110,69 @@ test('the model-facing port_list tool is registered read-only and removed on unl
   await effects[0]()
   assert.equal(unregistered, true)
 })
+
+test('Stock-style uninjected tools property falls back to public service lookup', async () => {
+  const effects = []
+  const definitions = []
+  const tools = {
+    register(definition) {
+      definitions.push(definition)
+      return () => {}
+    },
+  }
+  const context = {
+    get(name) {
+      return name === 'tools' ? tools : undefined
+    },
+    get tools() {
+      throw new Error('cannot get property "tools" without inject')
+    },
+    provide() {},
+    effect(factory) {
+      effects.push(factory())
+    },
+  }
+
+  apply(context)
+
+  assert.equal(definitions.length, 1)
+  assert.equal(definitions[0].name, 'port_list')
+  await effects[0]()
+})
+
+test('port_list registers when the Stock DSH tools service is published after Bundle apply', async () => {
+  const effects = []
+  const listeners = new Map()
+  const definitions = []
+  let unregistered = false
+  const context = {
+    provide() {},
+    get() {
+      return undefined
+    },
+    on(name, listener) {
+      if (!listeners.has(name)) listeners.set(name, [])
+      listeners.get(name).push(listener)
+      return () => listeners.get(name)?.splice(listeners.get(name).indexOf(listener), 1)
+    },
+    effect(factory) {
+      effects.push(factory())
+    },
+  }
+
+  apply(context)
+  assert.equal(definitions.length, 0)
+
+  const tools = {
+    register(definition) {
+      definitions.push(definition)
+      return () => { unregistered = true }
+    },
+  }
+  for (const listener of listeners.get('internal/service') ?? []) listener('tools', tools)
+
+  assert.equal(definitions.length, 1)
+  assert.equal(definitions[0].name, 'port_list')
+  await effects[0]()
+  assert.equal(unregistered, true)
+})

@@ -70,7 +70,8 @@ const PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
 const SYNCHRONIZE = 0x00100000
 const TOKEN_QUERY = 0x0008
 const TOKEN_USER = 1
-const PROCESS_PROTECTION_LEVEL_INFO = 12
+const PROCESS_PROTECTION_LEVEL_INFO = 7
+const PROTECTION_LEVEL_NONE = 0xFFFFFFFE
 const MAX_IMAGE_LENGTH = 32_768
 const MAX_TOKEN_INFO_LENGTH = 64 * 1024
 const SYSTEM_SID = 'S-1-5-18'
@@ -212,7 +213,13 @@ function readProtection(state: NativeProcessActions, handle: unknown): boolean |
   if (Number(bindings.getProcessInformation(handle, PROCESS_PROTECTION_LEVEL_INFO, info, protectionInfo.size)) !== 1) return undefined
   const value = recordValue(koffi.decode(info, protectionInfo))
   const level = Number(value?.ProtectionLevel)
-  return Number.isSafeInteger(level) ? level !== 0 : undefined
+  return isWindowsProtectedProcessLevel(level)
+}
+
+/** Interpret Win32 PROCESS_PROTECTION_LEVEL_INFORMATION without treating NONE as PPL. */
+export function isWindowsProtectedProcessLevel(level: unknown): boolean | undefined {
+  if (typeof level !== 'number' || !Number.isSafeInteger(level) || level < 0 || level > 0xFFFFFFFF) return undefined
+  return level !== PROTECTION_LEVEL_NONE
 }
 
 function readSid(state: NativeProcessActions, token: unknown): string | undefined {
@@ -275,8 +282,9 @@ class WindowsExternalProcessAdapter implements ExternalProcessAdapter {
 
   currentUserId(): string | undefined {
     try {
+      // GetCurrentProcess returns the documented -1 pseudo handle. It is a
+      // valid OpenProcessToken input even though it is not a closable handle.
       const process = this.state.bindings.getCurrentProcess()
-      if (!validHandle(process)) return undefined
       return readTokenSid(this.state, process)
     } catch {
       return undefined
