@@ -27,6 +27,13 @@ test('plugin publishes health and unload only disables its own service', async (
   assert.equal(published[0].service.health.terminationEnabled, false)
   assert.equal(published[0].service.isActive(), true)
   assert.equal(typeof published[0].service.listeners, 'function')
+  assert.equal(typeof published[0].service.terminateExternal, 'function')
+  const externalResult = await published[0].service.terminateExternal({
+    owningPid: 123,
+    processCreatedAt: '1000',
+    executable: 'node.exe',
+  }, { confirmed: true })
+  assert.equal(externalResult.reason, 'compatibility-disabled')
   assert.equal(effects.length, 1)
 
   await effects[0]()
@@ -50,7 +57,7 @@ test('a registered Cordis observer contract is reported even when another gate f
       }
     },
     on(name, listener) {
-      assert.ok(['internal/get', 'tools/execute', 'session/event', 'internal/service'].includes(name))
+      assert.ok(['internal/get', 'tools/execute', 'tools/result', 'session/event', 'internal/service'].includes(name))
       assert.equal(typeof listener, 'function')
       return () => {}
     },

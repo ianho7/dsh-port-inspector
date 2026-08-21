@@ -14,9 +14,33 @@ import {
 import { readInstalledDshVersion } from './version.js'
 import { readWindowsProcessIdentity } from './process-identity.js'
 import { createWindowsListenerScanner, type ListenerRecord } from './windows-scanner.js'
+import {
+  LifecycleOwnerRegistry,
+  type LifecycleShutdownOptions,
+  type ManagedShutdownResult,
+} from './lifecycle.js'
+import {
+  ExternalProcessTerminator,
+  type ExternalTerminationRequest,
+  type ExternalTerminationResult,
+  type ExternalTerminationSelection,
+} from './external-termination.js'
 
 export { evaluateCompatibility, SUPPORTED_DSH_VERSION }
 export type * from './compatibility.js'
+export {
+  ExternalProcessTerminator,
+  type ExternalTerminationOptions,
+  type ExternalTerminationRequest,
+  type ExternalTerminationResult,
+  type ExternalTerminationSelection,
+} from './external-termination.js'
+export {
+  createWindowsExternalProcessAdapter,
+  type ExternalProcessAdapter,
+  type ExternalProcessLease,
+  type ExternalProcessSnapshot,
+} from './process-actions.js'
 
 export const name = 'dsh-runtime-inspector'
 
@@ -29,6 +53,12 @@ export interface RuntimeInspectorService {
   readonly isActive: () => boolean
   readonly origins: () => readonly ProcessOrigin[]
   readonly listeners: () => readonly ListenerRecord[]
+  readonly shutdown: (originId: number, options?: LifecycleShutdownOptions) => Promise<ManagedShutdownResult>
+  /** Direct external action; deliberately separate from managed shutdown. */
+  readonly terminateExternal: (
+    target: ExternalTerminationSelection,
+    request?: ExternalTerminationRequest,
+  ) => Promise<ExternalTerminationResult>
 }
 
 interface PluginContext {
@@ -70,9 +100,11 @@ function readSubprocessProbe(ctx: PluginContext): {
 export function apply(ctx: PluginContext): void {
   let attributionEnabled = false
   const registry = new ProcessOriginRegistry()
+  const lifecycle = new LifecycleOwnerRegistry(registry)
   const scanner = createWindowsListenerScanner()
   const attribution = new RuntimeAttribution({
     registry,
+    lifecycle,
     enabled: () => attributionEnabled,
     readIdentity: readWindowsProcessIdentity,
   })
@@ -89,6 +121,11 @@ export function apply(ctx: PluginContext): void {
   })
   attributionEnabled = snapshot.verifiedAttributionEnabled
   let active = true
+  const externalTerminator = new ExternalProcessTerminator({
+    scanner,
+    origins: () => registry.list(),
+    enabled: () => active && attributionEnabled && snapshot.terminationEnabled,
+  })
   const syncProviderFallback = (): void => {
     if (snapshot.verifiedAttributionEnabled) attribution.patchSubprocessProvider(readSubprocessService(ctx))
     else attribution.disableProviderPatches()
@@ -120,6 +157,8 @@ export function apply(ctx: PluginContext): void {
     isActive: () => active,
     origins: () => registry.list(),
     listeners: () => scanner.scan(registry.list()),
+    shutdown: (originId, options) => lifecycle.shutdown(originId, options),
+    terminateExternal: (target, request) => externalTerminator.terminate(target, request),
   }
   ctx.provide('runtimeInspector', service)
   refresh(0)
@@ -128,6 +167,7 @@ export function apply(ctx: PluginContext): void {
     attributionEnabled = false
     if (retryTimer !== undefined) clearTimeout(retryTimer)
     attribution.dispose()
+    lifecycle.dispose()
     observer.dispose?.()
   }, 'runtime inspector lifecycle')
 }

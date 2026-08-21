@@ -42,11 +42,19 @@ export interface ListenerRecord extends WindowsTcpListener, AncestryMatch {
   readonly executable?: string
   /** Best available project signal; for verified/inferred rows this is the origin workdir. */
   readonly project?: string
+  readonly jobId?: string
+  readonly terminalSessionId?: string
 }
 
 export interface WindowsScannerInternals {
   listListeners(): readonly WindowsTcpListener[]
   listProcesses(): readonly WindowsProcessRecord[]
+}
+
+export interface WindowsListenerScan {
+  readonly rows: readonly ListenerRecord[]
+  /** False means the listener command itself failed; an empty row set is not a release proof. */
+  readonly complete: boolean
 }
 
 const DEFAULT_LISTENER_LIMIT = 4_096
@@ -209,13 +217,17 @@ export class WindowsListenerScanner {
   }
 
   scan(origins: readonly ProcessOrigin[] = []): ListenerRecord[] {
+    return [...this.scanWithStatus(origins).rows]
+  }
+
+  scanWithStatus(origins: readonly ProcessOrigin[] = []): WindowsListenerScan {
     let listeners: readonly WindowsTcpListener[] = []
     let processes: readonly WindowsProcessRecord[] = []
     try {
       const value = this.internals.listListeners()
       listeners = Array.isArray(value) ? value : []
     } catch {
-      return []
+      return Object.freeze({ rows: Object.freeze([]), complete: false })
     }
     try {
       const value = this.internals.listProcesses()
@@ -239,10 +251,12 @@ export class WindowsListenerScanner {
         processCreatedAt: process?.processCreatedAt,
         executable: boundedString(process?.executable, MAX_EXECUTABLE_LENGTH),
         project: boundedString(origin?.workdir, MAX_ADDRESS_LENGTH),
+        ...origin?.jobId === undefined ? {} : { jobId: origin.jobId },
+        ...origin?.terminalSessionId === undefined ? {} : { terminalSessionId: origin.terminalSessionId },
         ...match,
       }))
     }
-    return rows
+    return Object.freeze({ rows: Object.freeze(rows), complete: true })
   }
 }
 

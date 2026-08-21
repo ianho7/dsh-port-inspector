@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { commandAndWorkdir, redactCommand } from './redaction.js'
 import { readWindowsProcessIdentity, type ProcessCreationIdentity } from './process-identity.js'
+import { LifecycleOwnerRegistry, type LifecycleCapture } from './lifecycle.js'
 
 export interface ToolExecutionLike {
   readonly callId?: unknown
@@ -11,7 +12,12 @@ export interface ToolExecutionLike {
   readonly arguments?: unknown
   readonly agent?: {
     readonly id?: unknown
-    readonly ctx?: { readonly get?: (name: string) => unknown; readonly subprocess?: unknown }
+    readonly ctx?: {
+      readonly get?: (name: string) => unknown
+      readonly subprocess?: unknown
+      readonly jobs?: unknown
+      readonly terminals?: unknown
+    }
     readonly session?: {
       readonly id?: unknown
       readonly header?: { readonly cwd?: unknown }
@@ -33,6 +39,8 @@ export interface ProcessOrigin {
   readonly command?: string
   readonly workdir?: string
   readonly kind: 'spawn' | 'spawnTerminal'
+  readonly jobId?: string
+  readonly terminalSessionId?: string
   readonly observedAt: number
 }
 
@@ -71,6 +79,16 @@ export class ProcessOriginRegistry implements ProcessOriginRegistryApi {
     return this.entries.find(entry => entry.id === id)?.handle
   }
 
+  update(id: number, patch: { readonly jobId?: string; readonly terminalSessionId?: string }): ProcessOrigin | undefined {
+    const index = this.entries.findIndex(entry => entry.id === id)
+    if (index < 0) return undefined
+    const current = this.entries[index]
+    const updated: ProcessOriginEntry = Object.freeze({ ...current, ...patch })
+    this.entries[index] = updated
+    const { handle: _handle, ...origin } = updated
+    return origin
+  }
+
   record(input: Omit<ProcessOrigin, 'id' | 'observedAt'> & { handle: unknown }): ProcessOrigin | undefined {
     if (!Number.isSafeInteger(input.rootPid) || input.rootPid <= 0 || input.processCreatedAt.length === 0) return undefined
     const duplicate = this.entries.find(entry => entry.handle === input.handle)
@@ -104,6 +122,7 @@ export interface RuntimeAttributionOptions {
   readonly enabled: () => boolean
   readonly readIdentity?: (pid: number) => ProcessCreationIdentity | undefined
   readonly registry?: ProcessOriginRegistry
+  readonly lifecycle?: LifecycleOwnerRegistry
 }
 
 interface ToolExecutionFrame {
@@ -124,6 +143,7 @@ interface SubprocessHandleLike {
 
 interface SubprocessSpawnSpecLike {
   readonly cwd?: unknown
+  readonly env?: unknown
 }
 
 interface SubprocessServiceLike {
@@ -134,6 +154,10 @@ interface SubprocessServiceLike {
 interface SessionEventLike {
   readonly type?: unknown
   readonly data?: unknown
+}
+
+interface ToolResultLike {
+  readonly value?: unknown
 }
 
 function stringValue(value: unknown): string | undefined {
@@ -148,6 +172,12 @@ function recordValue(value: unknown): Record<string, unknown> | undefined {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
     : undefined
+}
+
+function extractJobId(value: unknown): string | undefined {
+  const outer = recordValue(value)
+  const candidate = recordValue(outer?.value) ?? outer
+  return stringValue(candidate?.jobId)
 }
 
 function sessionKey(sessionId: string | undefined, callId: string): string {
@@ -186,6 +216,8 @@ export class RuntimeAttribution {
   private readonly proxies = new WeakMap<object, object>()
   private readonly enabled: () => boolean
   private readonly readIdentity: (pid: number) => ProcessCreationIdentity | undefined
+  private readonly lifecycle?: LifecycleOwnerRegistry
+  private readonly resultJobIds = new Map<string, string>()
   private readonly providerDisposers = new WeakMap<object, () => void>()
   private readonly providerDisposerSet = new Set<() => void>()
   private active = true
@@ -194,6 +226,7 @@ export class RuntimeAttribution {
     this.registry = options.registry ?? new ProcessOriginRegistry()
     this.enabled = options.enabled
     this.readIdentity = options.readIdentity ?? readWindowsProcessIdentity
+    this.lifecycle = options.lifecycle
   }
 
   /** Observe a synchronous Session `tool/call` publication before Tool Execution dispatch. */
@@ -238,12 +271,69 @@ export class RuntimeAttribution {
     } catch {
       return next()
     }
-    return frame === undefined ? next() : this.storage.run(frame, next)
+    if (frame === undefined) return next()
+    const lifecycle = this.beginLifecycleCapture(execution, frame)
+    let result: T
+    try {
+      result = this.storage.run(frame, () => lifecycle === undefined ? next() : lifecycle.run(next))
+    } catch (error) {
+      lifecycle?.abort()
+      throw error
+    }
+    if (result !== null && typeof result === 'object' && typeof (result as { then?: unknown }).then === 'function') {
+      return Promise.resolve(result).then(
+        value => {
+          const key = sessionKey(frame.sessionId, frame.callId)
+          const structuredJobId = this.resultJobIds.get(key) ?? extractJobId(value)
+          this.resultJobIds.delete(key)
+          try {
+            lifecycle?.finish(structuredJobId)
+          } catch {
+            lifecycle?.abort()
+          }
+          return value
+        },
+        error => {
+          this.resultJobIds.delete(sessionKey(frame.sessionId, frame.callId))
+          lifecycle?.abort()
+          throw error
+        },
+      ) as T
+    }
+    const key = sessionKey(frame.sessionId, frame.callId)
+    const structuredJobId = this.resultJobIds.get(key) ?? extractJobId(result)
+    this.resultJobIds.delete(key)
+    try {
+      lifecycle?.finish(structuredJobId)
+    } catch {
+      lifecycle?.abort()
+    }
+    return result
   }
 
   /** Read the current frame for tests and future managed-lifecycle joins. */
   currentFrame(): Readonly<ToolExecutionFrame> | undefined {
     return this.storage.getStore()
+  }
+
+  /** Observe the immutable tools/result outcome for the Job cross-check. */
+  observeToolResult(execution: unknown, result: unknown): void {
+    try {
+      const value = recordValue(execution)
+      const callId = stringValue(value?.callId)
+      const agent = recordValue(value?.agent)
+      const session = recordValue(agent?.session)
+      const sessionId = stringValue(session?.id) ?? stringValue(agent?.id)
+      const jobId = extractJobId(result)
+      if (callId === undefined || sessionId === undefined || jobId === undefined) return
+      if (this.resultJobIds.size >= DEFAULT_CALL_LIMIT) {
+        const oldest = this.resultJobIds.keys().next().value
+        if (typeof oldest === 'string') this.resultJobIds.delete(oldest)
+      }
+      this.resultJobIds.set(sessionKey(sessionId, callId), jobId)
+    } catch {
+      // Final-result observation is best-effort and never changes the tool result.
+    }
   }
 
   /** Wrap only subprocess spawn methods; every other property and identity passes through unchanged. */
@@ -396,6 +486,7 @@ export class RuntimeAttribution {
   /** Stop recording while leaving every cached Proxy as a pass-through wrapper. */
   dispose(): void {
     this.active = false
+    this.resultJobIds.clear()
     this.disableProviderPatches()
   }
 
@@ -452,6 +543,7 @@ export class RuntimeAttribution {
         return
       }
       const spec = recordValue(spawnArgs[0]) as SubprocessSpawnSpecLike | undefined
+      const terminalSessionId = kind === 'spawnTerminal' ? stringValue(recordValue(spec?.env)?.DSH_PTY_SESSION_ID) : undefined
       this.registry.record({
         handle,
         rootPid: pid,
@@ -466,11 +558,29 @@ export class RuntimeAttribution {
         command: frame.command,
         workdir: stringValue(spec?.cwd) ?? frame.workdir,
         kind,
+        ...terminalSessionId === undefined ? {} : { terminalSessionId },
       })
     } catch {
       // Observation must never change provider behavior, including when a
       // native identity reader or registry implementation fails unexpectedly.
       return
+    }
+  }
+
+  private beginLifecycleCapture(execution: ToolExecutionLike, frame: ToolExecutionFrame): LifecycleCapture | undefined {
+    if (this.lifecycle === undefined) return undefined
+    try {
+      const context = execution.agent?.ctx
+      const jobs = context?.jobs ?? context?.get?.('jobs')
+      const terminals = context?.terminals ?? context?.get?.('terminals')
+      return this.lifecycle.beginExecution({
+        callId: frame.callId,
+        owner: execution.agent,
+        jobs,
+        terminals,
+      })
+    } catch {
+      return undefined
     }
   }
 }
@@ -508,6 +618,16 @@ export function installRuntimeObservers(
     }, { global: true })
     if (typeof tool !== 'function') throw new Error('tools/execute observer did not return a disposer')
     disposers.push(tool as () => void)
+    const result = ctx.on('tools/result', (execution, value) => {
+      try {
+        runtime.observeToolResult(execution, value)
+      } catch {
+        // Result correlation is diagnostic-only and must not affect dispatch.
+      }
+      return undefined
+    }, { global: true })
+    if (typeof result !== 'function') throw new Error('tools/result observer did not return a disposer')
+    disposers.push(result as () => void)
     // Session events are published by agent/session-owned child contexts. The
     // observer must be global so a root-level plugin sees every session while
     // still retaining the session object as the attribution key.
