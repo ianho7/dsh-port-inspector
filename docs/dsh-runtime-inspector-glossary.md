@@ -17,7 +17,7 @@
 | Lifecycle owner | 对进程拥有受管关闭语义的 DSH Job 或 Terminal | 已知时优先通过 owner 关闭，而不是直接杀一个后代 PID |
 | Persistent PowerShell | 多次 Tool Call 复用的同一个 PowerShell terminal | 只保证首次 terminal 创建的 Call 级精确归因 |
 | Provider | 为 `ctx.subprocess`、shell 等能力提供具体实现的 DSH 服务插件 | 替换 provider 可能改变所有消费者的资源所有权与卸载行为 |
-| Subprocess observer Proxy | 方案 D 在一次 `ctx.subprocess` lookup 外临时返回的透明代理 | 只观察 `spawn`/`spawnTerminal`，不修改或替换 provider，不拥有进程资源 |
+| Subprocess observer Proxy / local fallback | 方案 D 的两层观察入口：lookup 外的透明代理，以及 stock lookup 绕过 waterfall 时对已验证 `LocalSubprocessRuntime` 方法的可逆包装 | 两者只观察 `spawn`/`spawnTerminal`，不替换 provider、不取得进程资源；fallback 只在兼容性 gate 通过时安装并以 CAS 恢复 |
 | Managed shutdown | 通过 DSH Job/Terminal owner 的公开生命周期 API 关闭资源 | Job 使用 kill + wait；Terminal kill 会等待其进程树收敛 |
 | Direct external termination | 通过 Windows 系统能力结束一个经身份复核的外部 PID | 仅限同一用户、明确确认的单个 PID；不是 managed shutdown |
 | Read-only degraded mode | PID 接入点或兼容性检查失败后的运行模式 | 仍可列 TCP listeners，但全部 unattributed，且不允许终止 |

@@ -17,16 +17,16 @@ MVP 必须让普通用户在未经修改的官方 DSH 上通过标准 Bundle 安
 1. 在 `tools/execute` 中建立 ToolExecution AsyncLocalStorage frame；
 2. 监听 Cordis typed `internal/get` waterfall；
 3. 当 lookup 名称为 `subprocess` 时，在 `next()` 返回的 service 外创建 non-mutating Proxy；
-4. 仅包装 `spawn`/`spawnTerminal`，调用原 bound method，保留同步异常和原 handle identity；
+4. 对 pinned stock 路径中绕过该 waterfall 的同一 `LocalSubprocessRuntime` service，额外安装可逆的 method-level fallback；两层都只包装 `spawn`/`spawnTerminal`，调用原 bound method，保留同步异常和原 handle identity，并按 exact handle identity 去重；
 5. PID 有效时读取 ALS、Windows creation identity 并登记 ProcessOrigin；
-6. 所有观察失败 containment；dispose active fence 使旧 Proxy 纯 pass-through；
+6. 所有观察失败 containment；dispose active fence 使旧 Proxy 纯 pass-through，并以 compare-and-swap 恢复 fallback descriptor；
 7. 兼容性或 contract check 失败时进入只读、unattributed 模式。
 
 标准 Bundle 安装、更新和移除允许重启一次目标 Profile。
 
 ## Consequences
 
-- 无需修改 DSH core，也不替换或修改 subprocess provider。
+- 无需修改 DSH core，也不替换或接管 subprocess provider；fallback 只对锁定的 local provider 方法做可逆观察包装，不取得资源 ownership。
 - foreground、background、Code Mode 和首次 terminal 创建共享同一观察点。
 - 插件卸载不会因 provider ownership 而终止进程。
 - 依赖 Cordis internal contract，只对明确验证的 DSH 版本承诺支持。
@@ -38,4 +38,4 @@ MVP 必须让普通用户在未经修改的官方 DSH 上通过标准 Bundle 安
 - DSH core `subprocess/started`：长期更自然，但不能作为当前交付前提。
 - tracked LocalSubprocessRuntime：接管所有受管进程生命周期，卸载风险不可接受。
 - tracked PowerShell Provider：复制/侵入现有执行语义，维护成本高。
-- 直接 monkey-patch service：没有 Cordis stacking/ownership/CAS，HMR 与卸载恢复脆弱。
+- 任意 service 的直接 monkey-patch：没有 Cordis stacking/ownership/CAS，HMR 与卸载恢复脆弱；本 ADR 的 fallback 仅允许在已验证的 local provider descriptor 上使用 CAS 恢复，并非通用替换机制。

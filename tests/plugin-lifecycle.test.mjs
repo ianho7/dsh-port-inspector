@@ -49,7 +49,7 @@ test('a registered Cordis observer contract is reported even when another gate f
       }
     },
     on(name, listener) {
-      assert.equal(name, 'internal/get')
+      assert.ok(['internal/get', 'tools/execute', 'session/event', 'internal/service'].includes(name))
       assert.equal(typeof listener, 'function')
       return () => {}
     },

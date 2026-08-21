@@ -143,7 +143,7 @@ Tool Call → 启动根 PID → 后代监听 PID → TCP 端口
 ```ts
 interface ProcessOrigin {
   rootPid: number
-  processCreatedAt: number
+  processCreatedAt: string
   sessionId: string
   turn: number
   step: number
@@ -151,13 +151,14 @@ interface ProcessOrigin {
   rootCallId: string
   tool: string
   command?: string
-  argv: readonly string[]
-  workdir: string
-  startedAt: number
+  workdir?: string
+  observedAt: number
   jobId?: string
   terminalSessionId?: string
 }
 ```
+
+Ticket 02 deliberately keeps only the redacted command, final workdir, and lossless creation-time identity; it does not retain raw argv. Later lifecycle/scanner tickets may add bounded redacted argv and owner metadata.
 
 扫描到监听 PID 后，沿 `ParentProcessId` 向上查找。如果祖先命中 `rootPid`，且创建时间一致，则将该端口标记为“已验证”。
 
@@ -166,7 +167,7 @@ interface ProcessOrigin {
 | 路线 | 做法 | 评价 |
 | --- | --- | --- |
 | A：为 DSH 补充通用 subprocess started 事件 | provider 在真实 PID ready 时发布只读通知 | 长期最自然，但 DSH 暂不接受普通开发者 PR，不能作为 MVP 前提 |
-| **D：Cordis `internal/get` observer Proxy** | 在固定 stock DSH 版本中，为每次 `ctx.subprocess` lookup 返回只包装 `spawn`/`spawnTerminal` 的透明 Proxy | **MVP 推荐**。不修改 core、不替换 provider、不取得资源 ownership；依赖 internal contract，因此必须锁定兼容版本并自检 |
+| **D：Cordis `internal/get` observer Proxy + local fallback** | 在固定 stock DSH 版本中，为每次 `ctx.subprocess` lookup 返回只包装 `spawn`/`spawnTerminal` 的透明 Proxy；若 stock lookup 绕过 waterfall，则对同一 `LocalSubprocessRuntime` 安装可逆的 method-level fallback | **MVP 推荐**。不修改 core、不替换 provider、不取得资源 ownership；fallback 只包装两个方法并以 active fence/CAS 恢复，必须锁定兼容版本并自检 |
 | C：tracked LocalSubprocessRuntime Provider | disable 原 subprocess provider，再安装继承版 provider | 能取 PID，但插件卸载/替换会清理全部受管进程，不符合可逆生命周期 |
 | B：tracked PowerShell Provider | 重写或替换 PowerShell Provider | 侵入深，容易偏离 sandbox、timeout、background 和 cancellation 语义 |
 
@@ -189,7 +190,7 @@ interface ProcessOrigin {
 | `inject` | 声明 Tool、RPC、UI、Session 等依赖 |
 | Service seam / Provider | 隔离 Windows 端口扫描、进程追踪和终止能力 |
 | `ctx.subprocess` | 由官方 provider 创建并管理进程树；插件只透明观察返回 handle 的 root PID |
-| Cordis `internal/get` waterfall | 在不修改 provider 的前提下透明观察 `ctx.subprocess.spawn/spawnTerminal`；仅对锁定版本使用 |
+| Cordis `internal/get` waterfall + local fallback | 优先在 lookup 返回值外创建透明 Proxy；stock lookup 绕过 waterfall 时，仅对锁定的 `LocalSubprocessRuntime` 两个方法做可逆观察包装 |
 | Tool Execution | 取得 Call ID、工具名、参数和所属 Agent |
 | Session events | 建立 Session、Turn、Step 与 Tool Call 的关系 |
 | `ctx.jobs` / `ctx.terminals` | 识别受管后台任务，并优先走 DSH 生命周期关闭 |
@@ -229,7 +230,7 @@ interface PortInspector {
 
 interface ProcessIdentity {
   pid: number
-  startedAt: number
+  startedAt: string
   executable?: string
 }
 
@@ -285,7 +286,7 @@ type AttributionConfidence = 'verified' | 'inferred' | 'unattributed'
 - **第一版闭环**：发现 → 归因 → 人工确认 → 安全终止 → 验证释放。
 - **精确归因边界**：当前 DSH 运行周期、受观察的 PowerShell / subprocess 启动链。
 - **事实表达**：所有归因都标记为“已验证 / 推断 / 未归因”。
-- **推荐技术路线**：固定支持 `dsh-0.1.0-rc.8`，用 Cordis `internal/get` non-mutating Proxy 观察 subprocess 创建，配合 ToolExecution ALS 与 Session events；兼容检查失败时进入只读未归因模式。
+- **推荐技术路线**：固定支持 `dsh-0.1.0-rc.8`，用 Cordis `internal/get` non-mutating Proxy，并以 local provider method fallback 覆盖 stock lookup seam，配合 ToolExecution ALS 与 Session events；兼容检查失败时进入只读未归因模式。
 - **安装语义**：标准 Bundle 安装、更新或移除后允许重启一次目标 DSH Profile；用户不修改源码或 composition。
 - **受管关闭**：Job 通过 `jobs.kill + wait`，Terminal 通过 `terminals.kill`；失败不自动补杀。
 - **外部关闭**：仅结束身份复核通过、用户明确选择的单个同用户 PID；不自动提权。

@@ -19,7 +19,7 @@ Coding Agent 经常启动 Vite、Next.js、Node API 等开发服务。Windows �
 
 ## Solution
 
-Runtime Inspector 作为可安装的 DSH Bundle 运行于未经修改的官方 DSH。用户安装后重启一次目标 Profile，插件在固定兼容版本中使用 Cordis `internal/get` waterfall：每次 `ctx.subprocess` service lookup 时返回一个 non-mutating Subprocess observer Proxy，仅包装 `spawn` 和 `spawnTerminal`，不替换 provider，也不取得 process ownership。
+Runtime Inspector 作为可安装的 DSH Bundle 运行于未经修改的官方 DSH。用户安装后重启一次目标 Profile，插件在固定兼容版本中优先使用 Cordis `internal/get` waterfall：每次 `ctx.subprocess` service lookup 时返回一个 non-mutating Subprocess observer Proxy，仅包装 `spawn` 和 `spawnTerminal`。对 stock DSH 中绕过该 waterfall 的同一 `LocalSubprocessRuntime` service read，插件再安装可逆的 method-level fallback；它不替换 provider、不取得 process ownership，并只在已验证的本地执行世界启用。
 
 归因数据流如下：
 
@@ -76,17 +76,18 @@ Runtime Inspector 作为可安装的 DSH Bundle 运行于未经修改的官方 D
 
 - The MVP is a Windows-only Bundle targeting the stock DSH `dsh-0.1.0-rc.8` and the Windows local execution world. Unknown versions must be rejected for verified mode and placed in read-only degraded mode.
 - The highest existing seam is the Cordis `internal/get` waterfall. The observer must call the built-in `next()` first, create a Proxy around the returned subprocess service, and never call `ctx.subprocess` again from inside that Proxy.
+- The pinned stock path can expose the provider before `internal/get` is reached. In that case the plugin may wrap only the actual `LocalSubprocessRuntime` `spawn`/`spawnTerminal` descriptors as a reversible fallback, using exact compare-and-swap disposal and the same active fence. This is observation, not provider replacement or ownership; both seams must deduplicate by exact handle identity.
 - The Proxy wraps only `spawn` and `spawnTerminal`. It binds the original methods to the original service, preserves synchronous errors and returned handle identity, and does not alter argv, cwd, environment, stdio, timeout, cancellation, termination, or ownership behavior.
 - A plugin-wide active fence is cleared before observer disposal. A previously returned Proxy remains a pass-through after disposal; a fresh lookup returns the original service once the listener is removed.
 - The observer ignores invalid or unavailable PID values. PID `-1`, missing PID, delayed remote PID, failed spawn, and failed Windows identity reads cannot produce verified attribution.
 - Tool attribution uses an AsyncLocalStorage frame installed around the `tools/execute` waterfall. The frame contains Session/Agent identity, Call ID, root Call ID, Turn, Step, Tool name, command, and final workdir. It is read at spawn time, not frozen at service lookup time.
 - Session `tool/call` events are cached before dispatch to resolve Turn and Step. Code Mode inner calls retain their own Call ID and root Call ID; the outer Call event is the Turn/Step lookup key.
-- Process origin is one-to-many: one Tool Call may create multiple root processes. Each origin stores root PID, process creation identity, Session/Turn/Step/Call/root Call, Tool, redacted command, actual argv, final workdir, start time, and optional Job/Terminal owner identity.
+- Process origin is one-to-many: one Tool Call may create multiple root processes. Ticket 02 stores root PID, the lossless process creation-time identity, Session/Turn/Step/Call/root Call, Tool, redacted command, final workdir, and observation time. It intentionally does not retain raw argv; later Job/Terminal lifecycle work may add bounded redacted metadata and owner identity without changing the root-PID source.
 - Process origins are memory-only for the current DSH run. Root exit does not immediately evict an origin. A high-water record limit is required; eviction must not make a live listener appear verified under another PID because matching always includes creation identity.
 - Job association uses `jobs.onJobsChanged` and a per-owner newly observed Job ID diff in the same ALS execution context. The returned structured Job ID is a cross-check, not the root PID source. Job termination uses owner-fenced `jobs.kill` followed by bounded `jobs.wait`.
 - Terminal association reads the stock terminal session identity carried into the terminal spawn specification and cross-checks the public terminal snapshot. Terminal termination uses exact-Agent-fenced `terminals.kill` and waits for backend quiescence.
 - Persistent PowerShell root creation is supported only for the first terminal-creation Call. Later commands sent through the existing terminal are displayed without verified command-level Call attribution.
-- Windows process identity is PID plus creation time; executable is added to the pre-termination fence. ParentProcessId ancestry is cycle-safe and must degrade when an ancestor is unreadable, exited, escaped, or otherwise unverified.
+- Windows process identity is PID plus creation time; the canonical in-memory creation-time representation is an unsigned decimal FILETIME string (never a JavaScript number). Scanner adapters must normalize native `high:low` forms into this representation before comparison. Executable is added to the pre-termination fence. ParentProcessId ancestry is cycle-safe and must degrade when an ancestor is unreadable, exited, escaped, or otherwise unverified.
 - Attribution states are `verified`, `inferred`, and `unattributed`. Inferred records may show candidate Session/Call and evidence, but cannot obtain managed-owner authority or verified wording.
 - DSH-managed targets are closed through Job/Terminal APIs. A managed shutdown timeout or failure returns a failure result and never automatically falls back to PID or process-tree termination.
 - External termination is limited to one explicitly selected same-user PID after a fresh PID/creation-time/executable check. It does not recursively terminate an external process tree, does not auto-elevate, and is unavailable for protected, other-user, or incomplete-identity targets.
@@ -102,7 +103,7 @@ Tests must assert observable behavior and safety outcomes, not the fact that a p
 
 The implementation must include:
 
-- Compatibility and health tests: the supported DSH baseline activates verified mode; an unknown version or failed internal/get contract check activates read-only degraded mode.
+- Compatibility and health tests: the supported DSH baseline activates verified mode; an unknown version or failed observer contract check activates read-only degraded mode.
 - Subprocess observer tests: process and terminal lookup returns the original service behavior and handle identity; invalid PID does not create an origin; observer exceptions do not alter spawn success; dispose turns cached proxies into pass-through; no provider teardown is triggered.
 - Tool attribution tests: foreground native PowerShell, background PowerShell, Code Mode inner PowerShell, concurrent Agents, nested execution, cancellation, and thrown Tool bodies preserve the correct ALS frame and root Call mapping.
 - Job association tests: a root spawned before Job ID allocation is linked to the one newly published Job ID through the synchronous jobs-changed callback; a failed `spec.run()` creates no managed link; structured Job result is used only as cross-check.
@@ -119,7 +120,7 @@ Prior art to follow includes DSH Agent initiator AsyncLocalStorage isolation tes
 ## Out of Scope
 
 - Modifying DSH core or requiring a `subprocess/started` upstream event for MVP operation.
-- Replacing or subclassing the PowerShell or subprocess provider as the production implementation.
+- Replacing or subclassing the PowerShell or subprocess provider as the production implementation; the narrowly scoped reversible method fallback is the only exception and is limited to the pinned local provider.
 - Cross-version verified attribution beyond the declared DSH baseline.
 - E2B or other remote execution worlds where a real PID is delayed or not observable from the Windows host.
 - Exact Call-level attribution for descendants created by later commands sent through an existing persistent PowerShell terminal.
