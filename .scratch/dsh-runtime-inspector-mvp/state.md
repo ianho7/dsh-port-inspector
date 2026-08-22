@@ -1,7 +1,7 @@
 # Runtime Inspector MVP Loop State
 
-status: waiting
-phase: inspect
+status: mitigated
+phase: verify
 current_ticket: 09
 current_hypothesis: The Windows Host MVP is complete; the accepted Web requirement now extends the acceptance surface to a same-repository dual-face Bundle with a global Sidebar entry, overlay panel, and real Browser-to-Host validation.
 attempts:
@@ -125,8 +125,14 @@ next_action_rule: Claim Ticket 09, verify the rc.8/rc.1 Browser loading seam, th
     raw_evidence: "Added src/client.ts and src/client/*, emitted lib/client.js through tsdown's DSH lazy-CJS loader format, declared exports[./client] and dsh.client, registered sidebar.footer.action and shell.overlay, wired /api/dsh-runtime-inspector to the serializable Host RPC, and added Browser/Host bridge, Slot, panel, manifest, and unload tests. Bundled TypeScript emit/no-emit checks pass; deterministic Node suite passes 80/80 with two pre-existing Stock DSH gates skipped; the existing Stock DSH Bundle load/dispose smoke passes with DSH_REPO set."
     conclusion: Ticket 09 deterministic implementation is in place and preserves the Host safety boundary. The real DSH Web artifact-loading/Slot/action smoke is still required before resolving the ticket; the attempted Ticket 08 native release gate was transiently blocked while waiting for the terminal listener, after the other managed origins were observed.
     next_action_rule: Run a real DSH Web smoke on both declared versions, then resolve Ticket 09 or record the exact compatibility gap.
+  - id: ticket-09-web-smoke-rc1
+    action: Run the real Stock DSH Web Browser-to-Host smoke against the available 0.1.1-rc.1 checkout.
+    failure_class: none
+    raw_evidence: "tests/dsh-web-smoke.test.mjs passed with DSH_REPO=D:\\project\\deepseek-harness and DSH_WEB_E2E=1: Chromium loaded the dsh-runtime-inspector boot graph entry and artifact, rendered the Sidebar entry and shell overlay, fetched the real inventory, confirmed an external single-PID action through the Browser UI, received a Host fresh scan with portReleased=true, observed the disposable listener exit, and got HTTP 200 from the unaffected DSH Web listener afterward."
+    conclusion: The same-repository dual-face Bundle and real Browser-to-Host action path work on Stock DSH 0.1.1-rc.1. The smoke is opt-in so the ordinary deterministic suite remains hermetic.
+    next_action_rule: Run the same smoke against a built dsh-0.1.0-rc.8 checkout before resolving Ticket 09; keep the ticket claimed until that compatibility evidence exists.
 evidence_gaps:
-  - DSH Web Client artifact loading and Slot registration on each declared compatibility version.
-  - Browser-to-Host bridge and real Web action path with fresh-scan evidence.
+  - DSH Web Client artifact loading and Slot registration for the declared 0.1.0-rc.8 version; the available checkout and built Web artifacts are 0.1.1-rc.1.
+  - The pre-existing Ticket 08 native G1-G6 release gate still timed out waiting for terminal listener port 39104 on two attempts; the Web smoke itself passed.
 blocked_reason: none
-next_action: Run real Stock DSH Web smoke on 0.1.0-rc.8 and 0.1.1-rc.1 for artifact loading, Slot registration, inventory, and one Host action.
+next_action: Build or provide Stock DSH 0.1.0-rc.8, then run DSH_WEB_E2E=1 against it; resolve Ticket 09 only after the rc.8 Web smoke passes.
