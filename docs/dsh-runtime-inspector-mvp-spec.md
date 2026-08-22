@@ -1,9 +1,9 @@
 # DSH Runtime Inspector Windows MVP：Implementation Spec
 
 > 状态：Ready for implementation
-> 日期：2026-08-21
+> 日期：2026-08-22
 > 兼容基线：Stock DSH `dsh-0.1.0-rc.8`；另已认证 `dsh-0.1.1-rc.1`；Windows local execution world
-> 来源：[MVP 文档](./dsh-runtime-inspector-mvp.md)、[决策记录](./dsh-runtime-inspector-mvp-decisions.md)、[ADR-0001](./adr/0001-stock-dsh-root-pid-observation.md)、[ADR-0002](./adr/0002-process-termination-policy.md)、[ADR-0003](./adr/0003-delayed-terminal-pid-compatibility.md)
+> 来源：[MVP 文档](./dsh-runtime-inspector-mvp.md)、[决策记录](./dsh-runtime-inspector-mvp-decisions.md)、[ADR-0001](./adr/0001-stock-dsh-root-pid-observation.md)、[ADR-0002](./adr/0002-process-termination-policy.md)、[ADR-0003](./adr/0003-delayed-terminal-pid-compatibility.md)、[ADR-0004](./adr/0004-web-client-dual-face-bundle.md)
 
 ## Problem Statement
 
@@ -32,6 +32,10 @@ Runtime Inspector 作为可安装的 DSH Bundle 运行于未经修改的官方 D
 7. DSH managed target 优先通过 Job/Terminal lifecycle 关闭；外部同用户 target 只在重新身份复核和用户确认后直接结束选中的单个 PID。
 
 方案只保证当前 DSH 运行周期内、Windows local execution world 的 verified attribution。Persistent PowerShell 的首次 Terminal 创建可精确归因；同一个 persistent terminal 后续命令创建的 descendant 不承诺精确到后续 Call ID。
+
+Runtime Inspector 的 Web UI 与 Host 运行时属于同一个 DSH Bundle 和同一个源码仓库。Bundle 同时提供 Node Host 半与 Browser Client 半：Host 继续拥有扫描、归因、生命周期和终止安全边界；Browser 只渲染可信的序列化 Host RPC 结果。Web UI 不启动独立 HTTP 服务，也不直接访问 scanner、Process origin registry、Job/Terminal API 或 Windows process primitive。
+
+Web 入口使用全局 `sidebar.footer.action`，显示端口监听/冲突状态；点击后通过 `shell.overlay` 打开完整 Runtime Inspector 面板。Browser 使用 DSH Client Bundle 机制加载，Client 源码经过 TypeScript 与兼容 DSH 的 client bundler 构建为 Browser artifact。Host 与 Browser 之间使用 DSH 现有的 Host-to-Client bridge；在认证版本中若没有 typed Remote seam，可使用受同源保护的 WebServer API route，但不得创建独立服务。
 
 ## User Stories
 
@@ -71,6 +75,14 @@ Runtime Inspector 作为可安装的 DSH Bundle 运行于未经修改的官方 D
 34. As a DSH user, I want unloading Runtime Inspector not to terminate existing user processes, so that observation lifecycle is independent from process ownership.
 35. As a DSH maintainer, I want the plugin to declare one tested DSH compatibility baseline, so that changes to Cordis internal behavior fail closed instead of silently corrupting attribution.
 36. As a DSH maintainer, I want future upstream `subprocess/started` support to remain possible, so that the MVP’s internal observer can later migrate to a public provider-neutral lifecycle seam.
+37. As a DSH Web user, I want a persistent Runtime Inspector entry in the global sidebar, so that I can discover port conflicts without opening a separate Windows tool.
+38. As a DSH Web user, I want the sidebar entry to show a bounded listener/conflict count, so that I can notice a possible port problem before opening the panel.
+39. As a DSH Web user, I want the Runtime Inspector panel to open over the main Web UI, so that I can investigate listeners without losing my current Session or Conversation.
+40. As a DSH Web user, I want the panel to show loading, empty, incomplete-scan, degraded, success, and failure states as readable text, so that a missing row is not confused with a successful scan.
+41. As a DSH Web user, I want managed Job/Terminal shutdown and external single-PID termination to be visibly different actions, so that I understand the ownership and impact before confirming.
+42. As a DSH Web user, I want the Web UI to remain read-only when compatibility, permissions, identity, or client loading is insufficient, so that a browser failure cannot expand process authority.
+43. As a DSH Web user, I want the panel controls to have accessible names and stable user-facing targets, so that keyboard users, screen readers, browser automation, and Agent-assisted investigation can operate the critical flow.
+44. As a DSH maintainer, I want Host and Browser code to ship from one Bundle and one repository, so that UI/runtime changes are versioned and tested together without a second feature repository.
 
 ## Implementation Decisions
 
@@ -101,6 +113,12 @@ Runtime Inspector 作为可安装的 DSH Bundle 运行于未经修改的官方 D
 - The Host/UI boundary uses an opaque listener row id and a serializable inventory query sorted by port, application, PID, project, or Session. Copy returns bounded redacted details; opening a project directory is an injected host callback and refuses unavailable or redacted paths.
 - Host actions require a fresh pre-action listener lookup and explicit confirmation. Verified managed owners route only to Job/Terminal lifecycle APIs; external rows route only to the existing identity-fenced single-PID terminator; read-only and degraded rows cannot invoke either action. Every attempted action performs a fresh scan and reports `portReleased` only when that scan is complete.
 - The plugin Bundle uses the normal DSH installation model. Installation, update, or removal becomes active after a target Profile restart; no DSH source modification, private fork, or manual composition edit is required.
+- Host and Browser halves ship from one repository and one distributable Bundle. The existing Node entry remains the Host half; a separate Browser entry is exported through the package’s `./client` surface and declared through `dsh.client` for the `web` platform. The package continues to use its Bundle composition patch and includes the built Browser artifact.
+- Browser source is authored in TypeScript and compiled by a DSH-compatible client bundler into the lazy client-module format. `window.__ModuleLoader__.load` is a generated artifact contract, not hand-authored application source. Host and Browser builds must not share imports of native process code; only serializable DTOs and UI-safe types may cross the boundary.
+- The trusted UI composition uses the additive `sidebar.footer.action` entry point and the additive `shell.overlay` panel surface. The Runtime Inspector does not replace the Sidebar, Conversation, composer, or another product-owned root surface. The sidebar entry is global rather than Session-scoped because listener ownership can span Sessions.
+- Browser calls only a serializable Runtime Inspector Host RPC contract for inventory, redacted copy, project-directory opening, and confirmed actions. The transport uses the existing DSH Host-to-Client bridge; a same-origin WebServer API route is an allowed baseline adapter when the certified DSH version does not expose a typed Remote seam. The Bundle never starts a second Web server for the feature.
+- The Web panel must distinguish loading, empty, complete inventory, incomplete scan, observing, read-only, degraded, action confirmation, action failure, and post-action fresh-scan states. Search, sort, and selected-listener state should be reproducible through URL/query state or the host application’s equivalent navigation state when that state mechanism is available.
+- Critical controls use semantic HTML or the DSH client’s accessible primitives, have visible and programmatic names, are keyboard reachable, and expose stable user-facing locators for the entry, refresh, row selection, confirmation, copy, directory-open, and action-result controls.
 - A future public `subprocess/started` upstream event remains a follow-up architecture improvement. It is not part of this MVP’s runtime dependency.
 
 ## Testing Decisions
@@ -120,6 +138,10 @@ The implementation must include:
 - Privacy tests: command/argv redaction and size bounds apply consistently to UI, RPC, logs, and `port_list`; other Session details are coarse in Tool output while UI retains intended visibility.
 - `port_list` tests: current-Session full attribution, other-Session coarse ownership, inferred-owner suppression, secret/path redaction, incomplete-scan reporting, row/output bounds, degraded-mode read-only behavior, and reversible Tool registration without termination capability.
 - Host/UI tests: inventory fields and Session visibility, search/sort, redacted copy, safe project-directory opening, distinct managed/external/read-only/degraded action states, confirmation and action routing, unavailable-action rejection, and post-action fresh-scan release reporting.
+- Web package tests: the package declares the required Browser entry and `dsh.client` metadata, the built client artifact is included in the distributable Bundle, missing/unsupported client loading fails without expanding Host process authority, and Bundle disposal removes the Browser contribution.
+- Web slot and panel tests: the global Sidebar entry renders with a bounded listener/conflict count, the overlay panel opens and closes without replacing the host layout, and the panel renders loading, empty, incomplete, observing, degraded, confirmation, failure, and post-action states with accessible names and stable critical-action locators.
+- Host-to-Browser bridge tests: Browser requests expose only the serializable Host RPC surface, command/path redaction is preserved, other-Session privacy remains enforced, stale listener rows are revalidated by Host, and read-only/degraded rows cannot invoke actions.
+- Native Web acceptance: on each declared DSH Web version, restart the Profile, verify the client artifact is served and loaded, verify the global entry and overlay panel, run a real listener inventory, exercise one managed or external action through the Web surface, and confirm the fresh scan result plus unaffected listeners. The test must not replace the Web path with a direct Host helper call.
 - Lifecycle tests: roots and descendants remain attributable after a Turn ends; origins survive root exit while a descendant listens; DSH restart clears origins; plugin unload removes observers without terminating an existing background process.
 - End-to-end acceptance: a real Stock DSH Windows gate starts two Sessions with same-named services, associates a background service with a Job and a persistent service with a positive-PID Terminal, exercises managed Job/Terminal shutdown and one identity-fenced external single-PID action, then proves selected ports were released while foreground and external control listeners remain.
 - Native Terminal smoke: on Windows, spawn a persistent PowerShell Terminal through Stock DSH, wait for readiness, assert PID greater than zero, send and read a unique token, terminate through the Terminal owner, and prove no listener/process residue. Unit doubles for `0 → positive` are necessary but cannot replace this gate.
@@ -137,11 +159,16 @@ Prior art to follow includes DSH Agent initiator AsyncLocalStorage isolation tes
 - UDP listeners, macOS, Linux, full general-purpose task-manager features, history statistics, automatic cleanup, and orphan-process policy.
 - Bulk termination, a second force/escalation action, automatic UAC elevation, or termination of external process trees.
 - Direct termination from the model-facing `port_list` Tool.
+- Maintaining Runtime Inspector Browser UI in a second feature repository.
+- Starting a separate local Web server, companion page, or extra process for the Runtime Inspector UI.
+- Replacing the DSH Web Sidebar, Conversation, composer, or application root instead of using additive Client Slots.
 - Reading arbitrary process environment blocks, secrets, or full command lines without redaction.
 - Reworking DSH’s public subprocess abstraction or implementing the future provider-neutral lifecycle event.
 
 ## Further Notes
 
 The first implementation slice should be a tracer-bullet integration that activates the observer on the supported stock DSH, runs one native foreground PowerShell and one `run_in_background` call, records root PID and Process origin, links the Job, and proves observer unload leaves the process alive. This is an implementation acceptance test, not a separate prototype.
+
+The Web integration tracer-bullet should then build the Browser half from the same Bundle, register the global Sidebar entry, open the overlay panel, fetch one serializable inventory snapshot through the Host bridge, and render the read-only/degraded state before adding action controls. The Web path must be verified on the declared DSH versions before the panel is allowed to dispatch managed or external actions.
 
 The repository uses a local Markdown issue tracker under `.scratch/`, with the canonical triage mappings documented in `docs/agents/triage-labels.md`. The source Spec is copied to `.scratch/<feature-slug>/spec.md`; `/to-tickets` publishes its implementation tickets as separate files under `.scratch/<feature-slug>/issues/` without changing the accepted decisions.

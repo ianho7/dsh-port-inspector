@@ -1,7 +1,7 @@
 # DSH Runtime Inspector Windows MVP：决策记录
 
 > 状态：已收敛，可进入 `/to-spec`
-> 更新日期：2026-08-21
+> 更新日期：2026-08-22
 > 依据：`dsh-runtime-inspector-mvp.md`、`dsh-runtime-inspector-root-pid-research.md`
 
 本文只记录会改变 MVP 实现、兼容性、安全边界或验收标准的决定。尚未完成的决定明确标为“开放”，不作为实现依据。
@@ -90,6 +90,14 @@ root 退出时不立即删除 origin，以保留对仍存活后代 listener 的�
 ### D18：直接进入 `/to-spec`，不另做独立 prototype
 
 方案 D 已有源码链路、Cordis runtime probe、动态 lookup、dispose pass-through 与 managed owner 关联证据。端到端 tracer-bullet 将作为实现的首项验收，而不是独立 `/prototype`。
+
+### D19：Web UI 与 Host 运行时采用单仓库双半 Bundle
+
+Runtime Inspector 的 Browser UI 与 Node Host 代码放在同一个仓库，并随同一个 DSH Bundle 发布。现有 Host 继续负责 scanner、归因、lifecycle、Host RPC 和所有进程安全决策；Browser 通过 `dsh.client` 与 `exports["./client"]` 加载，只消费可序列化的 Host RPC。
+
+Web 主界面在 `sidebar.footer.action` 提供全局入口，在 `shell.overlay` 打开端口面板。不得启动独立 Web 服务、维护第二个 Runtime Inspector 仓库、替换 DSH Web 主应用布局或把进程操作能力暴露给 Browser。目标 DSH 版本若没有 typed Remote seam，可以使用受同源保护的 WebServer API route 作为 transport 适配器。
+
+Browser 源码使用 TypeScript 和 DSH-compatible client bundler 构建；`window.__ModuleLoader__.load` 只作为构建产物格式。未知 DSH 版本、Client artifact 加载失败、Slot 不可用或 Host bridge 不可用时，UI 保持只读/降级，不获得额外进程权限。完整决定见 [ADR-0004](./adr/0004-web-client-dual-face-bundle.md)。
 
 ## 开放决定
 

@@ -1,9 +1,9 @@
 # Runtime Inspector MVP Loop State
 
-status: complete
-phase: release-gate
-current_ticket: 08
-current_hypothesis: Confirmed. The final Stock DSH two-Session lifecycle validates observer, ancestry, owner, privacy, Host/UI, and bounded process-action boundaries without provider replacement or expanded process ownership.
+status: waiting
+phase: inspect
+current_ticket: 09
+current_hypothesis: The Windows Host MVP is complete; the accepted Web requirement now extends the acceptance surface to a same-repository dual-face Bundle with a global Sidebar entry, overlay panel, and real Browser-to-Host validation.
 attempts:
   - id: ticket-01-start
     action: Claim Ticket 01 and define the plugin health seam.
@@ -113,6 +113,20 @@ attempts:
     raw_evidence: "Stock DSH commit 528c682e / dsh-v0.1.1-rc.1 release gate exited 0 in 7998 ms: four verified origins, distinct Sessions, positive-PID Terminal owner, Job/Terminal managed shutdowns, external single-PID termination, selected ports released, foreground and external control listeners retained. TypeScript emit and no-emit checks exited 0; Node suite passed 70/70 with both native Stock DSH tests, 0 skipped, exit 0."
     conclusion: Ticket 08 and the Windows MVP acceptance surface are complete. ADR-0003 preserves the upstream readiness-fix track while the exact-version Bundle compatibility repair avoids a DSH source fork and fails closed on unknown shapes.
     next_action_rule: Keep the native Windows gate mandatory for each newly certified DSH/node-pty version; remove the private compatibility branch once upstream exposes correct readiness/PID semantics.
-evidence_gaps: []
+  - id: ticket-09-spec
+    action: Update the accepted Spec, decisions, ADR, and issue tracker for the same-repository Web Client half.
+    failure_class: none
+    raw_evidence: "Main and scratch Specs now define dsh.client, exports[./client], sidebar.footer.action, shell.overlay, the serializable Host RPC seam, Browser safety states, and native Web smoke requirements; ADR-0004 and ready-for-agent Ticket 09 were added."
+    conclusion: Web implementation may begin after inspecting the exact certified DSH Client module and Slot contracts; no runtime code has been changed by the spec update.
+next_action_rule: Claim Ticket 09, verify the rc.8/rc.1 Browser loading seam, then implement the smallest Browser tracer-bullet before adding action controls.
+  - id: ticket-09-implementation
+    action: Implement the single-repository Browser Client Bundle, additive Slots, same-origin Host bridge, Runtime Inspector panel, and deterministic Browser/Host tests.
+    failure_class: none
+    raw_evidence: "Added src/client.ts and src/client/*, emitted lib/client.js through tsdown's DSH lazy-CJS loader format, declared exports[./client] and dsh.client, registered sidebar.footer.action and shell.overlay, wired /api/dsh-runtime-inspector to the serializable Host RPC, and added Browser/Host bridge, Slot, panel, manifest, and unload tests. Bundled TypeScript emit/no-emit checks pass; deterministic Node suite passes 80/80 with two pre-existing Stock DSH gates skipped; the existing Stock DSH Bundle load/dispose smoke passes with DSH_REPO set."
+    conclusion: Ticket 09 deterministic implementation is in place and preserves the Host safety boundary. The real DSH Web artifact-loading/Slot/action smoke is still required before resolving the ticket; the attempted Ticket 08 native release gate was transiently blocked while waiting for the terminal listener, after the other managed origins were observed.
+    next_action_rule: Run a real DSH Web smoke on both declared versions, then resolve Ticket 09 or record the exact compatibility gap.
+evidence_gaps:
+  - DSH Web Client artifact loading and Slot registration on each declared compatibility version.
+  - Browser-to-Host bridge and real Web action path with fresh-scan evidence.
 blocked_reason: none
-next_action: Release the MVP; for future DSH versions, certify with the same native gate before expanding SUPPORTED_DSH_VERSIONS.
+next_action: Run real Stock DSH Web smoke on 0.1.0-rc.8 and 0.1.1-rc.1 for artifact loading, Slot registration, inventory, and one Host action.

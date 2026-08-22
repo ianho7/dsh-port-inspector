@@ -53,7 +53,7 @@ test('a registered Cordis observer contract is reported even when another gate f
     },
     get() {
       return {
-        constructor: { name: 'LocalSubprocessRuntime' },
+        constructor: { name: 'RemoteSubprocessRuntime' },
         spawn() {},
         spawnTerminal() {},
       }
@@ -175,4 +175,32 @@ test('port_list registers when the Stock DSH tools service is published after Bu
   assert.equal(definitions[0].name, 'port_list')
   await effects[0]()
   assert.equal(unregistered, true)
+})
+
+test('Web bridge registers as one removable route without adding a second effect', async () => {
+  const effects = []
+  const routes = []
+  let removed = false
+  const context = {
+    provide() {},
+    get(name) {
+      if (name !== 'webServer') return undefined
+      return {
+        register(route) {
+          routes.push(route)
+          return () => { removed = true }
+        },
+      }
+    },
+    on() { return () => {} },
+    effect(factory) { effects.push(factory()) },
+  }
+
+  apply(context)
+
+  assert.equal(routes.length, 1)
+  assert.equal(routes[0].path, '/api/dsh-runtime-inspector')
+  assert.equal(effects.length, 1)
+  await effects[0]()
+  assert.equal(removed, true)
 })

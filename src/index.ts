@@ -35,6 +35,10 @@ import {
   createRuntimeInspectorHost,
   type RuntimeInspectorHost,
 } from './host-ui.js'
+import {
+  createRuntimeInspectorWebRoute,
+  type RuntimeInspectorWebServer,
+} from './web-bridge.js'
 
 export { evaluateCompatibility, SUPPORTED_DSH_VERSION }
 export type * from './compatibility.js'
@@ -86,6 +90,14 @@ export {
   type RuntimeInspectorHostOptions,
   type RuntimeInspectorHostRpc,
 } from './host-ui.js'
+export {
+  createRuntimeInspectorWebRoute,
+  dispatchRuntimeInspectorRequest,
+  RUNTIME_INSPECTOR_ROUTE,
+  type RuntimeInspectorWebResponseBody,
+  type RuntimeInspectorWebRoute,
+  type RuntimeInspectorWebServer,
+} from './web-bridge.js'
 
 export const name = 'dsh-runtime-inspector'
 export const inject = ['tools'] as const
@@ -117,6 +129,18 @@ interface PluginContext {
   get?(name: string): unknown
   on?(name: string, listener: (...args: unknown[]) => unknown, options?: { readonly global?: boolean }): unknown
   effect(factory: () => void | (() => void | Promise<void>), label?: string): void
+}
+
+function readWebServer(ctx: PluginContext): RuntimeInspectorWebServer | undefined {
+  try {
+    const value = ctx.get?.('webServer')
+    if (value !== null && typeof value === 'object' && typeof (value as { readonly register?: unknown }).register === 'function') {
+      return value as RuntimeInspectorWebServer
+    }
+  } catch {
+    // The Web capability is optional; the Host service remains usable without it.
+  }
+  return undefined
 }
 
 interface SubprocessLike {
@@ -228,6 +252,25 @@ export function apply(ctx: PluginContext): void {
     shutdown: (originId, options) => lifecycle.shutdown(originId, options),
     terminateExternal: (target, request) => externalTerminator.terminate(target, request),
   })
+  let unregisterWebRoute: (() => void) | undefined
+  const registerWebRouteWhenAvailable = (server: RuntimeInspectorWebServer | undefined): void => {
+    if (unregisterWebRoute !== undefined || server === undefined) return
+    unregisterWebRoute = server.register(createRuntimeInspectorWebRoute(host.rpc))
+  }
+  registerWebRouteWhenAvailable(readWebServer(ctx))
+  let unregisterWebServerObserver: (() => void) | undefined
+  if (typeof ctx.on === 'function') {
+    try {
+      const disposer = ctx.on('internal/service', (serviceName, value) => {
+        if (serviceName !== 'webServer' || value === null || typeof value !== 'object') return
+        if (typeof (value as { readonly register?: unknown }).register !== 'function') return
+        registerWebRouteWhenAvailable(value as RuntimeInspectorWebServer)
+      }, { global: true })
+      if (typeof disposer === 'function') unregisterWebServerObserver = disposer as () => void
+    } catch {
+      // Initial lookup remains authoritative when the publication observer is unavailable.
+    }
+  }
   const readPortList = (execution: PortListToolExecution) => {
     const origins = visibleOrigins()
     return projectPortList(
@@ -299,6 +342,8 @@ export function apply(ctx: PluginContext): void {
     attributionEnabled = false
     unregisterToolServiceObserver?.()
     unregisterPortListTool?.()
+    unregisterWebServerObserver?.()
+    unregisterWebRoute?.()
     if (retryTimer !== undefined) clearTimeout(retryTimer)
     attribution.dispose()
     lifecycle.dispose()
