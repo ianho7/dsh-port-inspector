@@ -177,12 +177,17 @@ test('real Stock DSH Web loads the Bundle, opens the panel, and rechecks an exte
     await page.locator('[data-runtime-inspector-state="ready"], [data-runtime-inspector-state="incomplete"], [data-runtime-inspector-state="failure"]').first().waitFor()
     assert.equal(await panel.locator('[data-runtime-inspector-search="input"]').count(), 1)
 
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: baseUrl })
     await page.waitForFunction((port) => {
       const row = [...document.querySelectorAll('[data-runtime-inspector-row]')]
         .find(candidate => candidate.textContent?.includes('端口 ' + String(port)))
       return row?.querySelector('[data-runtime-inspector-action="external-single-pid"]') !== null
     }, listener.port, { timeout: 30_000 })
     const row = page.locator('[data-runtime-inspector-row]').filter({ hasText: '端口 ' + String(listener.port) }).first()
+    await row.locator('[data-runtime-inspector-copy]').click()
+    await page.locator('[data-runtime-inspector-state="result"]').waitFor()
+    assert.match(await page.evaluate(() => navigator.clipboard.readText()), new RegExp(`Port: ${String(listener.port)}`))
+
     await row.locator('[data-runtime-inspector-action="external-single-pid"]').click()
     await page.locator('[data-runtime-inspector-confirmation="dialog"]').waitFor()
     const actionResponse = page.waitForResponse(responseItem => (

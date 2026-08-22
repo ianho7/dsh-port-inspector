@@ -160,6 +160,8 @@ export interface RuntimeInspectorHostOptions {
   readonly clipboard?: (text: string) => void | Promise<void>
   /** Optional host-owned directory opener. Raw paths never cross the RPC result. */
   readonly openDirectory?: (path: string) => void | Promise<void>
+  /** Dynamic capability probe for an opener published after Bundle apply. */
+  readonly openDirectoryAvailable?: () => boolean
 }
 
 export interface RuntimeInspectorHostRpc {
@@ -343,11 +345,22 @@ function projectFor(row: ListenerRecord, origin: ProcessOrigin | undefined): str
   return displayPath(origin?.workdir ?? row.project)
 }
 
-function projectPathForOpen(origin: ProcessOrigin | undefined): string | undefined {
-  const path = typeof origin?.workdir === 'string' ? origin.workdir : undefined
+function projectPathForOpen(row: ListenerRecord, origin: ProcessOrigin | undefined): string | undefined {
+  const path = typeof origin?.workdir === 'string'
+    ? origin.workdir
+    : typeof row.project === 'string' ? row.project : undefined
   const redacted = redactPath(path)
   if (path === undefined || path.length === 0 || redacted === undefined || redacted.includes('[REDACTED]')) return undefined
   return path
+}
+
+function openDirectoryAvailable(options: RuntimeInspectorHostOptions): boolean {
+  if (options.openDirectory === undefined) return false
+  try {
+    return options.openDirectoryAvailable?.() !== false
+  } catch {
+    return false
+  }
 }
 
 function toPublicEntry(
@@ -593,11 +606,12 @@ export function createRuntimeInspectorHost(options: RuntimeInspectorHostOptions)
   const openProjectDirectory = async (request: { readonly listenerId: string }): Promise<HostOpenDirectoryResult> => {
     const entry = rowFor(readInternalScan(options).entries, request.listenerId)
     if (entry === undefined) return Object.freeze({ ok: false, reason: 'listener-not-found' })
-    const path = projectPathForOpen(entry.origin)
+    const path = projectPathForOpen(entry.row, entry.origin)
     if (path === undefined) return Object.freeze({ ok: false, reason: 'project-unavailable' })
-    if (options.openDirectory === undefined) return Object.freeze({ ok: false, reason: 'opener-unavailable' })
+    const openDirectory = options.openDirectory
+    if (openDirectory === undefined || !openDirectoryAvailable(options)) return Object.freeze({ ok: false, reason: 'opener-unavailable' })
     try {
-      await options.openDirectory(path)
+      await openDirectory(path)
       return Object.freeze({ ok: true })
     } catch (error) {
       return Object.freeze({ ok: false, reason: 'open-failed', error: safeError(error) })

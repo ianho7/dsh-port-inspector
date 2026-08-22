@@ -6,6 +6,7 @@ import type {
   HostInventorySnapshot,
   HostOpenDirectoryResult,
 } from '../host-ui.js'
+import { writeRuntimeInspectorClipboard } from './clipboard.js'
 import { RUNTIME_INSPECTOR_ROUTE } from '../runtime-inspector-route.js'
 
 /** Same-origin route; the Browser half never receives a process primitive. */
@@ -33,6 +34,8 @@ export type RuntimeInspectorFetcher = (
     readonly body: string
   },
 ) => Promise<RuntimeInspectorFetchResponse>
+
+export type RuntimeInspectorClipboardWriter = (text: string) => Promise<boolean>
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -63,10 +66,21 @@ async function request<T>(
 export function createRuntimeInspectorBrowserRpc(
   fetcher: RuntimeInspectorFetcher = ((input, init) => fetch(input, init) as Promise<RuntimeInspectorFetchResponse>),
   route = RUNTIME_INSPECTOR_BROWSER_ROUTE,
+  clipboard: RuntimeInspectorClipboardWriter = (text) => writeRuntimeInspectorClipboard(text),
 ): RuntimeInspectorBrowserRpc {
   return {
     inventory: query => request<HostInventorySnapshot>(fetcher, route, 'inventory', query),
-    copyDetails: requestData => request<HostCopyResult>(fetcher, route, 'copy', requestData),
+    copyDetails: async requestData => {
+      const result = await request<HostCopyResult>(fetcher, route, 'copy', requestData)
+      if (!result.ok || result.copied) return result
+      let copied = false
+      try {
+        copied = await clipboard(result.text)
+      } catch {
+        copied = false
+      }
+      return Object.freeze({ ...result, copied })
+    },
     openProjectDirectory: requestData => request<HostOpenDirectoryResult>(fetcher, route, 'open-project-directory', requestData),
     performAction: requestData => request<HostActionResult>(fetcher, route, 'action', requestData),
   }

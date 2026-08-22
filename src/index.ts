@@ -39,6 +39,7 @@ import {
   createRuntimeInspectorWebRoute,
   type RuntimeInspectorWebServer,
 } from './web-bridge.js'
+import { createRuntimeInspectorDshAdapters } from './dsh-adapters.js'
 
 export { evaluateCompatibility, SUPPORTED_DSH_VERSION }
 export type * from './compatibility.js'
@@ -241,6 +242,13 @@ export function apply(ctx: PluginContext): void {
     origins: () => registry.list(),
     enabled: () => active && attributionEnabled && snapshot.terminationEnabled,
   })
+  const dshAdapters = createRuntimeInspectorDshAdapters(() => {
+    try {
+      return ctx.get?.('apiProxy')
+    } catch {
+      return undefined
+    }
+  })
   const visibleOrigins = (): readonly ProcessOrigin[] => attributionEnabled ? registry.list() : []
   const host = createRuntimeInspectorHost({
     scanner,
@@ -251,6 +259,8 @@ export function apply(ctx: PluginContext): void {
     currentSessionId: () => sessionIdForHost(ctx),
     shutdown: (originId, options) => lifecycle.shutdown(originId, options),
     terminateExternal: (target, request) => externalTerminator.terminate(target, request),
+    openDirectory: dshAdapters.openDirectory,
+    openDirectoryAvailable: dshAdapters.openDirectoryAvailable,
   })
   let unregisterWebRoute: (() => void) | undefined
   const registerWebRouteWhenAvailable = (server: RuntimeInspectorWebServer | undefined): void => {
@@ -324,6 +334,18 @@ export function apply(ctx: PluginContext): void {
       retryTimer = setTimeout(() => { refresh(attempt + 1) }, 10)
     }
   }
+  let unregisterSubprocessServiceObserver: (() => void) | undefined
+  if (typeof ctx.on === 'function') {
+    try {
+      const disposer = ctx.on('internal/service', (serviceName) => {
+        if (serviceName === 'subprocess') refresh(0)
+      }, { global: true })
+      if (typeof disposer === 'function') unregisterSubprocessServiceObserver = disposer as () => void
+    } catch {
+      // The initial probe and bounded retry remain authoritative when the
+      // service publication observer is unavailable.
+    }
+  }
   const service: RuntimeInspectorService = {
     get health(): RuntimeInspectorHealth {
       return Object.freeze({ ...snapshot, lifecycle: active ? 'active' : 'disposed' })
@@ -341,6 +363,7 @@ export function apply(ctx: PluginContext): void {
     active = false
     attributionEnabled = false
     unregisterToolServiceObserver?.()
+    unregisterSubprocessServiceObserver?.()
     unregisterPortListTool?.()
     unregisterWebServerObserver?.()
     unregisterWebRoute?.()

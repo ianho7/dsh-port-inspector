@@ -2,6 +2,7 @@ import * as React from 'react'
 import type {
   HostActionKind,
   HostActionRequest,
+  HostOpenDirectoryResult,
   HostInventorySnapshot,
   HostListenerRow,
 } from '../host-ui.js'
@@ -62,6 +63,17 @@ function actionLabel(kind: HostActionKind): string {
     case 'external-single-pid': return '终止外部单个进程'
     case 'read-only': return '只读'
     case 'degraded': return '降级只读'
+  }
+}
+
+function openDirectoryResultMessage(result: HostOpenDirectoryResult): string {
+  if (result.ok) return '已打开项目目录。'
+  switch (result.reason) {
+    case 'listener-not-found': return '监听器已不存在，请刷新后重试。'
+    case 'project-unavailable': return '项目目录不可用。'
+    case 'opener-unavailable': return '当前环境不支持打开项目目录。'
+    case 'open-failed': return result.error ?? '打开项目目录失败。'
+    default: return result.error ?? '打开项目目录失败。'
   }
 }
 
@@ -281,8 +293,13 @@ function RuntimeInspectorPanel({ rpc }: PanelProps): React.ReactNode {
     pending,
     setPending,
     setSelectedListenerId,
-    current => { void rpc.copyDetails({ listenerId: current.listenerId }).then(result => { setState((previous: PanelState) => ({ ...previous, actionResult: result.ok ? '详情已复制。' : result.error ?? '复制失败。' })) }) },
-    current => { void rpc.openProjectDirectory({ listenerId: current.listenerId }).then(result => { setState((previous: PanelState) => ({ ...previous, actionResult: result.ok ? '已打开项目目录。' : result.error ?? '项目目录不可用。' })) }) },
+    current => { void rpc.copyDetails({ listenerId: current.listenerId }).then(result => { setState((previous: PanelState) => ({
+      ...previous,
+      actionResult: result.ok && result.copied
+        ? '详情已复制。'
+        : result.ok ? '详情已生成，但剪贴板不可用。' : result.error ?? '复制失败。',
+    })) }) },
+    current => { void rpc.openProjectDirectory({ listenerId: current.listenerId }).then(result => { setState((previous: PanelState) => ({ ...previous, actionResult: openDirectoryResultMessage(result) })) }) },
   ))),
   pending === undefined ? null : React.createElement('div', {
     role: 'alertdialog', 'aria-modal': true, 'aria-labelledby': 'dsh-runtime-inspector-confirm-title',

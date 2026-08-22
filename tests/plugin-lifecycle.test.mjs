@@ -177,6 +177,45 @@ test('port_list registers when the Stock DSH tools service is published after Bu
   assert.equal(unregistered, true)
 })
 
+test('compatibility rechecks when the local subprocess service is published after Bundle apply', async () => {
+  const effects = []
+  const listeners = new Map()
+  let subprocess
+  let runtimeInspector
+  const context = {
+    provide(name, service) {
+      if (name === 'runtimeInspector') runtimeInspector = service
+    },
+    get(name) {
+      return name === 'subprocess' ? subprocess : undefined
+    },
+    on(name, listener) {
+      if (!listeners.has(name)) listeners.set(name, [])
+      listeners.get(name).push(listener)
+      return () => listeners.get(name)?.splice(listeners.get(name).indexOf(listener), 1)
+    },
+    effect(factory) {
+      effects.push(factory())
+    },
+  }
+
+  apply(context)
+  assert.equal(context.get('subprocess'), undefined)
+
+  subprocess = {
+    constructor: { name: 'LocalSubprocessRuntime' },
+    spawn() {},
+    spawnTerminal() {},
+  }
+  for (const listener of listeners.get('internal/service') ?? []) listener('subprocess', subprocess)
+
+  // The real DSH version is supported by the package's peer range; only the
+  // late subprocess publication should have changed the initial degraded state.
+  assert.equal(runtimeInspector.health.reason, undefined)
+  assert.equal(runtimeInspector.health.mode, 'observing')
+  await effects[0]?.()
+})
+
 test('Web bridge registers as one removable route without adding a second effect', async () => {
   const effects = []
   const routes = []

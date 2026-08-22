@@ -42,3 +42,20 @@ test('Browser RPC turns a missing or failed Host bridge into a visible error', a
   }))
   await assert.rejects(rpc.inventory(), /bridge unavailable/)
 })
+
+test('Browser copy reports actual clipboard acceptance for Host-provided details', async () => {
+  let copiedText
+  const rpc = createRuntimeInspectorBrowserRpc(async () => ({
+    ok: true,
+    status: 200,
+    async json() { return { ok: true, text: 'Port: 39123', copied: false } },
+  }), undefined, async text => {
+    copiedText = text
+    return true
+  })
+
+  const result = await rpc.copyDetails({ listenerId: 'listener-1' })
+  assert.equal(result.ok, true)
+  assert.equal(result.copied, true)
+  assert.equal(copiedText, 'Port: 39123')
+})

@@ -107,6 +107,16 @@ test('port_list is bounded, preserves incomplete scan status, and has no action 
   assert.equal(tool.output.render({}, result)[0].text.length <= 65_536, true)
 })
 
+test('port_list declares an object-rooted JSON Schema for its arguments', () => {
+  const tool = createPortListTool(() => projectPortList({ complete: true, rows: [] }, [], 'session-current'))
+
+  assert.deepEqual(tool.parameters, {
+    type: 'object',
+    properties: {},
+    additionalProperties: false,
+  })
+})
+
 test('tool registration is reversible and does not require a termination service', () => {
   const definitions = []
   let disposed = false

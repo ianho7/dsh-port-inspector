@@ -116,6 +116,18 @@ test('copy returns bounded redacted details and open-directory uses only the sel
   assert.deepEqual(available.calls.open, ['C:\\projects\\runtime-inspector'])
 })
 
+test('open-directory can use the scanner project fallback for an unattributed listener', async () => {
+  const available = harness({
+    origins: [],
+    rows: [row({ originId: undefined, confidence: 'inferred', project: 'C:\\projects\\external-service' })],
+  })
+  const listener = available.host.inventory().listeners[0]
+
+  const opened = await available.host.openProjectDirectory({ listenerId: listener.listenerId })
+  assert.equal(opened.ok, true)
+  assert.deepEqual(available.calls.open, ['C:\\projects\\external-service'])
+})
+
 test('managed action requires confirmation, uses the owner API, and reports a fresh released scan', async () => {
   const { host, calls } = harness({ origins: [origin({ id: 1, jobId: 'job-a' })] })
   const listener = host.inventory().listeners[0]

@@ -28,4 +28,7 @@ test('Runtime Inspector panel exposes semantic stable controls and all required 
   assert.match(slotsSource, /shell\.overlay/)
   assert.match(source, /观察模式：支持安全操作/)
   assert.match(source, /只读降级模式：操作已禁用/)
+  assert.match(source, /result\.ok && result\.copied/)
+  assert.match(source, /剪贴板不可用/)
+  assert.match(source, /当前环境不支持打开项目目录/)
 })

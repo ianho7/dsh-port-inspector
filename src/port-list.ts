@@ -65,7 +65,11 @@ export interface PortListToolExecution {
 export interface PortListToolDefinition {
   readonly name: 'port_list'
   readonly description: string
-  readonly parameters: Record<string, never>
+  readonly parameters: {
+    readonly type: 'object'
+    readonly properties: Record<string, never>
+    readonly additionalProperties: false
+  }
   readonly output: {
     readonly schema: unknown
     readonly render: (_args: unknown, value: PortListResult) => readonly [{ readonly type: 'text'; readonly text: string }]
@@ -270,7 +274,11 @@ export function createPortListTool(
   return {
     name: 'port_list',
     description: 'List visible Windows TCP listeners with confidence and privacy-scoped DSH attribution. Read-only; it cannot stop jobs, terminals, or processes.',
-    parameters: {},
+    parameters: {
+      type: 'object',
+      properties: {},
+      additionalProperties: false,
+    },
     output: {
       schema: PORT_LIST_SCHEMA,
       render: (_args, value) => renderPortList(value),
