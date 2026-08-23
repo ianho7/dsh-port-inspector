@@ -214,6 +214,7 @@ function readSubprocessProbe(ctx: PluginContext): {
 /** Mount the Bundle's health service and no process-owning resources. */
 export function apply(ctx: PluginContext): void {
   let attributionEnabled = false
+  let privateTerminalRepairEnabled = false
   const registry = new ProcessOriginRegistry()
   const lifecycle = new LifecycleOwnerRegistry(registry)
   const scanner = createWindowsListenerScanner()
@@ -221,6 +222,7 @@ export function apply(ctx: PluginContext): void {
     registry,
     lifecycle,
     enabled: () => attributionEnabled,
+    repairDelayedTerminal: () => privateTerminalRepairEnabled,
     readIdentity: readWindowsProcessIdentity,
   })
   const observer: RuntimeObserverRegistration = typeof ctx.on === 'function'
@@ -236,11 +238,12 @@ export function apply(ctx: PluginContext): void {
     ...subprocess,
   })
   attributionEnabled = snapshot.verifiedAttributionEnabled
+  privateTerminalRepairEnabled = snapshot.privateTerminalRepairEnabled
   let active = true
   const externalTerminator = new ExternalProcessTerminator({
     scanner,
     origins: () => registry.list(),
-    enabled: () => active && attributionEnabled && snapshot.terminationEnabled,
+    enabled: () => active && snapshot.terminationEnabled,
   })
   const dshAdapters = createRuntimeInspectorDshAdapters(() => {
     try {
@@ -327,6 +330,7 @@ export function apply(ctx: PluginContext): void {
       ...probe,
     })
     attributionEnabled = snapshot.verifiedAttributionEnabled
+    privateTerminalRepairEnabled = snapshot.privateTerminalRepairEnabled
     syncProviderFallback()
     const retryable = snapshot.reason === 'execution-world-unsupported'
       || snapshot.reason === 'subprocess-contract-unavailable'

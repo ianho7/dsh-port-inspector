@@ -1,0 +1,194 @@
+# DSH Runtime Inspector：测试与手工验收指南
+
+> 适用范围：Windows 本地开发环境、Stock DSH Web、Runtime Inspector `0.1.0` MVP。
+
+## 验收目标
+
+本指南验证以下用户闭环：
+
+1. Bundle 能构建、安装并在目标 DSH Web Profile 中加载。
+2. DSH 会话启动的监听端口可以显示可信来源、项目和会话上下文。
+3. PowerShell/系统外部启动的监听端口不会借用当前 DSH 会话信息。
+4. managed shutdown 与 external single-PID termination 使用不同路径，且操作后重新扫描端口。
+5. 未知或新增 DSH 版本不会仅因版本号显示警告或整体拒绝；能力由实际 runtime contract 决定。
+
+## 前置条件
+
+- Windows。
+- Node.js `>=22.19.0`。
+- 当前仓库：`D:\project\dsh-runtime-inspector`。
+- 可运行的 Stock DSH checkout，例如 `D:\project\deepseek-harness`。
+- 目标 DSH Profile 为 `web`；如果使用其他 Profile，请替换下文命令中的名称。
+
+## 1. 构建与确定性测试
+
+```powershell
+cd D:\project\dsh-runtime-inspector
+
+npm install
+npm run typecheck
+npm test
+```
+
+验收条件：
+
+- typecheck、Host build 和 Browser build 退出码为 `0`。
+- 确定性测试无失败。
+- 未设置真实环境变量时，Stock DSH native/Web gates 显示 skip 属于预期行为。
+
+## 2. 打包并安装到 Web Profile
+
+使用 `.tmp/` 下的新目录，避免与同版本的旧 tarball 混淆：
+
+```powershell
+cd D:\project\dsh-runtime-inspector
+
+New-Item -ItemType Directory -Force .tmp\manual-test
+npm pack --pack-destination .tmp\manual-test
+
+cd D:\project\deepseek-harness
+
+pnpm dsh plugin --profile web remove dsh-runtime-inspector
+pnpm dsh plugin --profile web add "D:\project\dsh-runtime-inspector\.tmp\manual-test\dsh-runtime-inspector-0.1.0.tgz"
+pnpm dsh plugin --profile web list
+```
+
+如果插件尚未安装，可以忽略 `remove` 的错误。列表应包含：
+
+```text
+dsh-runtime-inspector@0.1.0
+```
+
+完全退出旧 DSH Web 进程，然后按该 DSH checkout 的正常方式重新启动 `web` Profile。不要复用插件更新前创建的后台任务：Process origin 是当前运行周期内存数据，旧进程不会被追溯归因。
+
+## 3. 验证 DSH 会话监听
+
+在项目目录 `D:\project\dsh-runtime-inspector` 创建一个新的 DSH 会话，输入：
+
+```text
+请在当前项目启动一个本地 HTTP 服务，监听 127.0.0.1:4173，并保持运行。
+```
+
+等待 DSH 确认服务已启动，打开侧边栏 Runtime Inspector，必要时点击“刷新”。
+
+端口 `4173` 应满足：
+
+- 顶部状态为“观察模式”。
+- 来源为“DSH 来源已确认”。
+- “本会话已确认”至少为 `1`。
+- 项目目录不是“未提供”或“未关联项目”。
+- Session 显示当前会话标题。
+- Call ID不是“未提供”。
+- 用户请求显示上面的 4173 请求。
+- 创建时间是本地日期时间，不是 17–20 位 FILETIME 数字。
+- 处理方式通常为“停止 DSH 任务”；是否拥有 managed owner 以实际 Host inventory 为准。
+- 页面不显示“未纳入回归测试”或类似版本提示。
+
+## 4. 验证 managed shutdown
+
+选中 4173，点击“停止 DSH 任务”并确认。确认信息应包含当前进程和监听身份。
+
+操作后预期：
+
+- 面板报告操作结果并执行 fresh scan。
+- 4173 从列表消失或明确报告端口是否仍在监听。
+- DSH Web 自身和其他未选中的 listener 不受影响。
+
+PowerShell 复核：
+
+```powershell
+Get-NetTCPConnection -LocalPort 4173 -State Listen -ErrorAction SilentlyContinue
+```
+
+端口已释放时没有输出。
+
+## 5. 验证 PowerShell 外部监听
+
+打开另一个 PowerShell 窗口：
+
+```powershell
+cd D:\project\dsh-runtime-inspector
+
+node -e "require('http').createServer((req,res)=>res.end('ok')).listen(4174,'127.0.0.1',()=>console.log('Listening on 4174')); setInterval(()=>{},2147483647)"
+```
+
+保持该窗口运行，回到 Runtime Inspector 并刷新。
+
+端口 `4174` 应满足：
+
+- 来源为“来源未确认”。
+- 处理方式在身份完整且安全检查可用时为“结束该进程”，不能仅因来源未确认而强制变成“仅可查看”。
+- Session 为“未关联 DSH 会话”。
+- Call ID为“未提供”。
+- 用户请求为“未提供”，不得显示之前 4173 的会话请求。
+- 创建时间是本地日期时间。
+
+## 6. 验证 external single-PID termination
+
+选中 4174，点击“结束该进程”。确认弹窗应重新展示：
+
+- PID。
+- 创建时间。
+- 可执行文件。
+- 监听地址和端口。
+- 该操作与 DSH 来源归因无关的说明。
+
+确认后预期：
+
+- 只结束选中的单个外部 PID。
+- 面板执行 fresh scan 并报告端口释放结果。
+- 启动外部服务的 Node 进程退出。
+- DSH Web 和其他 listener 保持正常。
+
+PowerShell 复核：
+
+```powershell
+Get-NetTCPConnection -LocalPort 4174 -State Listen -ErrorAction SilentlyContinue
+```
+
+## 7. Opt-in Stock DSH gates
+
+### Bundle lifecycle smoke
+
+```powershell
+$env:DSH_REPO = 'D:\project\deepseek-harness'
+node --test tests/dsh-bundle-smoke.test.mjs
+```
+
+### Native G1–G6 release gate
+
+```powershell
+$env:DSH_REPO = 'D:\project\deepseek-harness'
+node --test tests/dsh-release-gate.test.mjs
+```
+
+### Real Browser-to-Host Web smoke
+
+```powershell
+$env:DSH_REPO = 'D:\project\deepseek-harness'
+$env:DSH_WEB_E2E = '1'
+node --test tests/dsh-web-smoke.test.mjs
+```
+
+新增 DSH/node-pty 回归基线、修改 attribution/lifecycle/action safety 或改变 Browser/Host contract 时，应显式运行对应 gate。默认测试中的 skip 不能替代正式发布验收。
+
+## 8. 故障反馈清单
+
+反馈问题时提供：
+
+1. 面板顶部状态和目标监听行截图。
+2. 选中目标行后的完整详情截图。
+3. 目标端口和启动方式（DSH 会话或外部 PowerShell）。
+4. Profile 插件列表：
+
+   ```powershell
+   pnpm dsh plugin --profile web list
+   ```
+
+5. 监听快照：
+
+   ```powershell
+   Get-NetTCPConnection -LocalPort 4173,4174 -State Listen -ErrorAction SilentlyContinue
+   ```
+
+6. DSH Web 启动终端中与 `dsh-runtime-inspector` 有关的错误；先移除令牌、认证头、环境变量值和其他秘密。

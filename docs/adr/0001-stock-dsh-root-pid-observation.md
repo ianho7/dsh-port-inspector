@@ -12,7 +12,7 @@ MVP 必须让普通用户在未经修改的官方 DSH 上通过标准 Bundle 安
 
 ## Decision
 
-固定支持 `dsh-0.1.0-rc.8`，采用方案 D：
+以 `dsh-0.1.0-rc.8` 为首个回归基线，采用方案 D；版本号只保留为内部诊断信息，公开运行时能力由实际 contract probe 决定：
 
 1. 在 `tools/execute` 中建立 ToolExecution AsyncLocalStorage frame；
 2. 监听 Cordis typed `internal/get` waterfall；
@@ -20,7 +20,7 @@ MVP 必须让普通用户在未经修改的官方 DSH 上通过标准 Bundle 安
 4. 对 pinned stock 路径中绕过该 waterfall 的同一 `LocalSubprocessRuntime` service，额外安装可逆的 method-level fallback；两层都只包装 `spawn`/`spawnTerminal`，调用原 bound method，保留同步异常和原 handle identity，并按 exact handle identity 去重；
 5. PID 有效时读取 ALS、Windows creation identity 并登记 ProcessOrigin；
 6. 所有观察失败 containment；dispose active fence 使旧 Proxy 纯 pass-through，并以 compare-and-swap 恢复 fallback descriptor；
-7. 兼容性或 contract check 失败时进入只读、unattributed 模式。
+7. 某项 public contract check 失败时只关闭依赖它的能力：observer 不可用时停止 verified attribution，但不因此关闭经过独立身份复核的外部单 PID 操作；未知版本本身不触发降级。
 
 标准 Bundle 安装、更新和移除允许重启一次目标 Profile。
 
@@ -29,7 +29,7 @@ MVP 必须让普通用户在未经修改的官方 DSH 上通过标准 Bundle 安
 - 无需修改 DSH core，也不替换或接管 subprocess provider；fallback 只对锁定的 local provider 方法做可逆观察包装，不取得资源 ownership。
 - foreground、background、Code Mode 和首次 terminal 创建共享同一观察点。
 - 插件卸载不会因 provider ownership 而终止进程。
-- 依赖 Cordis internal contract，只对明确验证的 DSH 版本承诺支持。
+- 依赖 Cordis internal contract；运行时先检查 provider、方法和 observer 形状，缺失时局部 fail closed。版本回归记录用于开发者维护，不作为用户可见状态或全局功能开关。
 - root-context lookup、`ctx.reflect.get()`、安装前缓存的 method 可能绕过；当前目标 PowerShell 生产路径逐次动态 lookup，必须由集成测试锁定。
 - E2B delayed PID 不在 Windows/local MVP verified 范围内。
 

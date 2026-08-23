@@ -28,12 +28,12 @@ function host() {
 }
 
 test('Host bridge dispatches only the serializable Runtime Inspector RPC surface', async () => {
-  const result = await dispatchRuntimeInspectorRequest(host(), 'POST', `${RUNTIME_INSPECTOR_ROUTE}/inventory`, { search: 'node' })
+  const result = await dispatchRuntimeInspectorRequest(host(), 'POST', `${RUNTIME_INSPECTOR_ROUTE}/inventory`, { search: 'node', currentSessionId: 'session-a' })
   assert.equal(result.status, 200)
-  assert.deepEqual(result.body.query, { search: 'node' })
+  assert.deepEqual(result.body.query, { search: 'node', currentSessionId: 'session-a' })
 
   const action = await dispatchRuntimeInspectorRequest(host(), 'POST', `${RUNTIME_INSPECTOR_ROUTE}/action`, {
-    listenerId: 'listener-1', kind: 'external-single-pid', confirmed: true,
+    listenerId: 'listener-1', kind: 'external-single-pid', confirmed: true, currentSessionId: 'session-a',
   })
   assert.equal(action.body.action, 'external-single-pid')
   assert.equal(Object.hasOwn(action.body, 'scanner'), false)

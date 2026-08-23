@@ -93,6 +93,14 @@ test('Host inventory exposes redacted listener attribution and searches/sorts by
   assert.equal(JSON.stringify(result).includes('secret'), false)
 })
 
+test('Browser-selected Session controls presentation without changing origin authority', () => {
+  const { host } = harness({ origins: [origin({ id: 1, sessionId: 'session-a', jobId: 'job-a' })] })
+
+  assert.equal(host.inventory({ currentSessionId: 'session-a' }).listeners[0].sessionVisibility, 'current-session')
+  assert.equal(host.inventory({ currentSessionId: 'session-b' }).listeners[0].sessionVisibility, 'another-dsh-session')
+  assert.equal(host.inventory({ currentSessionId: 'session-b' }).listeners[0].action.kind, 'managed-shutdown')
+})
+
 test('copy returns bounded redacted details and open-directory uses only the selected project', async () => {
   const { host, calls } = harness({ origins: [origin({ id: 1, workdir: 'C:\\projects\\TOKEN=secret' })] })
   const listener = host.inventory().listeners[0]
@@ -165,15 +173,17 @@ test('external action is distinct, confirmed, and cannot be invoked for a manage
   assert.deepEqual(managed.calls.external, [])
 })
 
-test('degraded and incomplete-identity rows remain read-only and expose no action callback', async () => {
+test('source tracking degradation does not disable a separately safe external action', async () => {
   const degraded = harness({ mode: 'read-only-degraded', rows: [row({ originId: 1 })], origins: [origin({ id: 1, jobId: 'job-a' })] })
   const degradedRow = degraded.host.inventory().listeners[0]
-  assert.equal(degradedRow.action.kind, 'degraded')
-  assert.equal(degradedRow.action.available, false)
-  const degradedResult = await degraded.host.performAction({ listenerId: degradedRow.listenerId, kind: 'managed-shutdown', confirmed: true })
-  assert.equal(degradedResult.status, 'denied')
-  assert.deepEqual(degraded.calls.shutdown, [])
+  assert.equal(degradedRow.action.kind, 'external-single-pid')
+  assert.equal(degradedRow.action.available, true)
+  const degradedResult = await degraded.host.performAction({ listenerId: degradedRow.listenerId, kind: 'external-single-pid', confirmed: true })
+  assert.equal(degradedResult.status, 'completed')
+  assert.deepEqual(degraded.calls.external, [101])
+})
 
+test('incomplete process identity remains read-only', async () => {
   const readOnly = harness({ rows: [row({ createdAt: '', executable: '' })] })
   const readOnlyRow = readOnly.host.inventory().listeners[0]
   assert.equal(readOnlyRow.action.kind, 'read-only')

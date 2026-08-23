@@ -35,6 +35,8 @@ export type HostSortDirection = 'asc' | 'desc'
 
 export interface HostInventoryQuery {
   readonly search?: string
+  /** Browser-selected Session; presentation/privacy only, never action authority. */
+  readonly currentSessionId?: string
   readonly sort?: {
     readonly key: HostSortKey
     readonly direction?: HostSortDirection
@@ -109,6 +111,8 @@ export interface HostActionRequest {
   readonly listenerId: string
   readonly kind: HostActionKind
   readonly confirmed?: boolean
+  /** Browser-selected Session used only to project the returned fresh scan. */
+  readonly currentSessionId?: string
 }
 
 export interface HostManagedOutcome {
@@ -285,15 +289,6 @@ function actionState(
   row: ListenerRecord,
   owner: HostLifecycleOwner | undefined,
 ): HostActionState {
-  if (mode !== 'observing') {
-    return Object.freeze({
-      kind: 'degraded',
-      label: 'Read-only (degraded compatibility)',
-      available: false,
-      requiresConfirmation: false,
-      reason: 'compatibility-degraded',
-    })
-  }
   if (!scanComplete) {
     return Object.freeze({
       kind: 'read-only',
@@ -303,7 +298,7 @@ function actionState(
       reason: 'listener-scan-incomplete',
     })
   }
-  if (owner !== undefined) {
+  if (mode === 'observing' && owner !== undefined) {
     return Object.freeze({
       kind: 'managed-shutdown',
       label: 'Managed shutdown',
@@ -468,7 +463,9 @@ function readInternalScan(options: RuntimeInspectorHostOptions): InternalScan {
   return { scan, entries }
 }
 
-function readCurrentSession(options: RuntimeInspectorHostOptions): string | undefined {
+function readCurrentSession(options: RuntimeInspectorHostOptions, selected?: unknown): string | undefined {
+  const selectedId = boundedId(selected)
+  if (selectedId !== undefined) return selectedId
   try {
     return boundedId(options.currentSessionId?.())
   } catch {
@@ -584,7 +581,7 @@ function emptyActionResult(request: HostActionRequest, message: string, internal
 export function createRuntimeInspectorHost(options: RuntimeInspectorHostOptions): RuntimeInspectorHost {
   const inventory = (query: HostInventoryQuery = {}): HostInventorySnapshot => {
     const internal = readInternalScan(options)
-    return snapshotFrom(internal, safeMode(options.mode), readCurrentSession(options), query)
+    return snapshotFrom(internal, safeMode(options.mode), readCurrentSession(options, query.currentSessionId), query)
   }
 
   const copyDetails = async (request: { readonly listenerId: string }): Promise<HostCopyResult> => {
@@ -620,7 +617,7 @@ export function createRuntimeInspectorHost(options: RuntimeInspectorHostOptions)
 
   const performAction = async (request: HostActionRequest): Promise<HostActionResult> => {
     const mode = safeMode(options.mode)
-    const currentSessionId = readCurrentSession(options)
+    const currentSessionId = readCurrentSession(options, request.currentSessionId)
     // Re-scan before dispatch so a stale UI row cannot select a reused PID or
     // a managed owner that has already changed state.
     const before = readInternalScan(options)

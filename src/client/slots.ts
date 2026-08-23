@@ -1,9 +1,12 @@
+import type { RuntimeInspectorClientSessionsLike } from './session-context.js'
+
 /** Small structural Client context used to keep Host-only types out of the Browser build. */
 export interface RuntimeInspectorClientContext {
   readonly slots: {
     inject(name: string, setup: () => unknown): unknown
     register(options: RuntimeInspectorSlotOptions, component: (props: unknown) => unknown): unknown
   }
+  readonly sessions: RuntimeInspectorClientSessionsLike
 }
 
 export interface RuntimeInspectorSlotOptions {

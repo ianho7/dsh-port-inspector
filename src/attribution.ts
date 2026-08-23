@@ -121,6 +121,8 @@ interface ToolCallContext {
 
 export interface RuntimeAttributionOptions {
   readonly enabled: () => boolean
+  /** Exact-version gate for the private delayed-Terminal shape repair only. */
+  readonly repairDelayedTerminal?: () => boolean
   readonly readIdentity?: (pid: number) => ProcessCreationIdentity | undefined
   readonly registry?: ProcessOriginRegistry
   readonly lifecycle?: LifecycleOwnerRegistry
@@ -235,6 +237,7 @@ export class RuntimeAttribution {
   private readonly calls = new Map<string, ToolCallContext>()
   private readonly proxies = new WeakMap<object, object>()
   private readonly enabled: () => boolean
+  private readonly delayedTerminalRepairAllowed: () => boolean
   private readonly readIdentity: (pid: number) => ProcessCreationIdentity | undefined
   private readonly lifecycle?: LifecycleOwnerRegistry
   private readonly resultJobIds = new Map<string, string>()
@@ -245,6 +248,7 @@ export class RuntimeAttribution {
   constructor(options: RuntimeAttributionOptions) {
     this.registry = options.registry ?? new ProcessOriginRegistry()
     this.enabled = options.enabled
+    this.delayedTerminalRepairAllowed = options.repairDelayedTerminal ?? (() => true)
     this.readIdentity = options.readIdentity ?? readWindowsProcessIdentity
     this.lifecycle = options.lifecycle
   }
@@ -583,7 +587,9 @@ export class RuntimeAttribution {
 
   private async prepareTerminalHandle(handle: unknown, spawnArgs: readonly unknown[]): Promise<unknown> {
     try {
-      await repairDelayedTerminalHandle(handle, { enabled: () => this.observationAllowed() })
+      await repairDelayedTerminalHandle(handle, {
+        enabled: () => this.observationAllowed() && this.delayedTerminalRepairAllowed(),
+      })
     } catch {
       // A private-shape compatibility failure must not alter provider results.
     }

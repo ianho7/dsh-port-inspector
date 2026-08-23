@@ -11,7 +11,13 @@ declare module 'node:child_process' {
 }
 
 declare module 'node:process' {
+  export const argv: readonly string[]
   export const platform: string
+}
+
+declare module 'node:path' {
+  export function dirname(path: string): string
+  export function join(...paths: readonly string[]): string
 }
 
 declare module 'node:async_hooks' {

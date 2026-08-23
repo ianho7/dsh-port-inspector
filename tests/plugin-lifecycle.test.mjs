@@ -24,7 +24,7 @@ test('plugin publishes health and unload only disables its own service', async (
   assert.equal(published[0].service.health.mode, 'read-only-degraded')
   assert.ok(published[0].service.health.reason)
   assert.equal(published[0].service.health.verifiedAttributionEnabled, false)
-  assert.equal(published[0].service.health.terminationEnabled, false)
+  assert.equal(published[0].service.health.terminationEnabled, true)
   assert.equal(published[0].service.isActive(), true)
   assert.equal(typeof published[0].service.listeners, 'function')
   assert.equal(typeof published[0].service.host.inventory, 'function')
@@ -35,7 +35,8 @@ test('plugin publishes health and unload only disables its own service', async (
     processCreatedAt: '1000',
     executable: 'node.exe',
   }, { confirmed: true })
-  assert.equal(externalResult.reason, 'compatibility-disabled')
+  assert.equal(externalResult.ok, false)
+  assert.notEqual(externalResult.reason, 'compatibility-disabled')
   assert.equal(effects.length, 1)
 
   await effects[0]()

@@ -8,6 +8,7 @@ The repository contains the Windows MVP bundle implementation plus its specifica
 - `docs/dsh-runtime-inspector-mvp-spec.md` — implementation-ready specification.
 - `docs/dsh-runtime-inspector-root-pid-research.md` — DSH source research and evidence.
 - `docs/dsh-runtime-inspector-glossary.md` — canonical domain vocabulary.
+- `docs/dsh-runtime-inspector-testing.md` — build, package installation, manual acceptance, and opt-in Stock DSH gates.
 - `docs/adr/` — accepted architectural decisions, using numbered filenames.
 - `docs/agents/` — repository configuration consumed by engineering skills.
 - `src/compatibility.ts` and `src/index.ts` — compatibility gate and DSH Host plugin entrypoint.
@@ -58,7 +59,7 @@ Recent history uses concise Conventional Commit-style subjects with an imperativ
 
 ## Architecture & Safety Notes
 
-The MVP targets Stock DSH `dsh-0.1.0-rc.8` as the baseline plus separately certified `dsh-0.1.1-rc.1`, on Windows local execution only. Root PID observation uses the Cordis `internal/get` non-mutating subprocess Proxy and a reversible, provider-specific fallback; it must not replace providers or own process teardown. If `subprocess` is published after Bundle apply, recheck the existing compatibility gate on `internal/service`; never relax the gate for an unknown provider. Keep commands and paths redacted, never collect environment secrets, require PID plus creation-time identity before termination, and fail closed to read-only mode when compatibility or permissions are insufficient.
+The MVP uses Stock DSH `dsh-0.1.0-rc.8`, `dsh-0.1.1-rc.1`, and `dsh-0.1.1-rc.2` as regression baselines, on Windows local execution only. DSH version is diagnostic metadata rather than a feature gate: public behavior is enabled from runtime capability probes, while the private delayed-Terminal PID repair remains exact-version and exact-shape gated. Root PID observation uses the Cordis `internal/get` non-mutating subprocess Proxy and a reversible, provider-specific fallback; it must not replace providers or own process teardown. If `subprocess` is published after Bundle apply, recheck the capability gate on `internal/service`; never treat an unknown provider as a verified local provider. Keep commands and paths redacted, never collect environment secrets, require PID plus creation-time identity before termination, and fail closed per capability when contracts or permissions are insufficient. Source tracking failure must not by itself disable an independently revalidated external single-PID action.
 
 The package is a same-repository DSH dual-face Bundle. Browser code may use only serializable same-origin Host RPC; it must not import Windows scanner, process identity, Koffi, Job/Terminal, or termination primitives. Opening a project directory must stay Host-owned through the certified DSH path opener, and `port_list` remains read-only with an object-rooted JSON Schema.
 

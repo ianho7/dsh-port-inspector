@@ -25,26 +25,37 @@ test('supported Stock DSH Windows local probe activates observing mode', () => {
   assert.equal(result.reason, undefined)
 })
 
-test('a separately certified follow-up DSH release activates without dropping the rc.8 baseline', () => {
+test('separately certified DSH releases activate without dropping the rc.8 baseline', () => {
   const result = evaluateCompatibility({
     ...supported,
     detectedDshVersion: '0.1.1-rc.1',
     compatibleDshVersions: SUPPORTED_DSH_VERSIONS,
   })
-  assert.deepEqual(SUPPORTED_DSH_VERSIONS, ['0.1.0-rc.8', '0.1.1-rc.1'])
+  assert.deepEqual(SUPPORTED_DSH_VERSIONS, ['0.1.0-rc.8', '0.1.1-rc.1', '0.1.1-rc.2'])
   assert.equal(result.mode, 'observing')
   assert.equal(result.expectedDshVersion, '0.1.0-rc.8')
 })
 
-test('unknown DSH version fails closed to read-only degraded mode', () => {
+test('unknown DSH version uses runtime capabilities without a compatibility warning', () => {
   const result = evaluateCompatibility({
     ...supported,
-    detectedDshVersion: '0.1.0-rc.9',
+    detectedDshVersion: '0.1.2-rc.1',
   })
-  assert.equal(result.mode, 'read-only-degraded')
-  assert.equal(result.verifiedAttributionEnabled, false)
-  assert.equal(result.terminationEnabled, false)
-  assert.equal(result.reason, 'dsh-version-unsupported')
+  assert.equal(result.mode, 'observing')
+  assert.equal(result.verifiedAttributionEnabled, true)
+  assert.equal(result.terminationEnabled, true)
+  assert.equal(result.reason, undefined)
+  assert.equal(result.privateTerminalRepairEnabled, false)
+})
+
+test('rc.2 uses public capabilities and its separately certified private Terminal repair', () => {
+  const result = evaluateCompatibility({
+    ...supported,
+    detectedDshVersion: '0.1.1-rc.2',
+    compatibleDshVersions: SUPPORTED_DSH_VERSIONS,
+  })
+  assert.equal(result.mode, 'observing')
+  assert.equal(result.privateTerminalRepairEnabled, true)
 })
 
 test('non-Windows execution fails closed before attribution or actions', () => {
@@ -71,8 +82,9 @@ test('a missing subprocess contract fails closed without guessing', () => {
 test('a missing observer contract fails closed without verified claims', () => {
   const result = evaluateCompatibility({ ...supported, hasObserverContract: false })
   assert.equal(result.mode, 'read-only-degraded')
+  assert.equal(result.executionWorld, 'windows-local')
   assert.equal(result.verifiedAttributionEnabled, false)
-  assert.equal(result.terminationEnabled, false)
+  assert.equal(result.terminationEnabled, true)
   assert.equal(result.observerContractAvailable, false)
   assert.equal(result.reason, 'observer-contract-unavailable')
 })

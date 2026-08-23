@@ -73,13 +73,15 @@ function readActionRequest(value: unknown): HostActionRequest {
     listenerId,
     kind,
     ...value.confirmed === undefined ? {} : { confirmed: value.confirmed },
+    ...value.currentSessionId === undefined ? {} : { currentSessionId: readString(value, 'currentSessionId') },
   }
 }
 
 function readQuery(value: unknown): HostInventoryQuery | undefined {
   if (value === undefined || value === null) return undefined
   if (!isRecord(value)) throw new Error('invalid inventory query')
-  const query: { search?: string; sort?: { key: 'port' | 'application' | 'pid' | 'project' | 'session'; direction?: 'asc' | 'desc' } } = {}
+  const query: { currentSessionId?: string; search?: string; sort?: { key: 'port' | 'application' | 'pid' | 'project' | 'session'; direction?: 'asc' | 'desc' } } = {}
+  if (value.currentSessionId !== undefined) query.currentSessionId = readString(value, 'currentSessionId')
   if (value.search !== undefined) {
     if (typeof value.search !== 'string') throw new Error('invalid search')
     query.search = value.search

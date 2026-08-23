@@ -13,6 +13,7 @@ test('package declares an installable DSH Bundle patch', () => {
   assert.equal(manifest.exports['./client'].default, './lib/client.js')
   assert.equal(manifest.exports['./client'].types, './lib/client.d.ts')
   assert.equal(manifest.dependencies.koffi, '^3.1.0')
+  assert.equal(manifest.peerDependencies, undefined, 'package installation must not reject an otherwise capable DSH version')
   assert.ok(manifest.files.includes('cordis.patch.yml'))
   assert.match(patch, /id: dsh-runtime-inspector/)
   assert.match(patch, /name: dsh-runtime-inspector/)

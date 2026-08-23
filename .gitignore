@@ -3,3 +3,15 @@ lib/
 .tmp/
 *.tsbuildinfo
 coverage/
+
+# Local package artifacts
+/dsh-runtime-inspector-*.tgz
+
+# npm is the authoritative package workflow for this repository
+/pnpm-lock.yaml
+
+# Local environment and diagnostic files
+.env
+.env.*
+!.env.example
+*.log

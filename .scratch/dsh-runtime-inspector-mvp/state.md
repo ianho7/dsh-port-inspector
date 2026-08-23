@@ -1,9 +1,9 @@
 # Runtime Inspector MVP Loop State
 
-status: mitigated
-phase: verify
+status: complete
+phase: accept
 current_ticket: 09
-current_hypothesis: The Windows Host MVP is complete; the accepted Web requirement now extends the acceptance surface to a same-repository dual-face Bundle with a global Sidebar entry, overlay panel, and real Browser-to-Host validation.
+current_hypothesis: The Windows Host and same-repository Browser UI MVP have passed the declared dsh-0.1.0-rc.8 and dsh-0.1.1-rc.1 acceptance surfaces.
 attempts:
   - id: ticket-01-start
     action: Claim Ticket 01 and define the plugin health seam.
@@ -118,7 +118,7 @@ attempts:
     failure_class: none
     raw_evidence: "Main and scratch Specs now define dsh.client, exports[./client], sidebar.footer.action, shell.overlay, the serializable Host RPC seam, Browser safety states, and native Web smoke requirements; ADR-0004 and ready-for-agent Ticket 09 were added."
     conclusion: Web implementation may begin after inspecting the exact certified DSH Client module and Slot contracts; no runtime code has been changed by the spec update.
-next_action_rule: Claim Ticket 09, verify the rc.8/rc.1 Browser loading seam, then implement the smallest Browser tracer-bullet before adding action controls.
+    next_action_rule: Claim Ticket 09, verify the rc.8/rc.1 Browser loading seam, then implement the smallest Browser tracer-bullet before adding action controls.
   - id: ticket-09-implementation
     action: Implement the single-repository Browser Client Bundle, additive Slots, same-origin Host bridge, Runtime Inspector panel, and deterministic Browser/Host tests.
     failure_class: none
@@ -131,8 +131,48 @@ next_action_rule: Claim Ticket 09, verify the rc.8/rc.1 Browser loading seam, th
     raw_evidence: "tests/dsh-web-smoke.test.mjs passed with DSH_REPO=D:\\project\\deepseek-harness and DSH_WEB_E2E=1: Chromium loaded the dsh-runtime-inspector boot graph entry and artifact, rendered the Sidebar entry and shell overlay, fetched the real inventory, confirmed an external single-PID action through the Browser UI, received a Host fresh scan with portReleased=true, observed the disposable listener exit, and got HTTP 200 from the unaffected DSH Web listener afterward."
     conclusion: The same-repository dual-face Bundle and real Browser-to-Host action path work on Stock DSH 0.1.1-rc.1. The smoke is opt-in so the ordinary deterministic suite remains hermetic.
     next_action_rule: Run the same smoke against a built dsh-0.1.0-rc.8 checkout before resolving Ticket 09; keep the ticket claimed until that compatibility evidence exists.
-evidence_gaps:
-  - DSH Web Client artifact loading and Slot registration for the declared 0.1.0-rc.8 version; the available checkout and built Web artifacts are 0.1.1-rc.1.
-  - The pre-existing Ticket 08 native G1-G6 release gate still timed out waiting for terminal listener port 39104 on two attempts; the Web smoke itself passed.
+  - id: ticket-09-ui-refresh
+    action: Implement the accepted compact Runtime Inspector design in the Browser Client and align its Web smoke with the list/detail interaction model.
+    failure_class: none
+    raw_evidence: "Added namespaced semantic-token styling and inline SVG icons, replaced the basic panel with a compact summary, filterable listener list, structured detail view, Session/request/Call ID context, source/action separation, degraded/incomplete states, and identity-aware confirmation dialog. Sidebar count now reports only verified current-session listeners and shows — when unavailable. Bundled TypeScript emit/no-emit checks pass; deterministic Node suite passes 84/84 with three native Stock DSH gates skipped; real DSH Web smoke against 0.1.1-rc.1 passes and verifies copy, detail selection, external confirmation, fresh port release, and unaffected Web listener health. git diff --check passes."
+    conclusion: The approved UI design is implemented without expanding the Browser RPC or Host process boundary. The remaining acceptance gap is only the declared 0.1.0-rc.8 Web compatibility run.
+    next_action_rule: Run the same Web smoke against a built dsh-0.1.0-rc.8 checkout before resolving Ticket 09.
+  - id: ticket-09-web-smoke-rc8
+    action: Build an isolated Stock DSH 0.1.0-rc.8 checkout and run the same real Browser-to-Host smoke.
+    failure_class: none
+    raw_evidence: "Independent shared clone at commit 141eb6fef83422698aef7a981029e843e8161534 installed its pinned dependencies from the offline store and completed the full DSH build. tests/dsh-web-smoke.test.mjs then passed with DSH_REPO=D:\\project\\dsh-runtime-inspector\\.scratch\\deepseek-harness-rc8 and DSH_WEB_E2E=1: Chromium loaded the boot artifact, rendered the Sidebar entry and overlay, selected a listener detail, copied its redacted value, confirmed the identity-fenced external single-PID action, received a fresh scan with portReleased=true, observed the listener exit, and retained HTTP 200 from the unaffected DSH Web listener."
+    conclusion: Browser artifact loading, Slot registration, inventory, and action paths work on both declared dsh-0.1.0-rc.8 and dsh-0.1.1-rc.1 baselines without modifying DSH source.
+    next_action_rule: Keep the opt-in real Web smoke mandatory for every newly certified DSH Client version.
+  - id: ticket-10-runtime-context-diagnosis
+    action: Reproduce the always-degraded panel, raw FILETIME, missing project, and missing Session/Call/request context against the installed Stock DSH 0.1.1-rc.2 runtime.
+    failure_class: implementation
+    raw_evidence: "Focused tests first reproduced the reported state: the exact-version compatibility gate degraded every capability on rc.2; the Browser panel rendered the Host safety FILETIME directly; Host-only session lookup could not see the Browser current Session; project data was suppressed with degraded origins; and the UI incorrectly substituted a tool command for the user's request."
+    conclusion: The symptoms shared two boundary defects rather than bad listener data: version had been used as a product-wide gate, and Browser-owned conversation context had never crossed the serializable Host bridge.
+    next_action_rule: Replace the product-wide version gate with independent runtime capabilities, preserve exact-version gating only for the private delayed Terminal repair, and add a bounded current-Session presentation projection.
+  - id: ticket-10-runtime-context-fix
+    action: Implement capability-based compatibility, independent external actions, Browser current-Session projection, localized creation time, and project/Call/user-request presentation.
+    failure_class: none
+    raw_evidence: "Unknown/new DSH versions now enable public runtime capabilities by contract and produce no user-facing version notice. The Browser sends only its current Session id; the Host remains authoritative for attribution and actions, while the Client derives displayTitle and bounded redacted user text from the current conversation. Windows FILETIME remains canonical for PID identity but is converted only at the presentation boundary. DSH 0.1.1-rc.2 was added to the exact private Terminal-repair regression set after the native gate proved the repair is still required and its artifact shape matches the certified versions."
+    conclusion: DSH listeners can show verified source, project, Session title, Call ID, and user request; external PowerShell listeners remain source-unconfirmed but may expose the independently safe single-PID action. Missing source capability no longer forces every row into read-only mode.
+    next_action_rule: Run deterministic, native Windows G1-G6, and real Stock DSH Web gates, then retain version information only in developer diagnostics and regression records.
+  - id: ticket-10-verification
+    action: Run final type/build, deterministic, native lifecycle, and real Browser-to-Host verification for the complete repair.
+    failure_class: none
+    raw_evidence: "TypeScript no-emit and Host/Client builds pass. The deterministic Node suite reports 96 tests: 93 passed, 3 opt-in native/Web gates skipped, 0 failed. The native Stock DSH G1-G6 release gate passes on the actual CLI package, including delayed Terminal attribution and both managed/external actions. The installed Stock DSH 0.1.1-rc.2 Web smoke passes: Chromium loads the panel, verifies the DSH-origin listener and project/Call projection, and completes the external single-PID action while the DSH Web listener remains healthy."
+    conclusion: Ticket 10 resolves all reported runtime and presentation defects without weakening PID identity fences or moving process authority into the Browser.
+    next_action_rule: Keep public capability probes permissive across future versions, certify only private repair shapes, and run the native/Web gates before adding a new version to that private-repair set.
+  - id: ticket-11-external-request-isolation
+    action: Reproduce and fix current-Session user-request leakage into an unattributed PowerShell listener row.
+    failure_class: implementation
+    raw_evidence: "A focused Client context test reproduced the exact sequence deterministically: after indexing a current DSH Session request for port 4173, requestFor({}) for an external listener returned that request instead of undefined. The lookup treated a missing Session id as permission to use the current Session and then fell back to latestRequest when no Call/Turn identity existed."
+    conclusion: User-request projection now requires an explicit Session id equal to the Browser-selected Session and an exact Call ID, root Call ID, or Turn mapping. Missing or mismatched attribution returns undefined, so the panel displays 未提供 rather than borrowing unrelated conversation text.
+    next_action_rule: Keep conversation text fail-closed: never use latest-request fallback for a listener without explicit current-Session attribution.
+  - id: ticket-11-verification
+    action: Run the focused red-to-green loop, rebuild the Browser artifact, and run full deterministic verification.
+    failure_class: none
+    raw_evidence: "The focused regression changed from 3 pass/1 fail with actual 4173 request leakage to 4/4 pass. TypeScript emit/no-emit and Browser build pass. The full deterministic suite reports 97 tests: 94 passed, 3 opt-in native/Web gates skipped, 0 failed."
+    conclusion: External listener Session, Call ID, and user-request presentation now agree: 未关联 DSH 会话, 未提供, 未提供.
+    next_action_rule: Repack and restart the target DSH Profile before manual retest because Browser artifacts are loaded at Profile startup.
+evidence_gaps: []
 blocked_reason: none
-next_action: Build or provide Stock DSH 0.1.0-rc.8, then run DSH_WEB_E2E=1 against it; resolve Ticket 09 only after the rc.8 Web smoke passes.
+next_action: Maintain the deterministic, native Windows, and real Web regression gates for future DSH versions; no MVP acceptance gap remains.

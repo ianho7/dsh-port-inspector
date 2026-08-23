@@ -4,14 +4,115 @@ import { cp, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import test from 'node:test'
 
 const repoRoot = fileURLToPath(new URL('..', import.meta.url))
 const dshRoot = process.env.DSH_REPO
-const dshBin = dshRoot === undefined ? undefined : join(dshRoot, 'apps', 'cli', 'lib', 'bin.js')
+const dshPackageRoot = process.env.DSH_PACKAGE_ROOT ?? dshRoot
+const dshBin = process.env.DSH_BIN ?? (dshRoot === undefined ? undefined : join(dshRoot, 'apps', 'cli', 'lib', 'bin.js'))
+const dshCwd = process.env.DSH_CWD ?? dshPackageRoot
+const playwrightAnchor = process.env.DSH_PLAYWRIGHT_ANCHOR
+  ?? (dshRoot === undefined ? undefined : join(dshRoot, 'apps', 'web', 'package.json'))
 const enabled = process.env.DSH_WEB_E2E === '1'
-const canRunStockDshWeb = enabled && dshRoot !== undefined && dshBin !== undefined
+const canRunStockDshWeb = enabled && dshPackageRoot !== undefined && dshBin !== undefined
+
+const WEB_FIXTURE_LISTENER_SOURCE = `
+import net from 'node:net'
+import { writeFileSync } from 'node:fs'
+
+const readyFile = process.argv[2]
+const server = net.createServer(socket => socket.end())
+server.listen(0, '127.0.0.1', () => writeFileSync(readyFile, JSON.stringify({ pid: process.pid, port: server.address().port })))
+setInterval(() => {}, 1_000)
+`
+
+const WEB_FIXTURE_SOURCE = `
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+
+export const name = 'runtime-inspector-web-fixture'
+export const inject = ['runtimeInspector', 'sessions', 'tools']
+
+const fixtureDir = process.env.RI_WEB_FIXTURE_DIR
+const listenerFile = process.env.RI_WEB_LISTENER_FILE
+const readyFile = process.env.RI_WEB_READY_FILE
+const resultFile = process.env.RI_WEB_RESULT_FILE
+const sessionId = 'runtime-inspector-web-session'
+const sessionTitle = '本地服务调试'
+const userRequest = '请在当前项目启动一个本地 HTTP 服务，监听 127.0.0.1:4173，并保持运行。'
+const callId = 'runtime-inspector-web-call'
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
+async function waitForFile(path) {
+  const deadline = Date.now() + 30_000
+  while (Date.now() < deadline) {
+    if (existsSync(path)) return JSON.parse(readFileSync(path, 'utf8'))
+    await sleep(50)
+  }
+  throw new Error('timed out waiting for ' + path)
+}
+
+export function apply(ctx) {
+  let handle
+  let disposeAgent
+  const disposeTool = ctx.tools.register({
+    name: 'runtime-inspector-web-listener',
+    description: 'Real Stock DSH Web attribution fixture',
+    parameters: {},
+    output: { schema: { type: 'object' }, render: () => [] },
+    async execute() {
+      const subprocess = ctx.get('subprocess')
+      if (subprocess === undefined || typeof subprocess.spawn !== 'function') throw new Error('subprocess unavailable')
+      handle = subprocess.spawn({
+        argv: [process.execPath, listenerFile, readyFile],
+        cwd: fixtureDir,
+        stdio: { stdin: 'ignore', stdout: { maxBytes: 4096 }, stderr: { maxBytes: 4096 } },
+        graceMs: 1000,
+      })
+      const ready = await waitForFile(readyFile)
+      return { port: ready.port }
+    },
+  })
+
+  void (async () => {
+    const session = ctx.sessions.create(sessionId, { meta: { cwd: fixtureDir } })
+    session.append('user/message', {
+      id: 'runtime-inspector-web-message',
+      content: [{ type: 'text', text: userRequest }],
+      source: { kind: 'user' },
+    }, { surfaceOp: 'append' })
+    session.append('session/title', { title: sessionTitle, messageSeqs: [], source: { kind: 'user' } })
+    session.append('turn/start', { turn: 1 })
+    session.append('step/start', { turn: 1, step: 1 })
+    const agent = { id: session.id, session, ctx, status: 'idle' }
+    const agents = ctx.get('agents')
+    if (agents === undefined || typeof agents.register !== 'function') throw new Error('agents unavailable')
+    disposeAgent = agents.register(agent)
+    session.append('tool/call', {
+      turn: 1,
+      step: 1,
+      callId,
+      name: 'runtime-inspector-web-listener',
+      arguments: '{}',
+    })
+    await ctx.tools.execute({
+      agent,
+      callId,
+      name: 'runtime-inspector-web-listener',
+      arguments: {},
+      signal: new AbortController().signal,
+    })
+    const ready = await waitForFile(readyFile)
+    writeFileSync(resultFile, JSON.stringify({ sessionId, sessionTitle, userRequest, callId, port: ready.port }))
+  })().catch(error => writeFileSync(resultFile, JSON.stringify({ error: String(error?.stack ?? error) })))
+
+  ctx.effect(() => () => {
+    try { handle?.terminate() } catch {}
+    try { disposeAgent?.() } catch {}
+    try { disposeTool() } catch {}
+  })
+}
+`
 
 function waitForOutput(child, pattern, timeoutMs = 30_000) {
   let stdout = ''
@@ -60,6 +161,20 @@ function waitForExit(child, timeoutMs = 10_000) {
   })
 }
 
+async function waitForJson(path, timeoutMs = 30_000) {
+  const deadline = Date.now() + timeoutMs
+  let lastError
+  while (Date.now() < deadline) {
+    try {
+      return JSON.parse(await readFile(path, 'utf8'))
+    } catch (error) {
+      lastError = error
+      await new Promise(resolve => setTimeout(resolve, 50))
+    }
+  }
+  throw new Error(`timed out waiting for ${path}: ${String(lastError)}`)
+}
+
 async function stagePlugin(profile, installed) {
   await mkdir(join(profile, 'node_modules'), { recursive: true })
   await mkdir(installed, { recursive: true })
@@ -69,16 +184,12 @@ async function stagePlugin(profile, installed) {
 
   // The stock DSH profile resolves native koffi from the profile dependency
   // boundary during this out-of-tree Bundle smoke, just like the Host smoke.
-  const koffiSource = join(dshRoot, 'node_modules', '.pnpm', 'koffi@3.1.1', 'node_modules', 'koffi')
-  const koffiNativeSource = join(
-    dshRoot,
-    'node_modules',
-    '.pnpm',
-    '@koromix+koffi-win32-x64@3.1.1',
-    'node_modules',
-    '@koromix',
-    'koffi-win32-x64',
-  )
+  const packagedKoffi = join(dshPackageRoot, 'node_modules', 'koffi')
+  const packagedKoffiNative = join(dshPackageRoot, 'node_modules', '@koromix', 'koffi-win32-x64')
+  const koffiSource = await readFile(join(packagedKoffi, 'package.json')).then(() => packagedKoffi, () => join(dshPackageRoot, 'node_modules', '.pnpm', 'koffi@3.1.1', 'node_modules', 'koffi'))
+  const koffiNativeSource = await readFile(join(packagedKoffiNative, 'package.json')).then(() => packagedKoffiNative, () => join(
+    dshPackageRoot, 'node_modules', '.pnpm', '@koromix+koffi-win32-x64@3.1.1', 'node_modules', '@koromix', 'koffi-win32-x64',
+  ))
   assert.equal(await readFile(join(koffiSource, 'package.json')).then(() => true, () => false), true)
   assert.equal(await readFile(join(koffiNativeSource, 'package.json')).then(() => true, () => false), true)
   await cp(koffiSource, join(profile, 'node_modules', 'koffi'), { recursive: true })
@@ -129,28 +240,61 @@ test('real Stock DSH Web loads the Bundle, opens the panel, and rechecks an exte
   let browser
   try {
     await stagePlugin(profile, installed)
+    const fixtureDir = join(home, 'fixture-project')
+    const fixtureFile = join(home, 'runtime-inspector-web-fixture.mjs')
+    const fixtureListenerFile = join(home, 'runtime-inspector-web-listener.mjs')
+    const fixtureReadyFile = join(home, 'runtime-inspector-web-listener-ready.json')
+    const fixtureResultFile = join(home, 'runtime-inspector-web-fixture-result.json')
+    await mkdir(fixtureDir, { recursive: true })
+    await writeFile(fixtureFile, WEB_FIXTURE_SOURCE)
+    await writeFile(fixtureListenerFile, WEB_FIXTURE_LISTENER_SOURCE)
     await writeFile(join(profile, 'package.json'), JSON.stringify({
       name: 'dsh-runtime-inspector-web-profile',
       private: true,
       dependencies: {},
       dsh: { profile: { bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', 'dsh-runtime-inspector'] } },
     }, null, 2))
-    await writeFile(join(profile, 'cordis.patch.yml'), '[]\n')
+    await writeFile(join(profile, 'cordis.patch.yml'), [
+      '- insert:',
+      '    - id: runtime-inspector-web-fixture',
+      `      name: ${pathToFileURL(fixtureFile).href}`,
+      '      inject: [runtimeInspector, sessions, tools]',
+      '',
+    ].join('\n'))
 
     listener = await startListener()
     dsh = spawn(process.execPath, [dshBin, '--profile', 'inspector', '--no-open', '--port', '0'], {
-      cwd: dshRoot,
+      cwd: dshCwd,
       env: {
         ...process.env,
         DSH_HOME: home,
         DSH_TELEMETRY_DISABLED: '1',
+        RI_WEB_FIXTURE_DIR: fixtureDir,
+        RI_WEB_LISTENER_FILE: fixtureListenerFile,
+        RI_WEB_READY_FILE: fixtureReadyFile,
+        RI_WEB_RESULT_FILE: fixtureResultFile,
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     })
     const { match: urlMatch } = await waitForOutput(dsh, /dsh web: (http:\/\/127\.0\.0\.1:\d+)/)
     const baseUrl = urlMatch[1]
+    const fixture = await waitForJson(fixtureResultFile)
+    assert.equal(fixture.error, undefined, fixture.error)
+    const attributedResponse = await fetch(`${baseUrl}/api/dsh-runtime-inspector/inventory`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ currentSessionId: fixture.sessionId }),
+    })
+    assert.equal(attributedResponse.status, 200)
+    const attributedInventory = await attributedResponse.json()
+    assert.equal(attributedInventory.mode, 'observing')
+    const attributedRow = attributedInventory.listeners.find(candidate => candidate.port === fixture.port)
+    assert.equal(attributedRow?.confidence, 'verified')
+    assert.equal(attributedRow?.sessionVisibility, 'current-session')
+    assert.equal(attributedRow?.session?.callId, fixture.callId)
+    assert.equal(attributedRow?.project, fixtureDir)
 
-    const dshRequire = createRequire(join(dshRoot, 'apps', 'web', 'package.json'))
+    const dshRequire = createRequire(playwrightAnchor ?? join(dshPackageRoot, 'package.json'))
     const { chromium } = dshRequire('playwright')
     browser = await chromium.launch({ headless: true })
     const page = await browser.newPage()
@@ -177,18 +321,28 @@ test('real Stock DSH Web loads the Bundle, opens the panel, and rechecks an exte
     await page.locator('[data-runtime-inspector-state="ready"], [data-runtime-inspector-state="incomplete"], [data-runtime-inspector-state="failure"]').first().waitFor()
     assert.equal(await panel.locator('[data-runtime-inspector-search="input"]').count(), 1)
 
+    await page.waitForFunction((port) => [...document.querySelectorAll('[data-runtime-inspector-row]')]
+      .some(candidate => candidate.textContent?.includes('端口 ' + String(port))), fixture.port, { timeout: 30_000 })
+    const managedRow = page.locator('[data-runtime-inspector-row]').filter({ hasText: '端口 ' + String(fixture.port) }).first()
+    assert.match(await managedRow.textContent(), /DSH 来源已确认/)
+    await managedRow.locator('[data-runtime-inspector-select]').click()
+    const detail = page.locator('.dsh-ri-detail-column')
+    await detail.getByText(fixture.callId, { exact: true }).waitFor()
+    await detail.getByText(fixtureDir, { exact: true }).waitFor()
+    const createdAt = await detail.locator('.dsh-ri-fact').filter({ hasText: '创建时间' }).locator('dd').textContent()
+    assert.doesNotMatch(createdAt ?? '', /^\d{17,20}$/u)
+
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: baseUrl })
-    await page.waitForFunction((port) => {
-      const row = [...document.querySelectorAll('[data-runtime-inspector-row]')]
-        .find(candidate => candidate.textContent?.includes('端口 ' + String(port)))
-      return row?.querySelector('[data-runtime-inspector-action="external-single-pid"]') !== null
-    }, listener.port, { timeout: 30_000 })
+    await page.waitForFunction((port) => [...document.querySelectorAll('[data-runtime-inspector-row]')]
+      .some(candidate => candidate.textContent?.includes('端口 ' + String(port))), listener.port, { timeout: 30_000 })
     const row = page.locator('[data-runtime-inspector-row]').filter({ hasText: '端口 ' + String(listener.port) }).first()
-    await row.locator('[data-runtime-inspector-copy]').click()
+    await row.locator('[data-runtime-inspector-select]').click()
+    await page.locator('[data-runtime-inspector-copy]').click()
     await page.locator('[data-runtime-inspector-state="result"]').waitFor()
     assert.match(await page.evaluate(() => navigator.clipboard.readText()), new RegExp(`Port: ${String(listener.port)}`))
 
-    await row.locator('[data-runtime-inspector-action="external-single-pid"]').click()
+    await page.locator('[data-runtime-inspector-action="external-single-pid"]').waitFor()
+    await page.locator('[data-runtime-inspector-action="external-single-pid"]').click()
     await page.locator('[data-runtime-inspector-confirmation="dialog"]').waitFor()
     const actionResponse = page.waitForResponse(responseItem => (
       responseItem.url().endsWith('/api/dsh-runtime-inspector/action')

@@ -1,6 +1,6 @@
 # DSH Runtime Inspector：Windows 第一版 MVP
 
-> 状态：选题与实现边界已收敛，尚未进入开发。首发平台确定为 Windows。
+> 状态：Windows MVP 已实现，并于 2026-08-23 完成确定性测试、Stock DSH 原生/Web 验收和用户手工验收。
 
 ## 一句话定位
 
@@ -68,7 +68,7 @@ DSH 正常托管的后台进程比一般命令行 Agent 更不容易成为“无
 | Windows TCP 监听扫描 | 列出地址、端口、PID、应用名、创建时间与可执行文件 |
 | 项目来源展示 | 优先使用 DSH 已知工作目录；外部进程仅展示最佳可用信息 |
 | DSH 来源追踪 | 展示 Session、Turn、Step、Call ID、工具名和启动命令 |
-| 归因置信度 | 每条记录明确标记“已验证 / 推断 / 未归因” |
+| 来源状态 | 主标签使用“DSH 来源已确认 / 来源未确认”；inferred/unattributed 作为内部证据强度和详情信号，不制造第三套主标签 |
 | 搜索和排序 | 支持按端口、应用、PID、项目、会话搜索 |
 | 打开目录和复制信息 | 提供高频、低风险操作 |
 | 单进程终止 | 用户确认后终止一个明确选中的目标 |
@@ -167,7 +167,7 @@ Ticket 02 deliberately keeps only the redacted command, final workdir, and lossl
 | 路线 | 做法 | 评价 |
 | --- | --- | --- |
 | A：为 DSH 补充通用 subprocess started 事件 | provider 在真实 PID ready 时发布只读通知 | 长期最自然，但 DSH 暂不接受普通开发者 PR，不能作为 MVP 前提 |
-| **D：Cordis `internal/get` observer Proxy + local fallback** | 在固定 stock DSH 版本中，为每次 `ctx.subprocess` lookup 返回只包装 `spawn`/`spawnTerminal` 的透明 Proxy；若 stock lookup 绕过 waterfall，则对同一 `LocalSubprocessRuntime` 安装可逆的 method-level fallback | **MVP 推荐**。不修改 core、不替换 provider、不取得资源 ownership；fallback 只包装两个方法并以 active fence/CAS 恢复，必须锁定兼容版本并自检 |
+| **D：Cordis `internal/get` observer Proxy + local fallback** | 在具备所需 runtime contract 的 stock DSH 中，为每次 `ctx.subprocess` lookup 返回只包装 `spawn`/`spawnTerminal` 的透明 Proxy；若 stock lookup 绕过 waterfall，则对同一 `LocalSubprocessRuntime` 安装可逆的 method-level fallback | **MVP 推荐**。不修改 core、不替换 provider、不取得资源 ownership；公开 contract 按能力探测，fallback 以 descriptor preflight、active fence 和 CAS 恢复约束；仅私有 delayed-Terminal repair 锁定回归版本 |
 | C：tracked LocalSubprocessRuntime Provider | disable 原 subprocess provider，再安装继承版 provider | 能取 PID，但插件卸载/替换会清理全部受管进程，不符合可逆生命周期 |
 | B：tracked PowerShell Provider | 重写或替换 PowerShell Provider | 侵入深，容易偏离 sandbox、timeout、background 和 cancellation 语义 |
 
@@ -271,9 +271,9 @@ type AttributionConfidence = 'verified' | 'inferred' | 'unattributed'
 1. 在两个不同 DSH Session 中分别启动同名 Node 开发服务；
 2. UI 能按端口区分两个进程，并显示正确项目目录；
 3. 两条记录分别显示正确的 Session、Turn 和 Call ID；
-4. 来源链完整时显示“已验证”，不得只靠命令或时间猜测；
-5. 手工从 DSH 外启动的服务显示“未归因”；
-6. 无法读取完整信息时仍能列出端口，并显示“权限不足”或“未知”；
+4. 来源链完整时显示“DSH 来源已确认”，不得只靠命令或时间猜测；
+5. 手工从 DSH 外启动的服务显示“来源未确认”，且不等于已证明是非 DSH；
+6. 无法读取完整来源信息时仍能列出端口，并显示对应的来源能力或权限状态；
 7. 终止其中一个测试进程后，另一个不受影响；
 8. 终止前若发现 PID 创建时间变化，拒绝执行并提示目标已变化；
 9. 重新扫描后，对应端口消失，并明确显示释放结果；
@@ -287,8 +287,8 @@ type AttributionConfidence = 'verified' | 'inferred' | 'unattributed'
 - **核心差异**：从系统端口追溯到 DSH Session、Turn、Step 和 Tool Call。
 - **第一版闭环**：发现 → 归因 → 人工确认 → 安全终止 → 验证释放。
 - **精确归因边界**：当前 DSH 运行周期、受观察的 PowerShell / subprocess 启动链。
-- **事实表达**：所有归因都标记为“已验证 / 推断 / 未归因”。
-- **推荐技术路线**：固定支持 `dsh-0.1.0-rc.8`，用 Cordis `internal/get` non-mutating Proxy，并以 local provider method fallback 覆盖 stock lookup seam，配合 ToolExecution ALS 与 Session events；兼容检查失败时进入只读未归因模式。
+- **事实表达**：用户主标签为“DSH 来源已确认 / 来源未确认”；内部仍保留 verified/inferred/unattributed 证据状态，来源与处理方式不混成一个标签。
+- **推荐技术路线**：以 `dsh-0.1.0-rc.8`、`dsh-0.1.1-rc.1` 和 `dsh-0.1.1-rc.2` 为回归基线，用 Cordis `internal/get` non-mutating Proxy 和可逆 local provider fallback 覆盖观察 seam；未知版本按 runtime capability 正常启用且不显示提示，单项 contract 失败只关闭依赖它的能力。
 - **安装语义**：标准 Bundle 安装、更新或移除后允许重启一次目标 DSH Profile；用户不修改源码或 composition。
 - **受管关闭**：Job 通过 `jobs.kill + wait`，Terminal 通过 `terminals.kill`；失败不自动补杀。
 - **外部关闭**：仅结束身份复核通过、用户明确选择的单个同用户 PID；不自动提权。
@@ -296,8 +296,10 @@ type AttributionConfidence = 'verified' | 'inferred' | 'unattributed'
 - **暂不承担**：UDP、跨平台、批量终止、自动治理和跨重启历史。
 - **最重要的验证信号**：用户无需打开终端，就能知道一个端口由哪次 DSH 操作启动，并安全关闭它。
 
-## 开发前决策状态
+## 实现与验收状态
 
-关键决策已经收敛：root PID 使用方案 D；persistent PowerShell 后续 command 不承诺 Call 级 verified attribution；模型 Tool 隐藏其他 Session 的详细轨迹；不兼容时只读降级；不另做独立 prototype。
+Windows MVP 已按上述边界实现：root PID 使用方案 D；persistent PowerShell 后续 command 不承诺 Call 级 verified attribution；模型 Tool 隐藏其他 Session 的详细轨迹；运行时能力逐项探测和局部降级；Browser 与 Host 作为同一 Bundle 的双半发布。
 
-可以进入 `/to-spec`。首个实现 tracer-bullet 必须端到端验证 native pwsh foreground/background、Code Mode、并发 Agent、Job/Terminal owner 关联，以及 observer 卸载不终止已有进程。
+截至 2026-08-23，TypeScript Host/Browser build 和 no-emit typecheck 通过；确定性测试为 97 tests、94 passed、3 个 opt-in native/Web gates skipped、0 failed。Stock DSH native G1–G6 与真实 Web smoke 已通过，用户也已手工验证 DSH 会话监听和 PowerShell 外部监听的来源、Session、Call ID、用户请求及安全操作路径。
+
+后续工作进入维护与发布阶段：新增 DSH/node-pty 版本时继续执行 native G1–G6 和真实 Web smoke；公开能力按 runtime contract 启用，只有私有 delayed Terminal PID repair 需要逐版本认证。

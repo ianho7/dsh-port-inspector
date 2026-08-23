@@ -6,7 +6,7 @@
 
 ## Context
 
-Stock DSH `0.1.0-rc.8` 和 `0.1.1-rc.1` 使用的 Windows `node-pty` 会在 ConPTY connect 完成前让 `spawn()` 暂时返回 PID `0`。`LocalTerminalHandle` 构造函数立即固定公开的 `pid`，并用同一数值捕获 `rootIdentity`，因此一个随后正常工作的 Terminal 仍可能永久暴露 PID `0`，无法建立 verified Process origin 或 Terminal lifecycle owner。
+Stock DSH `0.1.0-rc.8`、`0.1.1-rc.1` 和 `0.1.1-rc.2` 使用的 Windows `node-pty` 会在 ConPTY connect 完成前让 `spawn()` 暂时返回 PID `0`。`LocalTerminalHandle` 构造函数立即固定公开的 `pid`，并用同一数值捕获 `rootIdentity`，因此一个随后正常工作的 Terminal 仍可能永久暴露 PID `0`，无法建立 verified Process origin 或 Terminal lifecycle owner。
 
 PID `0` 在这里不表示子进程已经退出。[VS Code 对同一 `node-pty` 生命周期的处理](https://github.com/microsoft/vscode/blob/main/src/vs/platform/terminal/node/terminalProcess.ts)是在初始 PID 为 `0` 时等待首个 data event，再读取真实 PID。当前 DSH 主分支的 [`LocalTerminalHandle`](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/subprocess/subprocess-local/src/terminal.ts) 仍在构造时立即捕获 PID；上游修复仍是首选长期方案。
 
@@ -15,7 +15,7 @@ PID `0` 在这里不表示子进程已经退出。[VS Code 对同一 `node-pty` 
 并行保留两个交付轨道：
 
 1. 上游轨道：推动 DSH 在 `spawnTerminal()` 返回 handle 前建立明确的 PTY readiness。实现应在 spawn 后立即订阅 data/exit，缓存早期输出；PID 已有效时直接 ready，否则在首个 data 后重读 PID。退出或有限超时先发生时明确失败。真实 PID ready 前不得用 `0` 建立 process-tree identity，并应排队 write、inspect 和 signal。Windows CI 必须原生验证 spawn、ready、PID、唯一 token roundtrip、terminate 和无残留。
-2. Bundle 兼容轨道：不修改 DSH 源码，只在已认证的 Stock DSH `0.1.0-rc.8` 和 `0.1.1-rc.1`、Windows local execution world、active compatibility gate 内修复已知的 `LocalTerminalHandle` 形状。
+2. Bundle 兼容轨道：不修改 DSH 源码，只在已认证的 Stock DSH `0.1.0-rc.8`、`0.1.1-rc.1` 和 `0.1.1-rc.2`、Windows local execution world、active capability gate 内修复已知的 `LocalTerminalHandle` 形状。
 
 Bundle 兼容修复遵守以下边界：
 
@@ -29,7 +29,7 @@ Bundle 兼容修复遵守以下边界：
 ## Consequences
 
 - 当前发布不依赖 DSH 官方先合并修复，Stock DSH 原生门禁可以取得正 PID、creation identity 和 Terminal owner。
-- 兼容层依赖私有 shape，因此每个新增 DSH 版本必须单独认证；未知版本保持 read-only degraded。
+- 兼容层依赖私有 shape，因此每个新增 DSH 版本必须单独认证后才启用这一个修复。未知版本继续使用公开 runtime contract：正常正 PID handle 仍可归因，PID 为 `0` 的 delayed Terminal 仅保持未确认；不得因此让整个 Runtime Inspector 降级。
 - 这是 ADR-0001 “观察者不改变 handle 行为”的窄例外：只修复 DSH 在 readiness 前缓存的两个过期身份字段，并保留相同 handle 与 provider。
 - 上游提供公开 readiness 或正确的初始 PID 后，应删除私有 shape 分支，并保留 native 与 Windows smoke 测试作为迁移门禁。
 

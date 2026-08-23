@@ -45,19 +45,19 @@ stock DSH 的实现证据已经闭环：Job 通过 `jobs.onJobsChanged`、当前
 
 若未来增加公共 `subprocess/started` 契约，应由 local 与 E2B 等 provider 在真实 PID 可用时正确发布，不能定义一个只在 Windows/local 偶然有效的公共事件。此决定不改变 D1：MVP 不能依赖该 upstream change。
 
-### D8：首版只支持一个经过完整验证的官方 DSH 版本
+### D8：首版只支持一个经过完整验证的官方 DSH 版本（已由 D20 取代）
 
-MVP 固定支持当前源码研究基线 `dsh-0.1.0-rc.8`。插件启动时执行兼容性检查；后续每验证一个官方版本，再显式扩大兼容范围，不承诺在未知版本上保持精确归因。
+原决定将版本白名单作为总开关。rc.2 实测证明关键 public artifacts 与已认证版本保持 contract，但仍被整体拒绝，产品行为过于严格；当前以 D20 和 ADR-0005 为准。
 
 ### D9：归因能力不可用时降级为明确的只读扫描模式
 
-DSH 版本不兼容或 root PID 接入点初始化失败时，插件仍可列出 Windows TCP listeners，但必须明确显示“DSH 来源追踪不可用”，所有记录均为 unattributed。不得用时间、命令或目录猜测结果冒充 verified attribution；降级模式不开放终止操作。
+只有 root PID observer/provider contract 实际失败时，插件才显示“DSH 来源追踪不可用”，所有记录均不作 verified 来源声明。不得用时间、命令或目录猜测结果冒充 verified attribution。来源降级不再等同于操作整体降级：经过独立 Windows 身份复核的外部单 PID 操作仍可用，managed authority 则必须有 verified lifecycle owner。
 
 ### D10：stock DSH 使用 `internal/get` non-mutating Proxy 观察 subprocess
 
 MVP 采用方案 D：注册 Cordis `internal/get` waterfall listener，在每次 `ctx.subprocess` lookup 时返回只包装 `spawn`/`spawnTerminal` 的 non-mutating Proxy，并用 ToolExecution ALS 完成来源关联。
 
-接受该方案依赖 Cordis internal contract 的版本耦合，使用 D8 的精确版本兼容声明、启动 contract check 和 D9 的只读降级控制风险。不得修改原 service target、替换 provider 或取得 process handle ownership；dispose 后旧 Proxy 必须通过 active fence 退化为纯 pass-through。
+接受该方案依赖 Cordis internal contract，使用 runtime provider/method/observer contract check 和 D9 的局部 fail-closed 控制风险。不得修改原 service target、替换 provider 或取得 process handle ownership；dispose 后旧 Proxy 必须通过 active fence 退化为纯 pass-through。只有读取私有 Terminal shape 的 readiness repair 继续按精确版本启用。
 
 ### D11：标准安装、更新或移除后允许重启一次 DSH
 
@@ -97,7 +97,11 @@ Runtime Inspector 的 Browser UI 与 Node Host 代码放在同一个仓库，并
 
 Web 主界面在 `sidebar.footer.action` 提供全局入口，在 `shell.overlay` 打开端口面板。不得启动独立 Web 服务、维护第二个 Runtime Inspector 仓库、替换 DSH Web 主应用布局或把进程操作能力暴露给 Browser。目标 DSH 版本若没有 typed Remote seam，可以使用受同源保护的 WebServer API route 作为 transport 适配器。
 
-Browser 源码使用 TypeScript 和 DSH-compatible client bundler 构建；`window.__ModuleLoader__.load` 只作为构建产物格式。未知 DSH 版本、Client artifact 加载失败、Slot 不可用或 Host bridge 不可用时，UI 保持只读/降级，不获得额外进程权限。完整决定见 [ADR-0004](./adr/0004-web-client-dual-face-bundle.md)。
+Browser 源码使用 TypeScript 和 DSH-compatible client bundler 构建；`window.__ModuleLoader__.load` 只作为构建产物格式。未知 DSH 版本不产生 UI 提示；Client artifact、Slot 或 Host bridge 实际不可用时，UI 只呈现对应能力失败且不获得额外进程权限。完整决定见 [ADR-0004](./adr/0004-web-client-dual-face-bundle.md)。
+
+### D20：版本是开发诊断信息，功能由运行时能力决定
+
+DSH 版本号不再作为安装或运行时总开关，也不向用户展示“未纳入回归测试”等提示。Windows local provider、`spawn`/`spawnTerminal`、observer、scanner 和 action safety 分别探测、分别启用；某项失败只关闭依赖它的路径。外部单 PID 处理与来源追踪正交，始终在执行前重新校验 PID、创建时间、executable、用户和保护级别。依赖私有 `LocalTerminalHandle` shape 的 delayed PID repair 仍只对精确认证版本开放；未知版本遇到 PID `0` 时仅放弃该 Terminal 的 verified attribution。完整决定见 [ADR-0005](./adr/0005-capability-based-dsh-compatibility.md)。
 
 ## 开放决定
 

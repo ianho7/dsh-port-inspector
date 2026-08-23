@@ -215,6 +215,27 @@ test('a delayed Stock DSH Terminal PID is repaired and attributed before spawnTe
   }])
 })
 
+test('an unknown DSH version can observe public handles while skipping the private delayed-Terminal repair', async () => {
+  const terminalHandle = new LocalTerminalHandle(272, '2:72')
+  const runtime = new RuntimeAttribution({
+    enabled: () => true,
+    repairDelayedTerminal: () => false,
+    readIdentity: pid => ({ pid, createdAt: `created-${pid}` }),
+  })
+  const proxy = runtime.decorateSubprocessService({
+    async spawnTerminal() { return terminalHandle },
+  })
+
+  const returned = await runtime.runToolExecution(execution('terminal-unknown', 'start-terminal'), () =>
+    proxy.spawnTerminal({ cwd: 'C:\\terminal' }),
+  )
+  terminalHandle.ready(272)
+
+  assert.equal(returned, terminalHandle)
+  assert.equal(runtime.registry.list().length, 0)
+  assert.equal(terminalHandle.listeners.size, 0)
+})
+
 test('nested Code Mode execution inherits the outer Turn and Step while keeping its own call root', () => {
   const runtime = new RuntimeAttribution({
     enabled: () => true,

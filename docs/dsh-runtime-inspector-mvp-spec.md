@@ -1,9 +1,9 @@
 # DSH Runtime Inspector Windows MVP：Implementation Spec
 
-> 状态：Ready for implementation
-> 日期：2026-08-22
-> 兼容基线：Stock DSH `dsh-0.1.0-rc.8`；另已认证 `dsh-0.1.1-rc.1`；Windows local execution world
-> 来源：[MVP 文档](./dsh-runtime-inspector-mvp.md)、[决策记录](./dsh-runtime-inspector-mvp-decisions.md)、[ADR-0001](./adr/0001-stock-dsh-root-pid-observation.md)、[ADR-0002](./adr/0002-process-termination-policy.md)、[ADR-0003](./adr/0003-delayed-terminal-pid-compatibility.md)、[ADR-0004](./adr/0004-web-client-dual-face-bundle.md)
+> 状态：Implemented and accepted（Windows MVP）
+> 日期：2026-08-23
+> 回归基线：Stock DSH `dsh-0.1.0-rc.8`、`dsh-0.1.1-rc.1`、`dsh-0.1.1-rc.2`；其他版本按 Windows local runtime capability probe 启用
+> 来源：[MVP 文档](./dsh-runtime-inspector-mvp.md)、[决策记录](./dsh-runtime-inspector-mvp-decisions.md)、[ADR-0001](./adr/0001-stock-dsh-root-pid-observation.md)、[ADR-0002](./adr/0002-process-termination-policy.md)、[ADR-0003](./adr/0003-delayed-terminal-pid-compatibility.md)、[ADR-0004](./adr/0004-web-client-dual-face-bundle.md)、[ADR-0005](./adr/0005-capability-based-dsh-compatibility.md)
 
 ## Problem Statement
 
@@ -19,7 +19,9 @@ Coding Agent 经常启动 Vite、Next.js、Node API 等开发服务。Windows �
 
 ## Solution
 
-Runtime Inspector 作为可安装的 DSH Bundle 运行于未经修改的官方 DSH。用户安装后重启一次目标 Profile，插件在固定兼容版本中优先使用 Cordis `internal/get` waterfall：每次 `ctx.subprocess` service lookup 时返回一个 non-mutating Subprocess observer Proxy，仅包装 `spawn` 和 `spawnTerminal`。对 stock DSH 中绕过该 waterfall 的同一 `LocalSubprocessRuntime` service read，插件再安装可逆的 method-level fallback；它不替换 provider、不取得 process ownership，并只在已验证的本地执行世界启用。
+Runtime Inspector 作为可安装的 DSH Bundle 运行于未经修改的官方 DSH。用户安装后重启一次目标 Profile，插件通过运行时 contract probe 检查 Windows local provider、`spawn`/`spawnTerminal` 和 observer seam；版本号只进入内部诊断，不作为总开关，也不产生用户提示。能力存在时优先使用 Cordis `internal/get` waterfall：每次 `ctx.subprocess` service lookup 时返回一个 non-mutating Subprocess observer Proxy，仅包装 `spawn` 和 `spawnTerminal`。对 stock DSH 中绕过该 waterfall 的同一 `LocalSubprocessRuntime` service read，插件再安装可逆的 method-level fallback；它不替换 provider、不取得 process ownership。
+
+依赖公开可探测 contract 的能力允许在未知版本正常工作；只有 delayed Terminal PID 私有 shape 修复继续按精确回归版本启用。单项能力失败只关闭依赖它的路径：来源追踪不可用不等于外部单 PID 处理不可用，后者仍由 Windows 身份、权限和保护级别的执行时复核独立决定。
 
 归因数据流如下：
 
@@ -36,6 +38,8 @@ Runtime Inspector 作为可安装的 DSH Bundle 运行于未经修改的官方 D
 Runtime Inspector 的 Web UI 与 Host 运行时属于同一个 DSH Bundle 和同一个源码仓库。Bundle 同时提供 Node Host 半与 Browser Client 半：Host 继续拥有扫描、归因、生命周期和终止安全边界；Browser 只渲染可信的序列化 Host RPC 结果。Web UI 不启动独立 HTTP 服务，也不直接访问 scanner、Process origin registry、Job/Terminal API 或 Windows process primitive。
 
 Web 入口使用全局 `sidebar.footer.action`，显示端口监听/冲突状态；点击后通过 `shell.overlay` 打开完整 Runtime Inspector 面板。Browser 使用 DSH Client Bundle 机制加载，Client 源码经过 TypeScript 与兼容 DSH 的 client bundler 构建为 Browser artifact。Host 与 Browser 之间使用 DSH 现有的 Host-to-Client bridge；在认证版本中若没有 typed Remote seam，可使用受同源保护的 WebServer API route，但不得创建独立服务。
+
+Browser 注入 DSH `sessions` 服务，以当前 `sessions.list.current` 作为展示上下文：Session 显示标题，项目优先显示 Host 已确认的 origin workdir、缺失时显示经过脱敏的当前 Session cwd，用户请求从当前 conversation 中按 Call ID/root Call ID/Turn 映射。Browser 传给 Host 的 current Session ID 只影响 `current-session` 展示和 fresh scan 投影，不授予 managed 或 external action 权限。
 
 ## User Stories
 
@@ -69,7 +73,7 @@ Web 入口使用全局 `sidebar.footer.action`，显示端口监听/冲突状态
 28. As a DSH user, I want command and argv data to be redacted and bounded before UI, RPC, logs, or Tool output, so that tokens and passwords are not echoed by the inspector.
 29. As a DSH user, I want Process origins to remain available after a root PowerShell exits while its descendant still listens, so that ancestry attribution is not lost prematurely.
 30. As a DSH user, I want origins to be memory-only and cleared on DSH restart, so that the MVP does not create a cross-restart process history.
-31. As a DSH user, I want the plugin to run in a clearly labeled read-only degraded mode when compatibility checks fail, so that I still receive port visibility without false attribution or termination controls.
+31. As a DSH user, I want each unavailable runtime capability to degrade visibly and independently, so that I still receive port visibility without false attribution and retain only actions whose separate safety checks remain available.
 32. As a DSH user, I want installation, update, and removal to use the normal DSH Bundle lifecycle, so that I do not need to edit DSH source or maintain a private fork.
 33. As a DSH user, I want one restart after Bundle installation to activate the plugin, so that installation behavior follows the official DSH composition model.
 34. As a DSH user, I want unloading Runtime Inspector not to terminate existing user processes, so that observation lifecycle is independent from process ownership.
@@ -86,7 +90,7 @@ Web 入口使用全局 `sidebar.footer.action`，显示端口监听/冲突状态
 
 ## Implementation Decisions
 
-- The MVP is a Windows-only Bundle with stock DSH `dsh-0.1.0-rc.8` as its baseline and `dsh-0.1.1-rc.1` as a separately certified follow-up version, limited to the Windows local execution world. Unknown versions must be rejected for verified mode and placed in read-only degraded mode.
+- The MVP is a Windows-only Bundle with stock DSH `dsh-0.1.0-rc.8`, `dsh-0.1.1-rc.1`, and `dsh-0.1.1-rc.2` as regression baselines, limited to the Windows local execution world. DSH version is diagnostic metadata rather than a general feature gate: unknown versions use the same runtime capability probes, while only the private delayed-Terminal repair remains exact-version and exact-shape gated.
 - The highest existing seam is the Cordis `internal/get` waterfall. The observer must call the built-in `next()` first, create a Proxy around the returned subprocess service, and never call `ctx.subprocess` again from inside that Proxy.
 - The pinned stock path can expose the provider before `internal/get` is reached. In that case the plugin may wrap only the actual `LocalSubprocessRuntime` `spawn`/`spawnTerminal` descriptors as a reversible fallback, using exact compare-and-swap disposal and the same active fence. This is observation, not provider replacement or ownership; both seams must deduplicate by exact handle identity.
 - The Proxy wraps only `spawn` and `spawnTerminal`. It binds the original methods to the original service, preserves synchronous errors and returned handle identity, and does not alter argv, cwd, environment, stdio, cancellation, termination, or ownership behavior. The only timing/field exception is ADR-0003's bounded wait and repair for an exact known delayed-PID Terminal shape.
@@ -111,7 +115,7 @@ Web 入口使用全局 `sidebar.footer.action`，显示端口监听/冲突状态
 - All commands, argv, executable paths, and project paths crossing UI, RPC, logs, or Tool output go through a redaction and length-boundary layer. Environment variables are not collected.
 - UI and Host RPC expose current listeners, attribution confidence, lifecycle owner, redacted command, project, and safe action state. The UI must distinguish managed shutdown from direct external termination and from read-only/degraded states.
 - The Host/UI boundary uses an opaque listener row id and a serializable inventory query sorted by port, application, PID, project, or Session. Copy returns bounded redacted details; opening a project directory is an injected host callback and refuses unavailable or redacted paths.
-- Host actions require a fresh pre-action listener lookup and explicit confirmation. Verified managed owners route only to Job/Terminal lifecycle APIs; external rows route only to the existing identity-fenced single-PID terminator; read-only and degraded rows cannot invoke either action. Every attempted action performs a fresh scan and reports `portReleased` only when that scan is complete.
+- Host actions require a fresh pre-action listener lookup and explicit confirmation. Verified managed owners route only to Job/Terminal lifecycle APIs; external rows route only to the existing identity-fenced single-PID terminator; rows whose action state is read-only or degraded cannot invoke either action. Source-tracking degradation alone does not convert an independently safe external row into read-only. Every attempted action performs a fresh scan and reports `portReleased` only when that scan is complete.
 - The plugin Bundle uses the normal DSH installation model. Installation, update, or removal becomes active after a target Profile restart; no DSH source modification, private fork, or manual composition edit is required.
 - Host and Browser halves ship from one repository and one distributable Bundle. The existing Node entry remains the Host half; a separate Browser entry is exported through the package’s `./client` surface and declared through `dsh.client` for the `web` platform. The package continues to use its Bundle composition patch and includes the built Browser artifact.
 - Browser source is authored in TypeScript and compiled by a DSH-compatible client bundler into the lazy client-module format. `window.__ModuleLoader__.load` is a generated artifact contract, not hand-authored application source. Host and Browser builds must not share imports of native process code; only serializable DTOs and UI-safe types may cross the boundary.
@@ -127,7 +131,7 @@ Tests must assert observable behavior and safety outcomes, not the fact that a p
 
 The implementation must include:
 
-- Compatibility and health tests: each certified DSH version activates verified mode; an unknown version or failed observer contract check activates read-only degraded mode.
+- Compatibility and health tests: each regression-baseline version and an unknown version with the required public contracts activate the corresponding capabilities without a user-facing version warning; a failed observer contract disables verified attribution without disabling an independently safe external single-PID action.
 - Subprocess observer tests: process and terminal lookup returns the original service behavior and handle identity; invalid PID does not create an origin; observer exceptions do not alter spawn success; dispose turns cached proxies into pass-through; no provider teardown is triggered.
 - Tool attribution tests: foreground native PowerShell, background PowerShell, Code Mode inner PowerShell, concurrent Agents, nested execution, cancellation, and thrown Tool bodies preserve the correct ALS frame and root Call mapping.
 - Job association tests: a root spawned before Job ID allocation is linked to the one newly published Job ID through the synchronous jobs-changed callback; a failed `spec.run()` creates no managed link; structured Job result is used only as cross-check.

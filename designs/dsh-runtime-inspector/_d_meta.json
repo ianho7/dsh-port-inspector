@@ -1,0 +1,23 @@
+{
+  "type": "design",
+  "designSystems": [],
+  "primaryDesignSystem": null,
+  "assets": {
+    "Runtime Inspector": {
+      "versions": [
+        {
+          "path": "index.html",
+          "createdAt": "2026-08-23T07:18:56.004Z",
+          "status": "needs-review",
+          "subtitle": "Compact DSH runtime inventory with session context and request summary",
+          "viewport": {
+            "width": 1280,
+            "height": 720
+          }
+        }
+      ]
+    }
+  },
+  "createdAt": "2026-08-23T07:18:56.012Z",
+  "updatedAt": "2026-08-23T07:31:28.616Z"
+}
