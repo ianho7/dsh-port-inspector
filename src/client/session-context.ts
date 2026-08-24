@@ -129,7 +129,7 @@ function formatDate(date: Date): string | undefined {
 
 /** Convert Host identity time to a human-facing local time without changing its raw safety identity. */
 export function formatProcessCreatedAt(value: string | undefined): string {
-  if (value === undefined || value.length === 0) return '未获取'
+  if (value === undefined || value.length === 0) return '—'
   if (/^\d{17,20}$/u.test(value)) {
     try {
       const ticks = BigInt(value)

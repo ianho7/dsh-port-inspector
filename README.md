@@ -9,8 +9,8 @@ Windows MVP 已完成 Host、Browser、原生生命周期和真实 Stock DSH Web
 - 在 DSH Web 侧边栏打开紧凑的浅色 Runtime Inspector 面板。
 - 显示监听地址、端口、PID、应用、项目和格式化创建时间。
 - 对已验证来源显示 Session 标题、Call ID 和触发调用的用户请求。
-- 将来源与处理方式分开表达：
-  - 来源：`DSH 来源已确认` / `来源未确认`。
+- 将启动方与处理方式分开表达：
+  - 启动方：`由 DSH 启动` / `启动方未确认`。
   - 处理：`停止 DSH 任务` / `结束该进程` / `仅可查看`。
 - managed target 只通过 DSH Job/Terminal lifecycle 关闭。
 - 外部 target 只在用户确认并重新校验 PID、创建时间、executable、用户、保护级别和监听身份后结束选中的单个 PID。
@@ -38,16 +38,26 @@ npm test
 
 ## 安装到 DSH Web Profile
 
-```powershell
-New-Item -ItemType Directory -Force .tmp\manual-test
-npm pack --pack-destination .tmp\manual-test
+推荐直接运行仓库内的重建、打包、卸载和安装脚本：
 
-cd D:\project\deepseek-harness
-pnpm dsh plugin --profile web remove dsh-runtime-inspector
-pnpm dsh plugin --profile web add "D:\project\dsh-runtime-inspector\.tmp\manual-test\dsh-runtime-inspector-0.1.0.tgz"
+```powershell
+cd D:\project\dsh-runtime-inspector
+.\scripts\reinstall-dsh-plugin.ps1
 ```
 
-如果插件尚未安装，可以忽略 `remove` 的错误。安装后应完全退出并重新启动 `web` Profile。
+脚本默认使用 `D:\project\deepseek-harness` 的 `web` Profile；也可以显式指定 DSH 仓库和 Profile：
+
+```powershell
+.\scripts\reinstall-dsh-plugin.ps1 `
+  -DshRepo 'D:\project\deepseek-harness' `
+  -Profile web
+```
+
+脚本会先构建 Host/Browser artifact，再生成 `.tmp\manual-test\dsh-runtime-inspector-0.1.0.tgz`，然后卸载同名旧插件并安装新包。旧插件不存在时的卸载错误会被提示但不会阻止首次安装。
+
+安装完成后，应完全退出并重新启动 `web` Profile。
+
+如果本机的 `node.exe` 或 `pnpm` 被版本管理器拦截，可以分别通过 `-NodePath` 和 `-PnpmCliPath` 指定可用的可执行文件或 `pnpm.cjs`。
 
 ## 文档
 

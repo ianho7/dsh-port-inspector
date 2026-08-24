@@ -1,0 +1,1381 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="design_doc_mode" content="prototype">
+  <link rel="icon" href="data:,">
+  <title>Runtime Inspector · 语义优化</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-muted: #f6f7f9;
+      --bg-soft: #fafbfc;
+      --text: #17191d;
+      --text-2: #555b63;
+      --text-3: #7c838c;
+      --caption: #959ba4;
+      --border: #e2e5e9;
+      --border-soft: #eef0f2;
+      --blue: #3066c7;
+      --blue-soft: #edf3ff;
+      --green: #2f704f;
+      --green-soft: #edf7f1;
+      --danger: #b34743;
+      --danger-soft: #fff1f0;
+      --shadow: 0 18px 46px rgba(20, 26, 36, 0.16), 0 3px 12px rgba(20, 26, 36, 0.08);
+      --sans: -apple-system, "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body { height: 100%; }
+
+    body {
+      min-width: 760px;
+      margin: 0;
+      overflow: hidden;
+      color: var(--text);
+      background: #f1f3f6;
+      font: 13px/1.5 var(--sans);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button,
+    input,
+    select { font: inherit; }
+
+    button { color: inherit; }
+
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible {
+      outline: 2px solid color-mix(in srgb, var(--blue) 28%, transparent);
+      outline-offset: 2px;
+    }
+
+    [hidden] { display: none !important; }
+
+    .host-shell {
+      display: grid;
+      height: 100%;
+      grid-template-columns: 68px 1fr;
+    }
+
+    .host-rail {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 0;
+      border-right: 1px solid #e3e6ea;
+      background: rgba(255, 255, 255, 0.78);
+    }
+
+    .host-logo,
+    .host-avatar {
+      display: grid;
+      place-items: center;
+      color: #647083;
+      background: #fff;
+      font-size: 9px;
+      font-weight: 750;
+    }
+
+    .host-logo {
+      width: 34px;
+      height: 34px;
+      border: 1px solid #dde1e6;
+      border-radius: 10px;
+      letter-spacing: 0.08em;
+    }
+
+    .host-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 9px;
+      background: #e7ebf1;
+    }
+
+    .host-dots {
+      display: grid;
+      gap: 12px;
+    }
+
+    .host-dots span {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #bfc6d0;
+    }
+
+    .host-dots span:nth-child(2) { background: #6c8fd9; }
+
+    .host-main { min-width: 0; }
+
+    .host-header {
+      height: 62px;
+      padding: 22px 32px;
+      border-bottom: 1px solid rgba(60, 68, 82, 0.06);
+      color: #8a939f;
+      font-size: 12px;
+    }
+
+    .host-header strong { color: #5f6875; }
+
+    .host-ghost {
+      width: min(760px, 72%);
+      margin: 66px auto;
+    }
+
+    .ghost-line {
+      width: 62%;
+      height: 10px;
+      margin-top: 12px;
+      border-radius: 6px;
+      background: #e2e6eb;
+    }
+
+    .ghost-line:first-child {
+      width: 39%;
+      height: 20px;
+    }
+
+    .ghost-card {
+      height: 270px;
+      margin-top: 34px;
+      border: 1px solid #e1e5e9;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.55);
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(20, 26, 36, 0.24);
+      backdrop-filter: blur(8px);
+    }
+
+    .panel {
+      display: flex;
+      width: min(1040px, calc(100vw - 48px));
+      height: min(800px, calc(100vh - 48px));
+      min-height: 610px;
+      flex-direction: column;
+      overflow: hidden;
+      border-radius: 24px;
+      background: var(--bg);
+      box-shadow: var(--shadow);
+    }
+
+    .panel-header {
+      display: flex;
+      height: 54px;
+      flex: 0 0 auto;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 15px 0 24px;
+    }
+
+    .panel-header h1 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 560;
+      letter-spacing: -0.01em;
+    }
+
+    .icon-button {
+      display: inline-grid;
+      width: 30px;
+      height: 30px;
+      place-items: center;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      color: var(--text-3);
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .icon-button:hover {
+      color: var(--text);
+      background: var(--bg-muted);
+    }
+
+    .panel-options {
+      display: flex;
+      min-height: 0;
+      flex: 1;
+      flex-direction: column;
+      padding: 0 24px 24px;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: minmax(160px, 1fr) auto auto auto auto auto auto;
+      align-items: center;
+      gap: 8px;
+      padding-bottom: 12px;
+    }
+
+    .search {
+      position: relative;
+      min-width: 0;
+    }
+
+    .search svg {
+      position: absolute;
+      top: 9px;
+      left: 10px;
+      color: var(--text-3);
+      pointer-events: none;
+    }
+
+    .search input,
+    .select,
+    .toolbar-button {
+      height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    .search input {
+      width: 100%;
+      min-width: 0;
+      padding: 0 10px 0 31px;
+    }
+
+    .search input::placeholder { color: #a0a6af; }
+
+    .select {
+      min-width: 88px;
+      padding: 0 27px 0 9px;
+      font-size: 11px;
+    }
+
+    .toolbar-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 0 9px;
+      color: var(--text-2);
+      font-size: 11px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .toolbar-button:hover,
+    .actionable-filter:hover {
+      color: var(--text);
+      background: var(--bg-muted);
+    }
+
+    .control {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+
+    .control-label {
+      color: var(--text-3);
+      font-size: 10px;
+    }
+
+    .scope-control {
+      padding-right: 8px;
+      border-right: 1px solid var(--border-soft);
+    }
+
+    .scope-group {
+      display: flex;
+      gap: 3px;
+    }
+
+    .scope-button {
+      height: 28px;
+      padding: 0 7px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      color: var(--text-3);
+      background: transparent;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .scope-button:hover { color: var(--text); }
+
+    .scope-button.is-active {
+      border-color: color-mix(in srgb, var(--blue) 18%, var(--border));
+      color: var(--blue);
+      background: var(--blue-soft);
+    }
+
+    .source-select { min-width: 118px; }
+
+    .actionable-filter {
+      display: inline-flex;
+      min-height: 30px;
+      align-items: center;
+      gap: 6px;
+      padding: 0 8px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--text-2);
+      background: var(--bg);
+      font-size: 11px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .actionable-filter input {
+      width: 14px;
+      height: 14px;
+      margin: 0;
+      accent-color: var(--blue);
+    }
+
+    .body {
+      display: grid;
+      min-height: 0;
+      flex: 1;
+      grid-template-columns: minmax(350px, 0.82fr) minmax(500px, 1.18fr);
+      overflow: hidden;
+      border-top: 1px solid var(--border-soft);
+    }
+
+    .list-column,
+    .detail-column {
+      min-width: 0;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: thin;
+      scrollbar-color: #d7dbe1 transparent;
+    }
+
+    .list-column { border-right: 1px solid var(--border-soft); }
+
+    .column-heading {
+      position: sticky;
+      z-index: 2;
+      top: 0;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 12px 15px 8px;
+      color: var(--text-2);
+      background: rgba(255, 255, 255, 0.96);
+      font-size: 12px;
+      font-weight: 650;
+      backdrop-filter: blur(10px);
+    }
+
+    .column-heading span:last-child {
+      color: var(--caption);
+      font: 10px var(--mono);
+    }
+
+    .group { padding-bottom: 8px; }
+
+    .group-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 16px 5px;
+      color: var(--text-2);
+      font-size: 10.5px;
+      font-weight: 680;
+    }
+
+    .group-heading span:last-child {
+      color: var(--caption);
+      font: 10px var(--mono);
+      font-weight: 500;
+    }
+
+    .listener-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      margin: 0;
+      padding: 0 8px;
+      list-style: none;
+    }
+
+    .listener-button {
+      position: relative;
+      display: block;
+      width: 100%;
+      padding: 9px 10px 8px;
+      border: 1px solid transparent;
+      border-radius: 9px;
+      color: inherit;
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+      transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+    }
+
+    .listener-button:hover { background: var(--bg-muted); }
+
+    .panel[data-selection-style="soft"] .listener-button.is-selected {
+      border-color: transparent;
+      background: var(--blue-soft);
+    }
+
+    .panel[data-selection-style="border"] .listener-button.is-selected {
+      border-color: color-mix(in srgb, var(--blue) 34%, var(--border));
+      background: var(--bg);
+    }
+
+    .panel[data-selection-style="neutral"] .listener-button.is-selected {
+      border-color: var(--border-soft);
+      background: var(--bg-muted);
+    }
+
+    .panel[data-selection-style="dot"] .listener-button.is-selected {
+      border-color: var(--border-soft);
+      background: var(--bg);
+    }
+
+    .panel[data-selection-style="dot"] .listener-button.is-selected::after {
+      position: absolute;
+      top: 50%;
+      right: 8px;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--blue);
+      content: "";
+      transform: translateY(-50%);
+    }
+
+    .row-top,
+    .row-meta,
+    .toolchain-line,
+    .detail-head,
+    .detail-identity,
+    .card-row {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+    }
+
+    .row-top {
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .port {
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 720;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .listener-button.is-selected .port { color: var(--blue); }
+
+    .protocol {
+      display: inline-flex;
+      height: 18px;
+      align-items: center;
+      margin-left: 5px;
+      padding: 0 5px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--text-3);
+      font-size: 9px;
+      font-weight: 650;
+      text-transform: uppercase;
+    }
+
+    .toolchain-line {
+      gap: 8px;
+      margin-top: 5px;
+    }
+
+    .toolchain-logo {
+      display: block;
+      flex: 0 0 auto;
+      object-fit: contain;
+    }
+
+    .toolchain-logo.is-compact {
+      width: 24px;
+      height: 24px;
+    }
+
+    .toolchain-logo.is-detail {
+      width: 36px;
+      height: 36px;
+    }
+
+    .toolchain-logo.is-fallback {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--text-3);
+      background: var(--bg-muted);
+      font-size: 13px;
+    }
+
+    .toolchain-copy {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+    }
+
+    .toolchain-name {
+      overflow: hidden;
+      color: var(--text);
+      font-size: 11.5px;
+      font-weight: 650;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .executable {
+      overflow: hidden;
+      color: var(--text-3);
+      font-size: 10.5px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .row-meta {
+      gap: 6px;
+      margin-top: 6px;
+      color: var(--text-3);
+      font-size: 10px;
+    }
+
+    .row-meta > span:not(.pill) + span:not(.pill)::before {
+      margin-right: 6px;
+      color: var(--border);
+      content: "·";
+    }
+
+    .row-meta > .pill { margin-left: 2px; }
+
+    .pill {
+      display: inline-flex;
+      min-height: 20px;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 7px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--text-2);
+      background: var(--bg);
+      font-size: 9.5px;
+      font-weight: 650;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
+    .pill svg { flex: 0 0 auto; }
+
+    .pill.verified,
+    .pill.managed {
+      border-color: #d3e8db;
+      color: var(--green);
+      background: var(--green-soft);
+    }
+
+    .pill.unknown,
+    .pill.readonly {
+      border-color: var(--border);
+      color: #69717d;
+      background: var(--bg-muted);
+    }
+
+    .pill.danger {
+      border-color: #efcecc;
+      color: var(--danger);
+      background: var(--danger-soft);
+    }
+
+    .detail-column { padding: 15px 16px 24px; }
+
+    .detail-head {
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .detail-identity { gap: 11px; }
+
+    .toolchain-logo.is-detail.is-fallback {
+      border-radius: 9px;
+    }
+
+    .detail-copy { min-width: 0; }
+
+    .detail-toolchain {
+      margin-bottom: 1px;
+      color: var(--text-2);
+      font-size: 11px;
+      font-weight: 650;
+    }
+
+    .detail-port {
+      color: var(--text);
+      font-size: 18px;
+      font-weight: 730;
+      letter-spacing: -0.01em;
+    }
+
+    .detail-subline {
+      margin-top: 2px;
+      color: var(--text-2);
+      font-size: 10.5px;
+    }
+
+    .detail-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .detail-actions .icon-button {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+    }
+
+    .section { margin-top: 14px; }
+
+    .section-title {
+      margin: 0 0 7px;
+      color: var(--text-3);
+      font-size: 10px;
+      font-weight: 720;
+      letter-spacing: 0.05em;
+    }
+
+    .facts {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1px;
+      overflow: hidden;
+      margin: 0;
+      border: 1px solid var(--border-soft);
+      border-radius: 8px;
+      background: var(--border-soft);
+    }
+
+    .fact {
+      min-width: 0;
+      padding: 8px 10px 9px;
+      background: var(--bg);
+    }
+
+    .fact.wide { grid-column: 1 / -1; }
+
+    .fact dt {
+      margin-bottom: 2px;
+      color: var(--text-3);
+      font-size: 9.5px;
+    }
+
+    .fact dd {
+      overflow: hidden;
+      margin: 0;
+      color: var(--text-2);
+      font-size: 10.5px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .fact dd.multiline {
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .semantic-card {
+      padding: 10px 11px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-muted);
+    }
+
+    .semantic-card p {
+      margin: 7px 0 0;
+      color: var(--text-2);
+      font-size: 10.5px;
+      line-height: 1.55;
+    }
+
+    .card-row {
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .card-content { min-width: 0; }
+
+    .primary-action,
+    .danger-action {
+      display: inline-flex;
+      min-height: 32px;
+      flex: 0 0 auto;
+      align-items: center;
+      justify-content: center;
+      padding: 0 11px;
+      border-radius: 7px;
+      color: #fff;
+      font-size: 10.5px;
+      font-weight: 670;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .primary-action {
+      border: 1px solid var(--blue);
+      background: var(--blue);
+    }
+
+    .danger-action {
+      border: 1px solid var(--danger);
+      background: var(--danger);
+    }
+
+    .primary-action:hover,
+    .danger-action:hover { filter: brightness(0.94); }
+
+    .prototype-switcher,
+    .selection-switcher {
+      position: fixed;
+      z-index: 10;
+      right: 20px;
+      bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px;
+      border: 1px solid #dfe3e8;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 8px 25px rgba(32, 42, 57, 0.1);
+      backdrop-filter: blur(12px);
+    }
+
+    .selection-switcher { bottom: 56px; }
+
+    .prototype-switcher span,
+    .selection-switcher span {
+      padding: 0 7px;
+      color: var(--caption);
+      font-size: 9px;
+    }
+
+    .prototype-switcher button,
+    .selection-switcher button {
+      padding: 4px 8px;
+      border: 0;
+      border-radius: 7px;
+      color: var(--text-3);
+      background: transparent;
+      font-size: 9px;
+      cursor: pointer;
+    }
+
+    .prototype-switcher button:hover,
+    .selection-switcher button:hover { background: var(--bg-muted); }
+
+    .prototype-switcher button.is-active,
+    .selection-switcher button.is-active {
+      color: var(--blue);
+      background: var(--blue-soft);
+    }
+
+    .toast {
+      position: fixed;
+      z-index: 20;
+      bottom: 96px;
+      left: 50%;
+      display: none;
+      padding: 8px 11px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-2);
+      background: #fff;
+      box-shadow: 0 10px 30px rgba(30, 38, 52, 0.14);
+      font-size: 10px;
+      transform: translateX(-50%);
+    }
+
+    .toast.is-visible { display: block; }
+
+    @media (max-width: 960px) {
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+      }
+
+      .search { flex: 1 1 100%; }
+
+      .body { grid-template-columns: minmax(300px, 0.8fr) minmax(410px, 1.2fr); }
+    }
+
+    @media (max-width: 760px) {
+      body { min-width: 0; }
+
+      .overlay { padding: 16px; }
+
+      .panel {
+        width: calc(100vw - 32px);
+        height: calc(100vh - 32px);
+        min-height: 0;
+        border-radius: 20px;
+      }
+
+      .panel-options {
+        padding-right: 16px;
+        padding-left: 16px;
+      }
+
+      .body {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .list-column {
+        min-height: 220px;
+        flex: 0 1 42%;
+        border-right: 0;
+        border-bottom: 1px solid var(--border-soft);
+      }
+
+      .detail-column { flex: 1 1 58%; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="host-shell" aria-hidden="true">
+    <aside class="host-rail">
+      <div class="host-logo">DSH</div>
+      <div class="host-dots"><span></span><span></span><span></span></div>
+      <div class="host-avatar">A</div>
+    </aside>
+    <section class="host-main">
+      <header class="host-header"><strong>Workspace</strong>&nbsp;&nbsp;/&nbsp;&nbsp; dsh-runtime-inspector</header>
+      <div class="host-ghost">
+        <div class="ghost-line"></div>
+        <div class="ghost-line"></div>
+        <div class="ghost-line" style="width: 48%;"></div>
+        <div class="ghost-card"></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="overlay">
+    <section class="panel" role="dialog" aria-modal="true" aria-labelledby="panel-title" data-screen-label="Runtime Inspector 语义优化" data-selection-style="soft">
+      <header class="panel-header">
+        <h1 id="panel-title">Runtime Inspector</h1>
+        <button class="icon-button" type="button" aria-label="关闭 Runtime Inspector" title="关闭">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="m6 6 12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+            <path d="m18 6-12 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+          </svg>
+        </button>
+      </header>
+
+      <div class="panel-options">
+        <div class="toolbar" aria-label="监听端口筛选">
+          <label class="search">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="10.8" cy="10.8" r="6.4" stroke="currentColor" stroke-width="1.8"></circle>
+              <path d="m15.7 15.7 4.2 4.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+            </svg>
+            <input id="search-input" type="search" aria-label="搜索监听端口" placeholder="搜索端口、PID、应用或会话">
+          </label>
+
+          <select class="select" aria-label="排序监听端口">
+            <option>按端口</option>
+            <option>按应用</option>
+            <option>按 PID</option>
+          </select>
+
+          <button class="toolbar-button" type="button" aria-label="切换排序方向">升序
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="m8 10 4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+          </button>
+
+          <button class="toolbar-button" id="refresh-button" type="button" aria-label="刷新端口列表">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M20 11a8 8 0 0 0-14.7-4.3L3 9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path>
+              <path d="M3 4v5h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path>
+              <path d="M4 13a8 8 0 0 0 14.7 4.3L21 15" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path>
+              <path d="M21 20v-5h-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>刷新
+          </button>
+
+          <div class="control scope-control">
+            <span class="control-label">查看</span>
+            <div class="scope-group" role="group" aria-label="查看范围">
+              <button class="scope-button" type="button" data-scope="development" aria-pressed="false">开发相关</button>
+              <button class="scope-button is-active" type="button" data-scope="all" aria-pressed="true">全部监听</button>
+            </div>
+          </div>
+
+          <label class="control">
+            <span class="control-label">启动方</span>
+            <select class="select source-select" id="source-filter" aria-label="按启动方筛选">
+              <option value="all">全部</option>
+              <option value="dsh">由 DSH 启动</option>
+              <option value="unknown">启动方未确认</option>
+            </select>
+          </label>
+
+          <label class="actionable-filter">
+            <input id="actionable-filter" type="checkbox" aria-label="仅显示可处理">
+            <span>仅显示可处理</span>
+          </label>
+        </div>
+
+        <div class="body">
+          <section class="list-column" aria-label="监听端口列表">
+            <div class="column-heading"><span>监听端口</span><span id="visible-count">显示 6 项</span></div>
+
+            <div class="group" data-group="development">
+              <div class="group-heading"><span>开发环境</span><span>2项</span></div>
+              <ul class="listener-list">
+                <li data-listener="external" data-kind="development" data-source="unknown" data-actionable="true" data-search="4174 node external 127.0.0.1">
+                  <button class="listener-button" type="button" aria-pressed="false">
+                    <div class="row-top">
+                      <span class="port">端口 4174<span class="protocol">TCP4</span></span>
+                      <span class="pill unknown">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"></circle><path d="M9.8 9a2.4 2.4 0 0 1 4.6 1c0 1.8-2.4 2-2.4 3.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M12 17.2h.01" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"></path></svg>
+                        启动方未确认
+                      </span>
+                    </div>
+                    <div class="toolchain-line"><img class="toolchain-logo is-compact" src="assets/toolchain-nodejs.svg" alt="" aria-hidden="true" draggable="false"><span class="toolchain-copy"><span class="toolchain-name">Node.js HTTP 服务</span><span class="executable">node.exe</span></span></div>
+                    <div class="row-meta"><span>PID 21840</span><span>127.0.0.1:4174</span><span class="pill danger">可结束</span></div>
+                  </button>
+                </li>
+
+                <li data-listener="dsh" data-kind="development" data-source="dsh" data-actionable="true" data-search="4173 vite node dsh current session 127.0.0.1">
+                  <button class="listener-button" type="button" aria-pressed="false">
+                    <div class="row-top">
+                      <span class="port">端口 4173<span class="protocol">TCP4</span></span>
+                      <span class="pill verified">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 4.2 4.2L19 6.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                        由 DSH 启动
+                      </span>
+                    </div>
+                    <div class="toolchain-line"><img class="toolchain-logo is-compact" src="assets/toolchain-vite.svg" alt="" aria-hidden="true" draggable="false"><span class="toolchain-copy"><span class="toolchain-name">Vite dev server</span><span class="executable">node.exe</span></span></div>
+                    <div class="row-meta"><span>PID 18824</span><span>127.0.0.1:4173</span><span class="pill managed">可停止</span></div>
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            <div class="group" data-group="other">
+              <div class="group-heading"><span>其他监听</span><span>4项</span></div>
+              <ul class="listener-list">
+                <li data-listener="system" data-kind="other" data-source="unknown" data-actionable="false" data-search="139 system pid 4 0.0.0.0 readonly">
+                  <button class="listener-button is-selected" type="button" aria-pressed="true">
+                    <div class="row-top">
+                      <span class="port">端口 139<span class="protocol">TCP4</span></span>
+                      <span class="pill unknown">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"></circle><path d="M9.8 9a2.4 2.4 0 0 1 4.6 1c0 1.8-2.4 2-2.4 3.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M12 17.2h.01" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"></path></svg>
+                        启动方未确认
+                      </span>
+                    </div>
+                    <div class="toolchain-line"><span class="toolchain-logo is-compact is-fallback" aria-hidden="true">⌘</span><span class="toolchain-copy"><span class="toolchain-name">System</span><span class="executable">System</span></span></div>
+                    <div class="row-meta"><span>PID 4</span><span>0.0.0.0:139</span><span title="3 条完全相同的系统监听记录">×3</span><span class="pill readonly">仅可查看</span></div>
+                  </button>
+                </li>
+
+                <li data-listener="spotify" data-kind="other" data-source="unknown" data-actionable="false" data-search="57621 spotify pid 16044 127.0.0.1 readonly">
+                  <button class="listener-button" type="button" aria-pressed="false">
+                    <div class="row-top"><span class="port">端口 57621<span class="protocol">TCP4</span></span><span class="pill unknown"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"></circle><path d="M9.8 9a2.4 2.4 0 0 1 4.6 1c0 1.8-2.4 2-2.4 3.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M12 17.2h.01" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"></path></svg>启动方未确认</span></div>
+                    <div class="toolchain-line"><span class="toolchain-logo is-compact is-fallback" aria-hidden="true">⌘</span><span class="toolchain-copy"><span class="toolchain-name">Spotify</span><span class="executable">Spotify.exe</span></span></div>
+                    <div class="row-meta"><span>PID 16044</span><span>127.0.0.1:57621</span><span class="pill readonly">仅可查看</span></div>
+                  </button>
+                </li>
+
+                <li data-listener="svchost" data-kind="other" data-source="unknown" data-actionable="false" data-search="49667 service host svchost pid 1096 0.0.0.0 readonly">
+                  <button class="listener-button" type="button" aria-pressed="false">
+                    <div class="row-top"><span class="port">端口 49667<span class="protocol">TCP4</span></span><span class="pill unknown"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"></circle><path d="M9.8 9a2.4 2.4 0 0 1 4.6 1c0 1.8-2.4 2-2.4 3.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M12 17.2h.01" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"></path></svg>启动方未确认</span></div>
+                    <div class="toolchain-line"><span class="toolchain-logo is-compact is-fallback" aria-hidden="true">⌘</span><span class="toolchain-copy"><span class="toolchain-name">Service Host</span><span class="executable">svchost.exe</span></span></div>
+                    <div class="row-meta"><span>PID 1096</span><span>0.0.0.0:49667</span><span class="pill readonly">仅可查看</span></div>
+                  </button>
+                </li>
+
+                <li data-listener="wechat" data-kind="other" data-source="unknown" data-actionable="false" data-search="8680 weixin pid 13172 127.0.0.1 readonly">
+                  <button class="listener-button" type="button" aria-pressed="false">
+                    <div class="row-top"><span class="port">端口 8680<span class="protocol">TCP4</span></span><span class="pill unknown"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"></circle><path d="M9.8 9a2.4 2.4 0 0 1 4.6 1c0 1.8-2.4 2-2.4 3.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M12 17.2h.01" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"></path></svg>启动方未确认</span></div>
+                    <div class="toolchain-line"><span class="toolchain-logo is-compact is-fallback" aria-hidden="true">⌘</span><span class="toolchain-copy"><span class="toolchain-name">Weixin</span><span class="executable">Weixin.exe</span></span></div>
+                    <div class="row-meta"><span>PID 13172</span><span>127.0.0.1:8680</span><span class="pill readonly">仅可查看</span></div>
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </section>
+
+          <aside class="detail-column" aria-label="监听端口详情">
+            <div class="detail-head">
+              <div class="detail-identity">
+                <span id="detail-logo-host"><span class="toolchain-logo is-detail is-fallback" aria-hidden="true">⌘</span></span>
+                <div class="detail-copy">
+                  <div class="detail-toolchain" id="detail-toolchain">系统服务</div>
+                  <div class="detail-port" id="detail-port">端口 139 <span class="protocol">TCP4</span></div>
+                  <div class="detail-subline" id="detail-subline">System · PID 4</div>
+                </div>
+              </div>
+              <div class="detail-actions">
+                <button class="icon-button" id="copy-button" type="button" aria-label="复制监听端口详情" title="复制详情">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.7"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path></svg>
+                </button>
+                <button class="icon-button" type="button" aria-label="打开项目目录" title="无项目目录" disabled>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3.5 7.5h6l2 2h9v8.2a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V7.5a2 2 0 0 1 2-2h4l2 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                </button>
+              </div>
+            </div>
+
+            <section class="section">
+              <h2 class="section-title">运行信息</h2>
+              <dl class="facts">
+                <div class="fact wide"><dt>应用</dt><dd class="multiline" id="fact-app">System</dd></div>
+                <div class="fact"><dt>PID</dt><dd id="fact-pid">4</dd></div>
+                <div class="fact"><dt>监听地址</dt><dd id="fact-address">0.0.0.0:139</dd></div>
+                <div class="fact" id="occurrence-fact"><dt>相同监听</dt><dd id="fact-occurrences">3 条系统记录</dd></div>
+                <div class="fact" id="created-fact"><dt>创建时间</dt><dd class="multiline" id="fact-created">2026-08-24 10:18:34</dd></div>
+                <div class="fact wide"><dt>项目目录</dt><dd class="multiline" id="fact-project">—</dd></div>
+              </dl>
+            </section>
+
+            <section class="section">
+              <h2 class="section-title">会话上下文</h2>
+              <dl class="facts">
+                <div class="fact"><dt>Session</dt><dd id="fact-session">—</dd></div>
+                <div class="fact"><dt>Call ID</dt><dd class="multiline" id="fact-call">—</dd></div>
+                <div class="fact wide"><dt>用户请求</dt><dd class="multiline" id="fact-request">—</dd></div>
+              </dl>
+            </section>
+
+            <section class="section">
+              <h2 class="section-title">来源</h2>
+              <div class="semantic-card">
+                <span class="pill unknown" id="source-pill">
+                  <svg id="source-question-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"></circle><path d="M9.8 9a2.4 2.4 0 0 1 4.6 1c0 1.8-2.4 2-2.4 3.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M12 17.2h.01" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"></path></svg>
+                  <svg id="source-check-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true" hidden><path d="m5 12 4.2 4.2L19 6.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                  <span id="source-label">启动方未确认</span>
+                </span>
+                <p id="source-copy">当前扫描未确认启动方。这不表示进程异常，也不影响独立判断其处理权限。</p>
+              </div>
+            </section>
+
+            <section class="section">
+              <h2 class="section-title">处理方式</h2>
+              <div class="semantic-card card-row" id="handling-card">
+                <div class="card-content">
+                  <span class="pill readonly" id="action-pill">仅可查看</span>
+                  <p id="action-copy">系统进程受保护，当前仅提供端口与进程信息。</p>
+                </div>
+                <button class="danger-action" id="action-button" type="button" hidden>结束该进程</button>
+              </div>
+            </section>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast" role="status">原型不会执行真实进程操作</div>
+
+  <nav class="prototype-switcher" aria-label="原型场景">
+    <span>预览场景</span>
+    <button class="is-active" type="button" data-scene="system">只读合并项</button>
+    <button type="button" data-scene="external">外部可处理</button>
+    <button type="button" data-scene="dsh">DSH 会话</button>
+  </nav>
+
+  <nav class="prototype-switcher selection-switcher" aria-label="选中态方案">
+    <span>选中态</span>
+    <button class="is-active" type="button" data-selection="soft">A 浅蓝填充</button>
+    <button type="button" data-selection="border">B 蓝色细框</button>
+    <button type="button" data-selection="neutral">C 中性灰底</button>
+    <button type="button" data-selection="dot">D 蓝色圆点</button>
+  </nav>
+
+  <script>
+    const listenerDetails = {
+      system: {
+        toolchainId: "",
+        toolchain: "系统服务",
+        port: "139",
+        protocol: "TCP4",
+        executable: "System",
+        pid: "4",
+        address: "0.0.0.0:139",
+        occurrences: "3 条系统记录",
+        created: "2026-08-24 10:18:34",
+        project: "—",
+        session: "—",
+        call: "—",
+        request: "—",
+        source: "unknown",
+        sourceLabel: "启动方未确认",
+        sourceCopy: "当前扫描未确认启动方。这不表示进程异常，也不影响独立判断其处理权限。",
+        action: "readonly",
+        actionLabel: "仅可查看",
+        actionCopy: "系统进程受保护，当前仅提供端口与进程信息。"
+      },
+      external: {
+        toolchainId: "nodejs",
+        toolchain: "Node.js",
+        port: "4174",
+        protocol: "TCP4",
+        executable: "node.exe",
+        pid: "21840",
+        address: "127.0.0.1:4174",
+        occurrences: "",
+        created: "2026-08-24 14:42:16",
+        project: "D:\\project\\dsh-runtime-inspector",
+        session: "—",
+        call: "—",
+        request: "—",
+        source: "unknown",
+        sourceLabel: "启动方未确认",
+        sourceCopy: "当前扫描未确认启动方；处理权限由进程身份与系统保护级别独立判断。",
+        action: "danger",
+        actionLabel: "可结束进程",
+        actionCopy: "执行前会重新校验 PID、创建时间、可执行文件和监听端口。"
+      },
+      dsh: {
+        toolchainId: "vite",
+        toolchain: "Vite",
+        port: "4173",
+        protocol: "TCP4",
+        executable: "node.exe",
+        pid: "18824",
+        address: "127.0.0.1:4173",
+        occurrences: "",
+        created: "2026-08-24 14:31:08",
+        project: "D:\\project\\dsh-runtime-inspector",
+        session: "Runtime Inspector UI 调整",
+        call: "call_7f3a…b12",
+        request: "请在当前项目启动一个本地 HTTP 服务，监听 127.0.0.1:4173，并保持运行。",
+        source: "verified",
+        sourceLabel: "由 DSH 启动",
+        sourceCopy: "此监听端口由当前会话启动，DSH 已完成身份确认。",
+        action: "managed",
+        actionLabel: "可停止 DSH 任务",
+        actionCopy: "通过 DSH 生命周期停止任务，并在完成后重新扫描监听端口。"
+      },
+      spotify: {
+        toolchainId: "",
+        toolchain: "桌面应用",
+        port: "57621",
+        protocol: "TCP4",
+        executable: "Spotify.exe",
+        pid: "16044",
+        address: "127.0.0.1:57621",
+        occurrences: "",
+        created: "2026-08-24 09:12:45",
+        project: "—",
+        session: "—",
+        call: "—",
+        request: "—",
+        source: "unknown",
+        sourceLabel: "启动方未确认",
+        sourceCopy: "当前扫描未确认启动方。这不表示进程异常，也不影响独立判断其处理权限。",
+        action: "readonly",
+        actionLabel: "仅可查看",
+        actionCopy: "当前监听不满足安全处理条件，仅提供端口与进程信息。"
+      },
+      svchost: {
+        toolchainId: "",
+        toolchain: "系统服务",
+        port: "49667",
+        protocol: "TCP4",
+        executable: "svchost.exe",
+        pid: "1096",
+        address: "0.0.0.0:49667",
+        occurrences: "",
+        created: "2026-08-24 08:02:11",
+        project: "—",
+        session: "—",
+        call: "—",
+        request: "—",
+        source: "unknown",
+        sourceLabel: "启动方未确认",
+        sourceCopy: "当前扫描未确认启动方。这不表示进程异常，也不影响独立判断其处理权限。",
+        action: "readonly",
+        actionLabel: "仅可查看",
+        actionCopy: "系统服务受保护，当前仅提供端口与进程信息。"
+      },
+      wechat: {
+        toolchainId: "",
+        toolchain: "桌面应用",
+        port: "8680",
+        protocol: "TCP4",
+        executable: "Weixin.exe",
+        pid: "13172",
+        address: "127.0.0.1:8680",
+        occurrences: "",
+        created: "2026-08-24 09:44:32",
+        project: "—",
+        session: "—",
+        call: "—",
+        request: "—",
+        source: "unknown",
+        sourceLabel: "启动方未确认",
+        sourceCopy: "当前扫描未确认启动方。这不表示进程异常，也不影响独立判断其处理权限。",
+        action: "readonly",
+        actionLabel: "仅可查看",
+        actionCopy: "当前监听不满足安全处理条件，仅提供端口与进程信息。"
+      }
+    };
+
+    const allRows = [...document.querySelectorAll("[data-listener]")];
+    const scopeButtons = [...document.querySelectorAll("[data-scope]")];
+    const sceneButtons = [...document.querySelectorAll("[data-scene]")];
+    const selectionButtons = [...document.querySelectorAll("[data-selection]")];
+    const searchInput = document.querySelector("#search-input");
+    const sourceFilter = document.querySelector("#source-filter");
+    const actionableFilter = document.querySelector("#actionable-filter");
+    const toast = document.querySelector("#toast");
+    let scope = "all";
+    let toastTimer;
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("is-visible");
+      window.clearTimeout(toastTimer);
+      toastTimer = window.setTimeout(() => toast.classList.remove("is-visible"), 1800);
+    }
+
+    function selectListener(id) {
+      const data = listenerDetails[id];
+      if (!data) return;
+
+      allRows.forEach((row) => {
+        const selected = row.dataset.listener === id;
+        row.querySelector(".listener-button").classList.toggle("is-selected", selected);
+        row.querySelector(".listener-button").setAttribute("aria-pressed", String(selected));
+      });
+
+      const logoHost = document.querySelector("#detail-logo-host");
+      const logoUrls = {
+        nodejs: "assets/toolchain-nodejs.svg",
+        vite: "assets/toolchain-vite.svg"
+      };
+      logoHost.replaceChildren();
+      if (logoUrls[data.toolchainId]) {
+        const logo = document.createElement("img");
+        logo.className = "toolchain-logo is-detail";
+        logo.src = logoUrls[data.toolchainId];
+        logo.alt = "";
+        logo.setAttribute("aria-hidden", "true");
+        logo.draggable = false;
+        logoHost.append(logo);
+      } else {
+        const fallback = document.createElement("span");
+        fallback.className = "toolchain-logo is-detail is-fallback";
+        fallback.setAttribute("aria-hidden", "true");
+        fallback.textContent = "⌘";
+        logoHost.append(fallback);
+      }
+      document.querySelector("#detail-toolchain").textContent = data.toolchain;
+      document.querySelector("#detail-port").innerHTML = `端口 ${data.port} <span class="protocol">${data.protocol}</span>`;
+      document.querySelector("#detail-subline").textContent = `${data.executable} · PID ${data.pid}`;
+      document.querySelector("#fact-app").textContent = data.executable;
+      document.querySelector("#fact-pid").textContent = data.pid;
+      document.querySelector("#fact-address").textContent = data.address;
+      document.querySelector("#fact-created").textContent = data.created;
+      document.querySelector("#fact-project").textContent = data.project;
+      document.querySelector("#fact-session").textContent = data.session;
+      document.querySelector("#fact-call").textContent = data.call;
+      document.querySelector("#fact-request").textContent = data.request;
+
+      const occurrenceFact = document.querySelector("#occurrence-fact");
+      const createdFact = document.querySelector("#created-fact");
+      occurrenceFact.hidden = data.occurrences.length === 0;
+      createdFact.classList.toggle("wide", data.occurrences.length === 0);
+      document.querySelector("#fact-occurrences").textContent = data.occurrences;
+
+      const sourcePill = document.querySelector("#source-pill");
+      sourcePill.className = `pill ${data.source === "verified" ? "verified" : "unknown"}`;
+      document.querySelector("#source-question-icon").hidden = data.source === "verified";
+      document.querySelector("#source-check-icon").hidden = data.source !== "verified";
+      document.querySelector("#source-label").textContent = data.sourceLabel;
+      document.querySelector("#source-copy").textContent = data.sourceCopy;
+
+      const actionPill = document.querySelector("#action-pill");
+      const actionButton = document.querySelector("#action-button");
+      actionPill.className = `pill ${data.action === "danger" ? "danger" : data.action === "managed" ? "managed" : "readonly"}`;
+      actionPill.textContent = data.actionLabel;
+      document.querySelector("#action-copy").textContent = data.actionCopy;
+      actionButton.hidden = data.action === "readonly";
+      actionButton.className = data.action === "danger" ? "danger-action" : "primary-action";
+      actionButton.textContent = data.action === "danger" ? "结束该进程" : "停止 DSH 任务";
+
+      sceneButtons.forEach((button) => button.classList.toggle("is-active", button.dataset.scene === id));
+    }
+
+    function filterRows() {
+      const query = searchInput.value.trim().toLowerCase();
+      let visible = 0;
+      allRows.forEach((row) => {
+        const matchesScope = scope === "all" || row.dataset.kind === "development";
+        const matchesSource = sourceFilter.value === "all" || row.dataset.source === sourceFilter.value;
+        const matchesAction = !actionableFilter.checked || row.dataset.actionable === "true";
+        const matchesSearch = query.length === 0 || row.dataset.search.includes(query);
+        const show = matchesScope && matchesSource && matchesAction && matchesSearch;
+        row.hidden = !show;
+        if (show) visible += 1;
+      });
+
+      document.querySelectorAll("[data-group]").forEach((group) => {
+        group.hidden = ![...group.querySelectorAll("[data-listener]")].some((row) => !row.hidden);
+      });
+      document.querySelector("#visible-count").textContent = `显示 ${visible} 项`;
+    }
+
+    allRows.forEach((row) => row.querySelector(".listener-button").addEventListener("click", () => selectListener(row.dataset.listener)));
+    scopeButtons.forEach((button) => button.addEventListener("click", () => {
+      scope = button.dataset.scope;
+      scopeButtons.forEach((candidate) => {
+        const selected = candidate === button;
+        candidate.classList.toggle("is-active", selected);
+        candidate.setAttribute("aria-pressed", String(selected));
+      });
+      filterRows();
+    }));
+    searchInput.addEventListener("input", filterRows);
+    sourceFilter.addEventListener("change", filterRows);
+    actionableFilter.addEventListener("change", filterRows);
+    document.querySelector("#refresh-button").addEventListener("click", () => showToast("监听列表已刷新"));
+    document.querySelector("#copy-button").addEventListener("click", () => showToast("已复制脱敏详情"));
+    document.querySelector("#action-button").addEventListener("click", () => showToast("原型不会执行真实进程操作"));
+    sceneButtons.forEach((button) => button.addEventListener("click", () => selectListener(button.dataset.scene)));
+    selectionButtons.forEach((button) => button.addEventListener("click", () => {
+      document.querySelector(".panel").dataset.selectionStyle = button.dataset.selection;
+      selectionButtons.forEach((candidate) => candidate.classList.toggle("is-active", candidate === button));
+    }));
+
+    filterRows();
+    selectListener("system");
+  </script>
+</body>
+</html>

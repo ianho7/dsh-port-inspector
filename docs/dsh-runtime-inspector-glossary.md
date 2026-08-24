@@ -14,11 +14,11 @@
 | Verified attribution | root 身份匹配，且监听 PID 可沿 Windows 父链追溯到该 root | 可以陈述为“由这次 Tool Call 启动” |
 | Inferred attribution | 只有非唯一线索支持，例如命令、目录或时间接近 | 只能辅助用户判断，不能冒充 verified 事实 |
 | Unattributed | 没有足够证据关联到 DSH Tool Call | 仍可展示端口和最佳可用系统信息 |
-| 来源状态 | 面向用户的证据状态摘要 | 主标签只使用“DSH 来源已确认 / 来源未确认”；inferred/unattributed 作为内部证据状态和详情层区别，首屏不使用“可能由……启动”这类模态表达 |
+| 启动方状态 | 面向用户的进程启动归因摘要 | 主标签使用“由 DSH 启动 / 启动方未确认”；inferred/unattributed 作为内部证据状态和详情层区别，不把“启动方未确认”表达成“非 DSH” |
 | 来源线索 | 支持 DSH 关联的非唯一证据 | 只能辅助核对，不能获得 Lifecycle owner 权限，也不能被呈现为已确认来源 |
 | 处理方式 | 面向用户的当前操作能力摘要 | 使用“可由 DSH 停止 / 可结束单个进程 / 仅可查看”等产品文案；它与来源状态是两条独立维度 |
-| DSH 来源已确认 | 监听器已通过完整、无歧义的 root PID、创建时间和父链身份校验 | 可以展示 DSH Session/Tool 来源，并在存在 Lifecycle owner 时使用 DSH 托管关闭 |
-| 来源未确认 | 尚未达到 verified attribution 标准的统一用户状态 | 可在详情中区分“有 DSH 线索”和“未找到可靠 DSH 关联”；不等于已证明是非 DSH |
+| 由 DSH 启动 | 监听器已通过完整、无歧义的 root PID、创建时间和父链身份校验 | 可以展示 DSH Session/Tool 来源，并在存在 Lifecycle owner 时使用 DSH 托管关闭；这不等于所有由 DSH 启动的进程都可直接结束 |
+| 启动方未确认 | 尚未达到 verified attribution 标准的统一用户状态 | 可在详情中区分“有 DSH 线索”和“未找到可靠 DSH 关联”；不等于已证明是非 DSH |
 | 来源追踪暂不可用 | observer/provider contract 实际不可用导致的面板级来源能力限制 | 必须与单行“来源未确认”区分；只影响来源判断和 DSH 托管路径，不自动关闭可独立安全复核的外部单 PID 操作 |
 | Lifecycle owner | 对进程拥有受管关闭语义的 DSH Job 或 Terminal | 已知时优先通过 owner 关闭，而不是直接杀一个后代 PID |
 | Persistent PowerShell | 多次 Tool Call 复用的同一个 PowerShell terminal | 只保证首次 terminal 创建的 Call 级精确归因 |

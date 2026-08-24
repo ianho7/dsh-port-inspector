@@ -68,7 +68,7 @@ DSH 正常托管的后台进程比一般命令行 Agent 更不容易成为“无
 | Windows TCP 监听扫描 | 列出地址、端口、PID、应用名、创建时间与可执行文件 |
 | 项目来源展示 | 优先使用 DSH 已知工作目录；外部进程仅展示最佳可用信息 |
 | DSH 来源追踪 | 展示 Session、Turn、Step、Call ID、工具名和启动命令 |
-| 来源状态 | 主标签使用“DSH 来源已确认 / 来源未确认”；inferred/unattributed 作为内部证据强度和详情信号，不制造第三套主标签 |
+| 启动方状态 | 主标签使用“由 DSH 启动 / 启动方未确认”；inferred/unattributed 作为内部证据强度和详情信号，不制造第三套主标签 |
 | 搜索和排序 | 支持按端口、应用、PID、项目、会话搜索 |
 | 打开目录和复制信息 | 提供高频、低风险操作 |
 | 单进程终止 | 用户确认后终止一个明确选中的目标 |
@@ -274,8 +274,8 @@ type AttributionConfidence = 'verified' | 'inferred' | 'unattributed'
 1. 在两个不同 DSH Session 中分别启动同名 Node 开发服务；
 2. UI 能按端口区分两个进程，并显示正确项目目录；
 3. 两条记录分别显示正确的 Session、Turn 和 Call ID；
-4. 来源链完整时显示“DSH 来源已确认”，不得只靠命令或时间猜测；
-5. 手工从 DSH 外启动的服务显示“来源未确认”，且不等于已证明是非 DSH；
+4. 来源链完整时显示“由 DSH 启动”，不得只靠命令或时间猜测；
+5. 手工从 DSH 外启动的服务显示“启动方未确认”，且不等于已证明是非 DSH；
 6. 无法读取完整来源信息时仍能列出端口，并显示对应的来源能力或权限状态；
 7. 终止其中一个测试进程后，另一个不受影响；
 8. 终止前若发现 PID 创建时间变化，拒绝执行并提示目标已变化；
@@ -290,7 +290,7 @@ type AttributionConfidence = 'verified' | 'inferred' | 'unattributed'
 - **核心差异**：从系统端口追溯到 DSH Session、Turn、Step 和 Tool Call。
 - **第一版闭环**：发现 → 归因 → 人工确认 → 安全终止 → 验证释放。
 - **精确归因边界**：当前 DSH 运行周期、受观察的 PowerShell / subprocess 启动链。
-- **事实表达**：用户主标签为“DSH 来源已确认 / 来源未确认”；内部仍保留 verified/inferred/unattributed 证据状态，来源与处理方式不混成一个标签。
+- **事实表达**：用户主标签为“由 DSH 启动 / 启动方未确认”；内部仍保留 verified/inferred/unattributed 证据状态，启动方与处理方式不混成一个标签。
 - **推荐技术路线**：以 `dsh-0.1.0-rc.8`、`dsh-0.1.1-rc.1` 和 `dsh-0.1.1-rc.2` 为回归基线，用 Cordis `internal/get` non-mutating Proxy 和可逆 local provider fallback 覆盖观察 seam；未知版本按 runtime capability 正常启用且不显示提示，单项 contract 失败只关闭依赖它的能力。
 - **安装语义**：标准 Bundle 安装、更新或移除后允许重启一次目标 DSH Profile；用户不修改源码或 composition。
 - **受管关闭**：Job 通过 `jobs.kill + wait`，Terminal 通过 `terminals.kill`；失败不自动补杀。

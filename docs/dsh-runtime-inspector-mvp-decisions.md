@@ -109,6 +109,14 @@ Runtime Inspector Web 默认优先展示当前项目和明确识别的开发环�
 
 工具链 Logo 帮助用户扫读，但不代表 Process origin、Verified attribution、Lifecycle owner 或处理方式，也不能改变 action kind。素材经维护者审核后随 Browser Client artifact 本地发布，面板运行时不得向工具链官网发送请求。
 
+### D22：Runtime Inspector 使用 DSH 原生 Modal Chrome
+
+Runtime Inspector 的业务内容保持端口列表、详情和安全操作模型，但弹窗外壳完全采用 DSH 原生 Web UI 的 Modal 语言：全屏遮罩与模糊、居中面板、原生尺寸与圆角、`lv3` 阴影、54px Header、Options 滚动区以及原生关闭和焦点行为。面板不保留只有一个菜单项的左侧导航栏，Header 直接显示 `Runtime Inspector`；只有来源追踪降级或扫描未完成时才显示对应状态提示。这样可以让用户把 Runtime Inspector 识别为 DSH Web 的一部分，而不是外部工具窗口。
+
+该决定不引入 DSH UI 包的运行时远程依赖，也不改变 Host/Browser 边界；当 Browser Bundle 无法直接复用原生 CSS Module 或 primitive 时，Runtime Inspector 在命名空间内复刻相同 Token 和几何约束。由于端口工具栏和双栏详情的信息密度高，Runtime Inspector 的桌面 Modal 宽度采用 `1040px`；视口低于 `960px` 时工具栏转为可控换行，避免牺牲控件完整性。
+
+工具栏不再显示与范围、筛选重复的四格摘要；改为用“查看范围”“启动方”和“仅显示可处理”三个控件表达不同的下一步动作，列表标题只显示当前筛选结果数量。
+
 ## 开放决定
 
 无。若后续发现会改变上述产品、安全或兼容边界的新事实，应新增 ADR，而不是在实现中静默改变决定。

@@ -93,6 +93,14 @@ export function IconInfo(props: IconProps = {}): React.ReactNode {
   )
 }
 
+export function IconQuestion(props: IconProps = {}): React.ReactNode {
+  return icon(props,
+    React.createElement('circle', { cx: 12, cy: 12, r: 8.5 }),
+    React.createElement('path', { d: 'M9.8 9a2.4 2.4 0 0 1 4.6 1c0 1.8-2.4 2-2.4 3.6' }),
+    React.createElement('path', { d: 'M12 17.2h.01' }),
+  )
+}
+
 export function IconLinkSignal(props: IconProps = {}): React.ReactNode {
   return icon(props,
     React.createElement('path', { d: 'm9.5 14.5 5-5' }),

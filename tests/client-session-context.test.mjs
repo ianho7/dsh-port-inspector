@@ -10,6 +10,7 @@ test('formats Windows FILETIME for people while preserving ordinary display valu
   assert.notEqual(formatted, '134319632994565251')
   assert.match(formatted, /2026/)
   assert.equal(formatProcessCreatedAt('not-a-time'), 'not-a-time')
+  assert.equal(formatProcessCreatedAt(undefined), '—')
 })
 
 test('projects the selected DSH session title, cwd, and the user request that initiated a Call ID', () => {
