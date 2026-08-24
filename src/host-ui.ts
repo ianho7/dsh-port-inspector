@@ -8,6 +8,10 @@ import type {
   LifecycleShutdownOptions,
   ManagedShutdownResult,
 } from './lifecycle.js'
+import {
+  projectDevelopmentPresentation,
+  type DevelopmentPresentation,
+} from './development-presentation.js'
 import { redactCommand, redactPath } from './redaction.js'
 import type {
   AttributionConfidence,
@@ -37,6 +41,8 @@ export interface HostInventoryQuery {
   readonly search?: string
   /** Browser-selected Session; presentation/privacy only, never action authority. */
   readonly currentSessionId?: string
+  /** Browser-selected project; presentation only, never action authority. */
+  readonly currentProject?: string
   readonly sort?: {
     readonly key: HostSortKey
     readonly direction?: HostSortDirection
@@ -84,6 +90,7 @@ export interface HostListenerRow {
   readonly session?: HostListenerAttribution
   readonly lifecycleOwner?: HostLifecycleOwner
   readonly action: HostActionState
+  readonly development: DevelopmentPresentation
 }
 
 export interface HostInventorySnapshot {
@@ -363,6 +370,7 @@ function toPublicEntry(
   mode: HostInventoryMode,
   scanComplete: boolean,
   currentSessionId: string | undefined,
+  currentProject?: string,
 ): HostListenerRow {
   const { row, origin } = entry
   const owner = lifecycleOwner(row, origin)
@@ -386,6 +394,7 @@ function toPublicEntry(
     ...attribution === undefined ? {} : { session: attribution },
     ...owner === undefined ? {} : { lifecycleOwner: owner },
     action: actionState(mode, scanComplete, row, owner),
+    development: projectDevelopmentPresentation(row, origin, { currentSessionId, currentProject }),
   })
 }
 
@@ -486,7 +495,7 @@ function snapshotFrom(
     mode,
     scanComplete: internal.scan.complete,
     truncated: filtered.length > visible.length || internal.scan.rows.length > MAX_INVENTORY_ROWS,
-    listeners: Object.freeze(visible.map(entry => toPublicEntry(entry, mode, internal.scan.complete, currentSessionId))),
+    listeners: Object.freeze(visible.map(entry => toPublicEntry(entry, mode, internal.scan.complete, currentSessionId, query.currentProject))),
   })
 }
 

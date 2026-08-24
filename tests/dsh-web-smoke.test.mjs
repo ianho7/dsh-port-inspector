@@ -197,8 +197,8 @@ async function stagePlugin(profile, installed) {
   await cp(koffiNativeSource, join(profile, 'node_modules', '@koromix', 'koffi-win32-x64'), { recursive: true })
 }
 
-async function startListener() {
-  const child = spawn(process.execPath, ['-e', [
+async function startListener(executable = process.execPath) {
+  const child = spawn(executable, ['-e', [
     "const net = require('node:net')",
     'const server = net.createServer()',
     "server.listen(0, '127.0.0.1', () => console.log(server.address().port))",
@@ -245,6 +245,7 @@ test('real Stock DSH Web loads the Bundle, opens the panel, and rechecks an exte
     const fixtureListenerFile = join(home, 'runtime-inspector-web-listener.mjs')
     const fixtureReadyFile = join(home, 'runtime-inspector-web-listener-ready.json')
     const fixtureResultFile = join(home, 'runtime-inspector-web-fixture-result.json')
+    const externalListenerExecutable = join(home, 'external-listener.exe')
     await mkdir(fixtureDir, { recursive: true })
     await writeFile(fixtureFile, WEB_FIXTURE_SOURCE)
     await writeFile(fixtureListenerFile, WEB_FIXTURE_LISTENER_SOURCE)
@@ -262,7 +263,8 @@ test('real Stock DSH Web loads the Bundle, opens the panel, and rechecks an exte
       '',
     ].join('\n'))
 
-    listener = await startListener()
+    await cp(process.execPath, externalListenerExecutable)
+    listener = await startListener(externalListenerExecutable)
     dsh = spawn(process.execPath, [dshBin, '--profile', 'inspector', '--no-open', '--port', '0'], {
       cwd: dshCwd,
       env: {
@@ -297,7 +299,7 @@ test('real Stock DSH Web loads the Bundle, opens the panel, and rechecks an exte
     const dshRequire = createRequire(playwrightAnchor ?? join(dshPackageRoot, 'package.json'))
     const { chromium } = dshRequire('playwright')
     browser = await chromium.launch({ headless: true })
-    const page = await browser.newPage()
+    const page = await browser.newPage({ viewport: { width: 1280, height: 720 } })
     const pageErrors = []
     page.on('pageerror', error => pageErrors.push(String(error)))
 
@@ -312,7 +314,9 @@ test('real Stock DSH Web loads the Bundle, opens the panel, and rechecks an exte
     assert.match(pluginEntry.url, /\/plugins\/dsh-runtime-inspector\/client\.js\?rev=/)
     const artifact = await page.request.get(new URL(pluginEntry.url, baseUrl).href)
     assert.equal(artifact.status(), 200)
-    assert.match(await artifact.text(), /window\.__ModuleLoader__\.load/)
+    const artifactText = await artifact.text()
+    assert.match(artifactText, /window\.__ModuleLoader__\.load/)
+    assert.doesNotMatch(artifactText, /https:\/\/(?:vite\.dev|nextjs\.org|nodejs\.org)/)
 
     const panelEntry = page.locator('[data-runtime-inspector-entry="open"]')
     await panelEntry.click()
@@ -327,22 +331,57 @@ test('real Stock DSH Web loads the Bundle, opens the panel, and rechecks an exte
     assert.match(await managedRow.textContent(), /DSH 来源已确认/)
     await managedRow.locator('[data-runtime-inspector-select]').click()
     const detail = page.locator('.dsh-ri-detail-column')
+    const compactLogoSource = await managedRow.locator('.dsh-ri-toolchain-logo.is-compact').getAttribute('src')
+    const detailLogoSource = await detail.locator('.dsh-ri-toolchain-logo.is-detail').getAttribute('src')
+    assert.equal(compactLogoSource, detailLogoSource)
+    assert.match(compactLogoSource ?? '', /^data:image\//)
+    const selectedStyle = await managedRow.locator('[data-runtime-inspector-select]').evaluate(element => {
+      const style = getComputedStyle(element)
+      return { borderColor: style.borderColor, boxShadow: style.boxShadow }
+    })
+    assert.match(selectedStyle.boxShadow, /inset/)
+    await managedRow.locator('[data-runtime-inspector-select]').focus()
+    assert.equal(await managedRow.locator('[data-runtime-inspector-select]').evaluate(element => document.activeElement === element), true)
     await detail.getByText(fixture.callId, { exact: true }).waitFor()
     await detail.getByText(fixtureDir, { exact: true }).waitFor()
     const createdAt = await detail.locator('.dsh-ri-fact').filter({ hasText: '创建时间' }).locator('dd').textContent()
     assert.doesNotMatch(createdAt ?? '', /^\d{17,20}$/u)
 
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: baseUrl })
-    await page.waitForFunction((port) => [...document.querySelectorAll('[data-runtime-inspector-row]')]
-      .some(candidate => candidate.textContent?.includes('端口 ' + String(port))), listener.port, { timeout: 30_000 })
-    const row = page.locator('[data-runtime-inspector-row]').filter({ hasText: '端口 ' + String(listener.port) }).first()
+    const externalRow = () => page.locator('[data-runtime-inspector-row]').filter({ hasText: '端口 ' + String(listener.port) })
+    assert.equal(await externalRow().count(), 0, 'an unrelated executable should be folded into other listeners by default')
+    const search = panel.locator('[data-runtime-inspector-search="input"]')
+    await search.fill(String(listener.port))
+    await externalRow().first().waitFor()
+    assert.match(await panel.textContent(), /搜索已覆盖全部监听/)
+    await externalRow().first().locator('[data-runtime-inspector-pin]').click()
+    await search.fill('')
+    await panel.locator('[data-runtime-inspector-group="pinned"]').waitFor()
+    assert.equal(await externalRow().count(), 1)
+
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await page.locator('[data-runtime-inspector-entry="open"]').waitFor({ timeout: 30_000 })
+    await dismissInitialOnboarding(page)
+    await page.locator('[data-runtime-inspector-entry="open"]').click()
+    const reloadedPanel = page.locator('[data-runtime-inspector-surface="panel"]')
+    await reloadedPanel.waitFor()
+    await reloadedPanel.locator('[data-runtime-inspector-group="pinned"]').waitFor({ timeout: 30_000 })
+    const row = reloadedPanel.locator('[data-runtime-inspector-row]').filter({ hasText: '端口 ' + String(listener.port) }).first()
+    assert.equal(await reloadedPanel.locator('[data-runtime-inspector-row]').filter({ hasText: '端口 ' + String(listener.port) }).count(), 1)
     await row.locator('[data-runtime-inspector-select]').click()
-    await page.locator('[data-runtime-inspector-copy]').click()
-    await page.locator('[data-runtime-inspector-state="result"]').waitFor()
+    await reloadedPanel.locator('[data-runtime-inspector-copy]').click()
+    await reloadedPanel.locator('[data-runtime-inspector-state="result"]').waitFor()
     assert.match(await page.evaluate(() => navigator.clipboard.readText()), new RegExp(`Port: ${String(listener.port)}`))
 
-    await page.locator('[data-runtime-inspector-action="external-single-pid"]').waitFor()
-    await page.locator('[data-runtime-inspector-action="external-single-pid"]').click()
+    await row.locator('[data-runtime-inspector-pin]').click()
+    await row.waitFor({ state: 'detached' })
+    await reloadedPanel.locator('[data-runtime-inspector-search="input"]').fill(String(listener.port))
+    const searchedRow = reloadedPanel.locator('[data-runtime-inspector-row]').filter({ hasText: '端口 ' + String(listener.port) }).first()
+    await searchedRow.waitFor()
+    await searchedRow.locator('[data-runtime-inspector-select]').click()
+
+    await reloadedPanel.locator('[data-runtime-inspector-action="external-single-pid"]').waitFor()
+    await reloadedPanel.locator('[data-runtime-inspector-action="external-single-pid"]').click()
     await page.locator('[data-runtime-inspector-confirmation="dialog"]').waitFor()
     const actionResponse = page.waitForResponse(responseItem => (
       responseItem.url().endsWith('/api/dsh-runtime-inspector/action')

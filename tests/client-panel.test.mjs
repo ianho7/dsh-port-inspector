@@ -4,6 +4,8 @@ import test from 'node:test'
 
 const source = await readFile(new URL('../src/client/panel.ts', import.meta.url), 'utf8')
 const slotsSource = await readFile(new URL('../src/client/slots.ts', import.meta.url), 'utf8')
+const stylesSource = await readFile(new URL('../src/client/styles.ts', import.meta.url), 'utf8')
+const logoSource = await readFile(new URL('../src/client/toolchain-logos.ts', import.meta.url), 'utf8').catch(() => '')
 
 test('Runtime Inspector panel exposes semantic stable controls and all required state labels', () => {
   for (const locator of [
@@ -45,4 +47,46 @@ test('Runtime Inspector panel exposes semantic stable controls and all required 
   assert.match(source, /result\.ok && result\.copied/)
   assert.match(source, /剪贴板不可用/)
   assert.match(source, /当前环境不支持打开项目目录/)
+})
+
+test('development surface prioritizes current-project listeners with a calm selected state', () => {
+  assert.match(source, /开发端口/)
+  assert.match(source, /当前项目/)
+  assert.match(source, /row\.development\.group === 'current-project'/)
+  assert.match(source, /data-runtime-inspector-group/)
+  assert.match(stylesSource, /box-shadow:\s*inset 3px 0 0 var\(--dsh-ri-accent\)/)
+  assert.match(stylesSource, /\.dsh-ri-row-button\.is-selected \.dsh-ri-port/)
+  assert.doesNotMatch(stylesSource, /\.dsh-ri-row-button\.is-selected\s*\{[^}]*border-color:\s*color-mix/su)
+})
+
+test('development surface groups environments and keeps other listeners searchable and expandable', () => {
+  assert.match(source, /开发环境/)
+  assert.match(source, /其他监听/)
+  assert.match(source, /全部监听/)
+  assert.match(source, /已收起/)
+  assert.match(source, /data-runtime-inspector-scope/)
+  assert.match(source, /data-runtime-inspector-other-toggle/)
+  assert.match(source, /row\.development\.group === 'development-environment'/)
+  assert.match(source, /row\.development\.group === 'other'/)
+  assert.match(source, /search\.trim\(\)\.length > 0/)
+})
+
+test('toolchain logos are bundled locally for compact rows and details', () => {
+  assert.match(source, /ToolchainLogo/)
+  assert.match(source, /size: 'compact'/)
+  assert.match(source, /size: 'detail'/)
+  assert.match(logoSource, /vite/)
+  assert.match(logoSource, /nextjs/)
+  assert.match(logoSource, /nodejs/)
+  assert.doesNotMatch(logoSource, /https?:\/\//)
+  assert.match(stylesSource, /\.dsh-ri-toolchain-logo/)
+})
+
+test('other listeners can be pinned without changing Host authority or development counts', () => {
+  assert.match(source, /固定显示/)
+  assert.match(source, /data-runtime-inspector-pin/)
+  assert.match(source, /row\.development\.stableKey/)
+  assert.match(source, /loadPinnedListenerKeys/)
+  assert.match(source, /savePinnedListenerKeys/)
+  assert.match(source, /developmentCount = allRows\.filter\(row => row\.development\.group !== 'other'\)\.length/)
 })

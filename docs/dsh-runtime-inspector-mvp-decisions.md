@@ -1,7 +1,7 @@
 # DSH Runtime Inspector Windows MVP：决策记录
 
 > 状态：已收敛，可进入 `/to-spec`
-> 更新日期：2026-08-22
+> 更新日期：2026-08-24
 > 依据：`dsh-runtime-inspector-mvp.md`、`dsh-runtime-inspector-root-pid-research.md`
 
 本文只记录会改变 MVP 实现、兼容性、安全边界或验收标准的决定。尚未完成的决定明确标为“开放”，不作为实现依据。
@@ -102,6 +102,12 @@ Browser 源码使用 TypeScript 和 DSH-compatible client bundler 构建；`wind
 ### D20：版本是开发诊断信息，功能由运行时能力决定
 
 DSH 版本号不再作为安装或运行时总开关，也不向用户展示“未纳入回归测试”等提示。Windows local provider、`spawn`/`spawnTerminal`、observer、scanner 和 action safety 分别探测、分别启用；某项失败只关闭依赖它的路径。外部单 PID 处理与来源追踪正交，始终在执行前重新校验 PID、创建时间、executable、用户和保护级别。依赖私有 `LocalTerminalHandle` shape 的 delayed PID repair 仍只对精确认证版本开放；未知版本遇到 PID `0` 时仅放弃该 Terminal 的 verified attribution。完整决定见 [ADR-0005](./adr/0005-capability-based-dsh-compatibility.md)。
+
+### D21：开发相关性和工具链视觉是独立展示维度
+
+Runtime Inspector Web 默认优先展示当前项目和明确识别的开发环境监听器，其他系统服务与桌面应用保持可搜索、可展开。Host 输出有界的开发分组、识别依据和工具链标识；常见端口号不能独立建立分类，证据不足时归入其他监听。
+
+工具链 Logo 帮助用户扫读，但不代表 Process origin、Verified attribution、Lifecycle owner 或处理方式，也不能改变 action kind。素材经维护者审核后随 Browser Client artifact 本地发布，面板运行时不得向工具链官网发送请求。
 
 ## 开放决定
 

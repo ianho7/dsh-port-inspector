@@ -1,7 +1,7 @@
 # DSH Runtime Inspector：MVP 术语表
 
 > 状态：随设计讨论更新
-> 更新日期：2026-08-23
+> 更新日期：2026-08-24
 
 | 术语 | 通俗定义 | MVP 中的身份/边界 |
 | --- | --- | --- |
@@ -28,3 +28,6 @@
 | Direct external termination | 通过 Windows 系统能力结束一个经身份复核的外部 PID | 仅限同一用户、明确确认的单个 PID；不是 managed shutdown |
 | Read-only degraded mode | 来源 observer/provider contract 实际失败后的来源模式 | 仍可列 TCP listeners，DSH 来源不作确认；处理方式按其独立能力决定，不再等同于“所有操作禁用” |
 | Compatibility contract | 当前运行时实际提供的 Windows local provider、spawn 方法、observer 和 action safety 能力 | 版本号只供开发诊断与回归记录；未知版本默认按能力启用，不向用户展示版本提示；私有 Terminal repair 仍按精确版本控制 |
+| 开发相关性 | 监听器与当前项目或本机开发环境的展示关系 | 只决定 Web 列表分组和视觉优先级；与 Process origin、来源状态、Lifecycle owner 和处理方式正交，不能赋予操作权限 |
+| 工具链标识 | Host 依据 executable、项目、Session 和已脱敏命令确定的开发运行时、框架或基础设施身份 | 用于选择 Browser 中的工具链名称与 Logo；证据不足时回退到通用运行时或未知标识，不使用端口号单独猜测 |
+| 工具链 Logo | 帮助用户快速扫读的本地品牌视觉 | 只表达已识别的工具链，不表达 DSH 来源或可操作性；运行时不从第三方官网加载 |

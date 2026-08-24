@@ -28,6 +28,7 @@
     "build": "npm run build:host && npm run build:client",
     "build:host": "tsc -p tsconfig.json",
     "build:client": "tsdown --config tsdown.config.ts",
+    "update:toolchain-logos": "node scripts/update-toolchain-logos.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build && node --test tests/*.test.mjs",
     "prepare": "npm run build"

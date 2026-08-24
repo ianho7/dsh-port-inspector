@@ -41,6 +41,10 @@ Web 入口使用全局 `sidebar.footer.action`，显示端口监听/冲突状态
 
 Browser 注入 DSH `sessions` 服务，以当前 `sessions.list.current` 作为展示上下文：Session 显示标题，项目优先显示 Host 已确认的 origin workdir、缺失时显示经过脱敏的当前 Session cwd，用户请求从当前 conversation 中按 Call ID/root Call ID/Turn 映射。Browser 传给 Host 的 current Session ID 只影响 `current-session` 展示和 fresh scan 投影，不授予 managed 或 external action 权限。
 
+面板默认是“开发端口”而非完整任务管理器视图。Host 用 Session、项目路径、已脱敏命令和 executable 等确定性证据输出独立的开发相关性与工具链展示字段；Browser 依次显示“当前项目”“开发环境”“固定显示”，无开发依据的系统服务和桌面应用进入默认折叠的“其他监听”。搜索覆盖完整 inventory，“全部监听”可恢复系统视图。常见端口号不能单独建立开发相关性，分组和 Logo 也不得改变 Process origin、Lifecycle owner 或 action kind。
+
+工具链 Logo 只在维护阶段从清单中的 HTTPS 官方同域素材更新，经过 MIME、大小和 SVG 活性内容检查后生成进 Browser artifact。面板运行时不得联系工具链官网；未审核或未知工具链使用本地通用占位。用户可把“其他监听”固定到开发端口视图，偏好仅保存在带命名空间和版本的 Browser 本地状态中，稳定键不含 PID 或创建时间。
+
 ## User Stories
 
 1. As a Coding Agent developer, I want to see all current TCP listening ports, so that I can identify development-server conflicts without opening a separate Windows tool.
@@ -142,6 +146,7 @@ The implementation must include:
 - Privacy tests: command/argv redaction and size bounds apply consistently to UI, RPC, logs, and `port_list`; other Session details are coarse in Tool output while UI retains intended visibility.
 - `port_list` tests: current-Session full attribution, other-Session coarse ownership, inferred-owner suppression, secret/path redaction, incomplete-scan reporting, row/output bounds, degraded-mode read-only behavior, and reversible Tool registration without termination capability.
 - Host/UI tests: inventory fields and Session visibility, search/sort, redacted copy, safe project-directory opening, distinct managed/external/read-only/degraded action states, confirmation and action routing, unavailable-action rejection, and post-action fresh-scan release reporting.
+- Development presentation tests: current-project precedence, framework-before-runtime classification, executable-backed infrastructure, port-only rejection, collapsed-other global search, local Logo fallback, versioned pin persistence, no duplicate rows, and classification/action orthogonality.
 - Web package tests: the package declares the required Browser entry and `dsh.client` metadata, the built client artifact is included in the distributable Bundle, missing/unsupported client loading fails without expanding Host process authority, and Bundle disposal removes the Browser contribution.
 - Web slot and panel tests: the global Sidebar entry renders with a bounded listener/conflict count, the overlay panel opens and closes without replacing the host layout, and the panel renders loading, empty, incomplete, observing, degraded, confirmation, failure, and post-action states with accessible names and stable critical-action locators.
 - Host-to-Browser bridge tests: Browser requests expose only the serializable Host RPC surface, command/path redaction is preserved, other-Session privacy remains enforced, stale listener rows are revalidated by Host, and read-only/degraded rows cannot invoke actions.

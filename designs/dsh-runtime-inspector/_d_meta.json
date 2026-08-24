@@ -16,8 +16,22 @@
           }
         }
       ]
+    },
+    "Runtime Inspector · 开发端口": {
+      "versions": [
+        {
+          "path": "development-ports.html",
+          "createdAt": "2026-08-23T15:34:49.818Z",
+          "status": "needs-review",
+          "subtitle": "开发相关监听优先，其他后台监听默认收起",
+          "viewport": {
+            "width": 1280,
+            "height": 720
+          }
+        }
+      ]
     }
   },
   "createdAt": "2026-08-23T07:18:56.012Z",
-  "updatedAt": "2026-08-23T07:31:28.616Z"
+  "updatedAt": "2026-08-23T15:34:49.825Z"
 }

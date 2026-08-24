@@ -310,11 +310,17 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   opacity: 0.48;
 }
 
-.dsh-ri-filter-row {
+.dsh-ri-filter-row,
+.dsh-ri-scope-row {
   display: flex;
   flex: 0 0 auto;
   align-items: center;
   gap: 5px;
+}
+
+.dsh-ri-scope-row {
+  padding-right: 7px;
+  border-right: 1px solid var(--dsh-ri-border-subtle);
 }
 
 .dsh-ri-filter {
@@ -414,7 +420,57 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 }
 
 .dsh-ri-row {
+  position: relative;
   min-width: 0;
+}
+
+.dsh-ri-list-group + .dsh-ri-list-group {
+  margin-top: 8px;
+}
+
+.dsh-ri-list-group-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px 5px;
+  color: var(--dsh-ri-label-secondary);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.dsh-ri-list-group-heading span:last-child {
+  color: var(--dsh-ri-label-caption);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.dsh-ri-other-toggle {
+  display: flex;
+  width: calc(100% - 16px);
+  min-height: 40px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 2px 8px 10px;
+  padding: 8px 10px;
+  border: 1px dashed var(--dsh-ri-border);
+  border-radius: 8px;
+  color: var(--dsh-ri-label-secondary);
+  background: var(--dsh-ri-bg-muted);
+  cursor: pointer;
+  font-size: 11px;
+  text-align: left;
+}
+
+.dsh-ri-other-toggle:hover {
+  border-color: var(--dsh-ri-border-strong);
+  color: var(--dsh-ri-label);
+}
+
+.dsh-ri-search-scope-note {
+  margin: 0 10px 7px;
+  color: var(--dsh-ri-label-tertiary);
+  font-size: 10px;
+  line-height: 1.5;
 }
 
 .dsh-ri-row-button {
@@ -427,7 +483,7 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   background: transparent;
   cursor: pointer;
   text-align: left;
-  transition: border-color 140ms ease, background-color 140ms ease;
+  transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
 }
 
 .dsh-ri-row-button:hover {
@@ -435,8 +491,46 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 }
 
 .dsh-ri-row-button.is-selected {
-  border-color: color-mix(in srgb, var(--dsh-ri-accent) 34%, var(--dsh-ri-border));
-  background: var(--dsh-ri-accent-soft);
+  border-color: transparent;
+  background: color-mix(in srgb, var(--dsh-ri-accent) 5%, var(--dsh-ri-bg-panel));
+  box-shadow: inset 3px 0 0 var(--dsh-ri-accent);
+}
+
+.dsh-ri-row-button.is-selected .dsh-ri-port {
+  color: var(--dsh-ri-accent);
+}
+
+.dsh-ri-row-button.has-pin {
+  padding-right: 40px;
+}
+
+.dsh-ri-pin-button {
+  position: absolute;
+  right: 10px;
+  bottom: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 25px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--dsh-ri-label-tertiary);
+  background: transparent;
+  cursor: pointer;
+}
+
+.dsh-ri-pin-button:hover,
+.dsh-ri-pin-button.is-pinned {
+  border-color: color-mix(in srgb, var(--dsh-ri-accent) 20%, var(--dsh-ri-border));
+  color: var(--dsh-ri-accent);
+  background: color-mix(in srgb, var(--dsh-ri-accent) 6%, var(--dsh-ri-bg));
+}
+
+.dsh-ri-pin-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--dsh-ri-accent) 24%, transparent);
+  outline-offset: 1px;
 }
 
 .dsh-ri-row-button:focus-visible {
@@ -484,13 +578,64 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   text-transform: uppercase;
 }
 
+.dsh-ri-toolchain-line,
+.dsh-ri-detail-identity {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.dsh-ri-toolchain-line {
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.dsh-ri-toolchain-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.dsh-ri-toolchain-name {
+  color: var(--dsh-ri-label);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
 .dsh-ri-executable {
   overflow: hidden;
-  margin-top: 4px;
   color: var(--dsh-ri-label-secondary);
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.dsh-ri-toolchain-logo {
+  display: block;
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+
+.dsh-ri-toolchain-logo.is-compact {
+  width: 24px;
+  height: 24px;
+}
+
+.dsh-ri-toolchain-logo.is-detail {
+  width: 36px;
+  height: 36px;
+}
+
+.dsh-ri-toolchain-logo.is-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--dsh-ri-border);
+  border-radius: 7px;
+  color: var(--dsh-ri-label-tertiary);
+  background: var(--dsh-ri-bg-muted);
+  font-size: 13px;
 }
 
 .dsh-ri-row-meta {
@@ -550,6 +695,21 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 
 .dsh-ri-detail-head {
   align-items: flex-start;
+}
+
+.dsh-ri-detail-identity {
+  gap: 11px;
+}
+
+.dsh-ri-detail-head-copy {
+  min-width: 0;
+}
+
+.dsh-ri-detail-toolchain {
+  margin-bottom: 2px;
+  color: var(--dsh-ri-label-secondary);
+  font-size: 12px;
+  font-weight: 650;
 }
 
 .dsh-ri-detail-port {

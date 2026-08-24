@@ -101,6 +101,161 @@ test('Browser-selected Session controls presentation without changing origin aut
   assert.equal(host.inventory({ currentSessionId: 'session-b' }).listeners[0].action.kind, 'managed-shutdown')
 })
 
+test('Host inventory projects current-project development presentation without changing process authority', () => {
+  const { host } = harness({
+    origins: [origin({
+      id: 1,
+      sessionId: 'session-a',
+      jobId: 'job-a',
+      workdir: 'C:\\projects\\runtime-inspector',
+      command: 'npm exec vite -- --host 127.0.0.1',
+    })],
+  })
+
+  const listener = host.inventory({
+    currentSessionId: 'session-a',
+    currentProject: 'C:\\projects\\runtime-inspector',
+  }).listeners[0]
+
+  assert.deepEqual({
+    group: listener.development.group,
+    reasons: listener.development.reasons,
+    toolchain: listener.development.toolchain,
+  }, {
+    group: 'current-project',
+    reasons: ['current-session', 'current-project'],
+    toolchain: 'vite',
+  })
+  assert.match(listener.development.stableKey, /^project:runtime-inspector-[a-z0-9]+:vite$/)
+  assert.doesNotMatch(listener.development.stableKey, new RegExp(String(listener.pid)))
+  assert.equal(listener.confidence, 'verified')
+  assert.equal(listener.action.kind, 'managed-shutdown')
+  assert.equal(listener.lifecycleOwner.kind, 'job')
+})
+
+test('Host inventory separates known development runtimes from unrelated and port-only listeners', () => {
+  const { host } = harness({
+    origins: [],
+    rows: [
+      row({ pid: 301, port: 4173, originId: undefined, confidence: 'unattributed', executable: 'C:\\Program Files\\nodejs\\node.exe', project: '' }),
+      row({ pid: 302, port: 57621, originId: undefined, confidence: 'unattributed', executable: 'C:\\Users\\dev\\AppData\\Spotify\\Spotify.exe', project: '' }),
+      row({ pid: 303, port: 5432, originId: undefined, confidence: 'unattributed', executable: 'C:\\tools\\listener.exe', project: '' }),
+    ],
+  })
+
+  const byPort = new Map(host.inventory().listeners.map(listener => [listener.port, listener]))
+  assert.deepEqual(byPort.get(4173).development, {
+    group: 'development-environment',
+    reasons: ['runtime'],
+    toolchain: 'nodejs',
+    stableKey: 'application:nodejs',
+  })
+  assert.equal(byPort.get(57621).development.group, 'other')
+  assert.deepEqual(byPort.get(57621).development.reasons, [])
+  assert.equal(byPort.get(5432).development.group, 'other')
+  assert.equal(byPort.get(5432).development.toolchain, undefined)
+})
+
+test('Host inventory identifies backend frameworks before runtimes and explicit data services', () => {
+  const origins = [
+    origin({ id: 11, sessionId: 'session-b', jobId: 'job-django', command: 'python manage.py runserver', workdir: 'C:\\projects\\django-app' }),
+    origin({ id: 12, sessionId: 'session-b', command: 'python -m flask run', workdir: 'C:\\projects\\flask-app' }),
+    origin({ id: 13, sessionId: 'session-b', command: 'uvicorn api:app', workdir: 'C:\\projects\\fastapi-app' }),
+    origin({ id: 14, sessionId: 'session-b', command: 'java -jar spring-boot-app.jar', workdir: 'C:\\projects\\spring-app' }),
+    origin({ id: 15, sessionId: 'session-b', command: 'dotnet web.dll --urls http://localhost', workdir: 'C:\\projects\\dotnet-app' }),
+  ]
+  const rows = [
+    row({ pid: 411, port: 8011, originId: 11, executable: 'C:\\Python312\\python.exe', project: 'C:\\projects\\django-app' }),
+    row({ pid: 412, port: 8012, originId: 12, executable: 'C:\\Python312\\python.exe', project: 'C:\\projects\\flask-app' }),
+    row({ pid: 413, port: 8013, originId: 13, executable: 'C:\\Python312\\python.exe', project: 'C:\\projects\\fastapi-app' }),
+    row({ pid: 414, port: 8014, originId: 14, executable: 'C:\\Java\\bin\\java.exe', project: 'C:\\projects\\spring-app' }),
+    row({ pid: 415, port: 8015, originId: 15, executable: 'C:\\Program Files\\dotnet\\dotnet.exe', project: 'C:\\projects\\dotnet-app' }),
+    row({ pid: 416, port: 5432, confidence: 'unattributed', executable: 'C:\\PostgreSQL\\bin\\postgres.exe', project: '' }),
+    row({ pid: 417, port: 6379, confidence: 'unattributed', executable: 'C:\\Redis\\redis-server.exe', project: '' }),
+    row({ pid: 418, port: 27017, confidence: 'unattributed', executable: 'C:\\MongoDB\\mongod.exe', project: '' }),
+    row({ pid: 419, port: 3306, confidence: 'unattributed', executable: 'C:\\MySQL\\bin\\mysqld.exe', project: '' }),
+    row({ pid: 420, port: 3307, confidence: 'unattributed', executable: 'C:\\tools\\listener.exe', project: '' }),
+  ]
+  const { host } = harness({ origins, rows })
+  const byPort = new Map(host.inventory({ currentSessionId: 'session-a' }).listeners.map(listener => [listener.port, listener]))
+
+  assert.deepEqual([...byPort.entries()].slice(0, 9).map(([port, listener]) => [port, listener.development.toolchain]), [
+    [8011, 'django'],
+    [8012, 'flask'],
+    [8013, 'fastapi'],
+    [8014, 'spring'],
+    [8015, 'dotnet'],
+    [5432, 'postgresql'],
+    [6379, 'redis'],
+    [27017, 'mongodb'],
+    [3306, 'mysql'],
+  ])
+  for (const port of [8011, 8012, 8013, 8014, 8015, 5432, 6379, 27017, 3306]) {
+    assert.equal(byPort.get(port).development.group, 'development-environment')
+  }
+  assert.equal(byPort.get(3307).development.group, 'other')
+  assert.equal(byPort.get(3307).development.toolchain, undefined)
+  assert.equal(byPort.get(8011).action.kind, 'managed-shutdown')
+})
+
+test('Host inventory uses broad runtime fallbacks only from executable evidence', () => {
+  const executables = [
+    ['C:\\Python312\\python.exe', 'python'],
+    ['C:\\Java\\bin\\java.exe', 'java'],
+    ['C:\\Program Files\\dotnet\\dotnet.exe', 'dotnet'],
+    ['C:\\Go\\bin\\go.exe', 'go'],
+    ['C:\\Rust\\bin\\cargo.exe', 'rust'],
+    ['C:\\PHP\\php-cgi.exe', 'php'],
+    ['C:\\Ruby\\bin\\ruby.exe', 'ruby'],
+    ['C:\\Bun\\bun.exe', 'bun'],
+    ['C:\\Deno\\deno.exe', 'deno'],
+    ['C:\\MariaDB\\bin\\mariadbd.exe', 'mariadb'],
+  ]
+  const { host } = harness({
+    origins: [],
+    rows: executables.map(([executable], index) => row({
+      pid: 500 + index,
+      port: 9000 + index,
+      confidence: 'unattributed',
+      executable,
+      project: '',
+    })),
+  })
+
+  assert.deepEqual(host.inventory().listeners.map(listener => listener.development.toolchain), executables.map(([, id]) => id))
+  assert.ok(host.inventory().listeners.every(listener => listener.development.group === 'development-environment'))
+  assert.ok(host.inventory().listeners.slice(0, 9).every(listener => listener.development.reasons.includes('runtime')))
+})
+
+test('Host inventory identifies explicit container, mobile and local AI evidence without port guessing', () => {
+  const origins = [
+    origin({ id: 21, sessionId: 'session-b', command: 'npx react-native start', workdir: 'C:\\projects\\mobile' }),
+    origin({ id: 22, sessionId: 'session-b', command: 'firebase emulators:start', workdir: 'C:\\projects\\firebase' }),
+  ]
+  const { host } = harness({
+    origins,
+    rows: [
+      row({ pid: 521, port: 8081, originId: 21, executable: 'C:\\nodejs\\node.exe', project: 'C:\\projects\\mobile' }),
+      row({ pid: 522, port: 4400, originId: 22, executable: 'C:\\nodejs\\node.exe', project: 'C:\\projects\\firebase' }),
+      row({ pid: 523, port: 5037, confidence: 'unattributed', executable: 'C:\\Android\\platform-tools\\adb.exe', project: '' }),
+      row({ pid: 524, port: 11434, confidence: 'unattributed', executable: 'C:\\Ollama\\ollama.exe', project: '' }),
+      row({ pid: 525, port: 5501, confidence: 'unattributed', executable: 'C:\\Docker\\docker-proxy.exe', project: '' }),
+      row({ pid: 526, port: 5502, confidence: 'unattributed', executable: 'C:\\Windows\\System32\\wslhost.exe', project: '' }),
+      row({ pid: 527, port: 8081, confidence: 'unattributed', executable: 'C:\\tools\\proxy.exe', project: '' }),
+    ],
+  })
+  const byPortAndPid = new Map(host.inventory().listeners.map(listener => [`${listener.port}:${listener.pid}`, listener]))
+
+  assert.equal(byPortAndPid.get('8081:521').development.toolchain, 'metro')
+  assert.equal(byPortAndPid.get('4400:522').development.toolchain, 'firebase')
+  assert.equal(byPortAndPid.get('5037:523').development.toolchain, 'adb')
+  assert.equal(byPortAndPid.get('11434:524').development.toolchain, 'ollama')
+  assert.equal(byPortAndPid.get('5501:525').development.toolchain, 'docker')
+  assert.equal(byPortAndPid.get('5502:526').development.toolchain, 'wsl')
+  assert.equal(byPortAndPid.get('8081:527').development.group, 'other')
+  assert.equal(byPortAndPid.get('8081:527').development.toolchain, undefined)
+})
+
 test('copy returns bounded redacted details and open-directory uses only the selected project', async () => {
   const { host, calls } = harness({ origins: [origin({ id: 1, workdir: 'C:\\projects\\TOKEN=secret' })] })
   const listener = host.inventory().listeners[0]

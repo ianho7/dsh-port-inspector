@@ -68,6 +68,15 @@ export function IconFolder(props: IconProps = {}): React.ReactNode {
   )
 }
 
+export function IconPin(props: IconProps = {}): React.ReactNode {
+  return icon(props,
+    React.createElement('path', { d: 'm9 4 6 6' }),
+    React.createElement('path', { d: 'm7 10 7 7' }),
+    React.createElement('path', { d: 'm14 3 7 7-3 1-4 4-1 3-7-7 3-1 4-4 1-3Z' }),
+    React.createElement('path', { d: 'm9.5 14.5-6 6' }),
+  )
+}
+
 export function IconStop(props: IconProps = {}): React.ReactNode {
   return icon(props, React.createElement('rect', { x: 6, y: 6, width: 12, height: 12, rx: 2 }))
 }

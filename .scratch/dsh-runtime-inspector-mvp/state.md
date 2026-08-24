@@ -173,6 +173,25 @@ attempts:
     raw_evidence: "The focused regression changed from 3 pass/1 fail with actual 4173 request leakage to 4/4 pass. TypeScript emit/no-emit and Browser build pass. The full deterministic suite reports 97 tests: 94 passed, 3 opt-in native/Web gates skipped, 0 failed."
     conclusion: External listener Session, Call ID, and user-request presentation now agree: 未关联 DSH 会话, 未提供, 未提供.
     next_action_rule: Repack and restart the target DSH Profile before manual retest because Browser artifacts are loaded at Profile startup.
-evidence_gaps: []
-blocked_reason: none
-next_action: Maintain the deterministic, native Windows, and real Web regression gates for future DSH versions; no MVP acceptance gap remains.
+  - id: development-ports-implementation
+    action: Implement the approved development-port presentation, local toolchain Logo pipeline, broad evidence-based toolchain classification, and Browser pin preferences.
+    failure_class: none
+    raw_evidence: "Added Host development presentation fields and deterministic classification for current-project, runtimes, frameworks, data services, containers, mobile tools and local AI; added default collapsed other listeners, global search, all-listeners scope, local official Logo data, bounded Logo updater, list/detail Logo rendering, calm selection, and versioned Browser-only pinning. Ticket 01-06 resolved with focused tests and documentation."
+    conclusion: Development relevance remains orthogonal to Process origin, Lifecycle owner and action kind. Browser receives only serializable presentation data and never gains process inspection or termination authority.
+    next_action_rule: Complete real Web acceptance and record any independent native lifecycle environment gap without changing safety policy.
+  - id: development-ports-verification
+    action: Run the final build, typecheck, deterministic suite, Bundle smoke, and real Browser-to-Host Web smoke.
+    failure_class: none
+    raw_evidence: "TypeScript emit/no-emit and Client build pass. The final deterministic Node suite reports 112 tests: 109 passed, 3 opt-in native/Web gates skipped, 0 failed. Bundle lifecycle smoke passes. Real Stock DSH Web smoke passes at 1280x720 and verifies collapsed-other search, pin persistence across reload, unpin, local list/detail Logo equality, selected styling, external fresh scan and unaffected Web health."
+    conclusion: The development-port feature is shipped in the same dual-face Bundle and the real Browser path works on the available Stock DSH checkout.
+    next_action_rule: Preserve the standalone G1-G6 lifecycle gate as a release requirement for future runtime/lifecycle changes.
+  - id: development-ports-native-gate
+    action: Run the independent Stock DSH G1-G6 release gate after the development-port changes.
+    failure_class: environment
+    raw_evidence: "Bundle smoke passes. The G1-G6 release gate was attempted twice; each run observed valid foreground/background origins and a positive Terminal PID, but timed out waiting for fixture port 39104 to appear as listening. No lifecycle/action source changed in this feature."
+    conclusion: The feature's Web and deterministic acceptance is complete; the native fixture readiness gap remains open and must not be solved by weakening Terminal attribution or action safety.
+    next_action_rule: Re-run the unchanged G1-G6 fixture when the Stock DSH Terminal listener readiness environment is healthy.
+evidence_gaps:
+  - "G1-G6 release fixture: Terminal origin is observed with a valid PID, but port 39104 never reaches LISTENING in two consecutive runs."
+blocked_reason: "Independent Stock DSH Terminal fixture readiness; no safe product change can infer a listener that the OS did not expose."
+next_action: "Keep the feature commit scoped and rerun the unchanged native G1-G6 gate when the fixture can publish port 39104; retain deterministic and Web smoke gates as mandatory."
