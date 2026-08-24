@@ -68,6 +68,15 @@ export function IconFolder(props: IconProps = {}): React.ReactNode {
   )
 }
 
+export function IconPin(props: IconProps = {}): React.ReactNode {
+  return icon(props,
+    React.createElement('path', { d: 'm9 4 6 6' }),
+    React.createElement('path', { d: 'm7 10 7 7' }),
+    React.createElement('path', { d: 'm14 3 7 7-3 1-4 4-1 3-7-7 3-1 4-4 1-3Z' }),
+    React.createElement('path', { d: 'm9.5 14.5-6 6' }),
+  )
+}
+
 export function IconStop(props: IconProps = {}): React.ReactNode {
   return icon(props, React.createElement('rect', { x: 6, y: 6, width: 12, height: 12, rx: 2 }))
 }
@@ -81,6 +90,14 @@ export function IconInfo(props: IconProps = {}): React.ReactNode {
     React.createElement('circle', { cx: 12, cy: 12, r: 8.5 }),
     React.createElement('path', { d: 'M12 10.5v5' }),
     React.createElement('path', { d: 'M12 7.5h.01' }),
+  )
+}
+
+export function IconQuestion(props: IconProps = {}): React.ReactNode {
+  return icon(props,
+    React.createElement('circle', { cx: 12, cy: 12, r: 8.5 }),
+    React.createElement('path', { d: 'M9.8 9a2.4 2.4 0 0 1 4.6 1c0 1.8-2.4 2-2.4 3.6' }),
+    React.createElement('path', { d: 'M12 17.2h.01' }),
   )
 }
 

@@ -1,0 +1,23 @@
+{
+  "vite": {
+    "name": "Vite",
+    "homepage": "https://vite.dev/",
+    "assetUrl": "https://vite.dev/logo.svg",
+    "sourceType": "official-site-logo",
+    "notes": "Official Vite logo used by the project website."
+  },
+  "nextjs": {
+    "name": "Next.js",
+    "homepage": "https://nextjs.org/",
+    "assetUrl": "https://nextjs.org/favicon.ico",
+    "sourceType": "official-site-favicon",
+    "notes": "Official favicon served by the Next.js website."
+  },
+  "nodejs": {
+    "name": "Node.js",
+    "homepage": "https://nodejs.org/",
+    "assetUrl": "https://nodejs.org/static/logos/nodejsHex.svg",
+    "sourceType": "official-brand-asset",
+    "notes": "Official Node.js hex logo from the Node.js branding page."
+  }
+}

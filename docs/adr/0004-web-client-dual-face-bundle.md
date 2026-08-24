@@ -23,7 +23,7 @@ Runtime Inspector 采用单仓库、单 Bundle、双半结构：
 5. Browser 与 Host 之间只有一个稳定的业务边界：可序列化的 Runtime Inspector Host RPC。Browser 不获得 scanner、origin registry、Job/Terminal API、process handle 或 Windows process primitive。
 6. Host-to-Client transport 使用认证 DSH 版本提供的现有桥接能力；若目标版本没有 typed Remote seam，可以使用受同源保护的 WebServer API route 作为适配器，但不得启动第二个 Web 服务或第二个进程。
 7. Browser UI 在 `sidebar.footer.action` 注册全局入口，在 `shell.overlay` 打开面板。入口显示有界的 listener/conflict 状态，面板负责 inventory、搜索排序、详情、确认和结果展示。不得替换 Sidebar、Conversation、composer 或应用 root。
-8. Web UI 将来源状态与处理方式作为两个正交维度。来源层内部保留 verified/inferred/unattributed，用户主标签收敛为“DSH 来源已确认 / 来源未确认”；操作层独立呈现 managed/external/read-only。Host 侧继续负责 fresh scan、身份复核、权限判断和 `portReleased` 结论。
+8. Web UI 将启动方状态与处理方式作为两个正交维度。启动方层内部保留 verified/inferred/unattributed，用户主标签收敛为“由 DSH 启动 / 启动方未确认”；操作层独立呈现 managed/external/read-only。Host 侧继续负责 fresh scan、身份复核、权限判断和 `portReleased` 结论。
 9. 未知 DSH 版本不产生用户提示，也不触发降级；Browser 只在某项运行时能力实际失败时呈现与该能力相关的状态。Client artifact、Slot 或 Host bridge 不可用时不得扩大进程操作权限。
 10. Browser 从 DSH `sessions.list` 读取当前 Session ID、标题和 cwd，并从当前 Session conversation 映射发起 Tool Call 的用户请求。当前 Session ID 只用于展示和隐私投影，不参与 Host action authority；原始进程身份仍由 Host 掌握和复核。
 

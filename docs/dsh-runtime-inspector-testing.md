@@ -36,29 +36,44 @@ npm test
 - 确定性测试无失败。
 - 未设置真实环境变量时，Stock DSH native/Web gates 显示 skip 属于预期行为。
 
+### 原生 Web UI 弹窗视觉验收
+
+Runtime Inspector 应使用与 DSH `ui-settings-general` 一致的 Modal Chrome：
+
+- 弹窗在视口中水平、垂直居中，不固定在右上角。
+- 背景存在全屏半透明遮罩和背景模糊；点击遮罩可以关闭弹窗。
+- 桌面尺寸下，面板约为 `1040px` 宽、最高 `800px`，圆角为 `24px`，使用 DSH `lv3` 阴影，以容纳完整工具栏和双栏详情。
+- 面板不使用只有一个菜单项的左侧导航栏；54px Header 直接显示 `Runtime Inspector`，下方为可滚动内容区。
+- 正常状态不显示“观察模式”；仅在来源追踪降级或扫描未完成时显示对应的状态提示。
+- 端口列表列保持在面板可视高度内，由列表列自身垂直滚动；详情列保持可见并独立滚动，不随整个 Options 区域滚走。
+- 关闭按钮为 28×28px 圆形按钮；按 `Escape` 关闭弹窗，确认弹窗打开时先取消确认层。
+- 打开弹窗后焦点进入关闭按钮，关闭后焦点回到触发 Runtime Inspector 的侧边栏入口。
+- 宽度低于 `960px` 的窗口仍保持居中，搜索框会独占工具栏一行；窄窗口中列表和详情可以纵向排列，不出现横向溢出。
+
 ## 2. 打包并安装到 Web Profile
 
-使用 `.tmp/` 下的新目录，避免与同版本的旧 tarball 混淆：
+推荐使用仓库内脚本一次完成构建、打包、卸载旧插件和安装新插件：
 
 ```powershell
 cd D:\project\dsh-runtime-inspector
-
-New-Item -ItemType Directory -Force .tmp\manual-test
-npm pack --pack-destination .tmp\manual-test
-
-cd D:\project\deepseek-harness
-
-pnpm dsh plugin --profile web remove dsh-runtime-inspector
-pnpm dsh plugin --profile web add "D:\project\dsh-runtime-inspector\.tmp\manual-test\dsh-runtime-inspector-0.1.0.tgz"
-pnpm dsh plugin --profile web list
+.\scripts\reinstall-dsh-plugin.ps1
 ```
 
-如果插件尚未安装，可以忽略 `remove` 的错误。列表应包含：
+如需指定其他 DSH checkout 或 Profile：
+
+```powershell
+.\scripts\reinstall-dsh-plugin.ps1 `
+  -DshRepo 'D:\project\deepseek-harness' `
+  -Profile web
+```
+
+脚本最后的列表应包含：
 
 ```text
 dsh-runtime-inspector@0.1.0
 ```
 
+如果插件尚未安装，脚本会提示 `remove` 的非零退出码，但仍会继续安装新包。
 完全退出旧 DSH Web 进程，然后按该 DSH checkout 的正常方式重新启动 `web` Profile。不要复用插件更新前创建的后台任务：Process origin 是当前运行周期内存数据，旧进程不会被追溯归因。
 
 ## 3. 验证 DSH 会话监听
@@ -73,9 +88,10 @@ dsh-runtime-inspector@0.1.0
 
 端口 `4173` 应满足：
 
-- 顶部状态为“观察模式”。
-- 来源为“DSH 来源已确认”。
-- “本会话已确认”至少为 `1`。
+- Header 显示 `Runtime Inspector`，正常状态不额外显示“观察模式”。
+- 启动方为“由 DSH 启动”。
+- 列表标题显示当前实际可见的监听项数量，不再显示四格统计摘要。
+- 工具栏提供“查看：开发相关 / 全部监听”“启动方：全部 / 由 DSH 启动 / 启动方未确认”和“仅显示可处理”。
 - 项目目录不是“未提供”或“未关联项目”。
 - Session 显示当前会话标题。
 - Call ID不是“未提供”。
@@ -116,12 +132,22 @@ node -e "require('http').createServer((req,res)=>res.end('ok')).listen(4174,'127
 
 端口 `4174` 应满足：
 
-- 来源为“来源未确认”。
-- 处理方式在身份完整且安全检查可用时为“结束该进程”，不能仅因来源未确认而强制变成“仅可查看”。
+- 启动方为“启动方未确认”。
+- 处理方式在身份完整且安全检查可用时为“结束该进程”，不能仅因启动方未确认而强制变成“仅可查看”。
 - Session 为“未关联 DSH 会话”。
 - Call ID为“未提供”。
 - 用户请求为“未提供”，不得显示之前 4173 的会话请求。
 - 创建时间是本地日期时间。
+
+首次打开面板时，默认是“查看：开发相关”：当前项目和已识别的开发环境优先显示，System、`svchost.exe`、Spotify、微信和代理进程等没有开发依据的监听进入折叠的“其他监听”。这不是删除或忽略它们：
+
+- 点击“全部监听”可展开完整 inventory。
+- 直接搜索端口、PID 或应用名会搜索全部监听，并显示“搜索已覆盖全部监听”的提示。
+- 在搜索结果的其他监听行点击图钉，可将其放入“固定显示”；刷新浏览器后仍应保留，取消固定后返回“其他监听”，不产生重复行。
+- 已识别的 Vite、Node.js、PostgreSQL 等工具链在列表和详情中使用同一份随包内置的 Logo；离线打开面板也应正常显示。
+- 列表标题的数量只计算当前实际显示的行；折叠的“其他监听”数量单独显示在展开按钮中。
+
+维护者更新官方 Logo 素材时运行 `npm run update:toolchain-logos`，然后重新执行 `npm run build`；普通用户打开面板时不会访问工具链官网。
 
 ## 6. 验证 external single-PID termination
 

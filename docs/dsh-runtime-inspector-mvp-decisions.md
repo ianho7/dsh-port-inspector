@@ -1,7 +1,7 @@
 # DSH Runtime Inspector Windows MVP：决策记录
 
 > 状态：已收敛，可进入 `/to-spec`
-> 更新日期：2026-08-22
+> 更新日期：2026-08-24
 > 依据：`dsh-runtime-inspector-mvp.md`、`dsh-runtime-inspector-root-pid-research.md`
 
 本文只记录会改变 MVP 实现、兼容性、安全边界或验收标准的决定。尚未完成的决定明确标为“开放”，不作为实现依据。
@@ -102,6 +102,20 @@ Browser 源码使用 TypeScript 和 DSH-compatible client bundler 构建；`wind
 ### D20：版本是开发诊断信息，功能由运行时能力决定
 
 DSH 版本号不再作为安装或运行时总开关，也不向用户展示“未纳入回归测试”等提示。Windows local provider、`spawn`/`spawnTerminal`、observer、scanner 和 action safety 分别探测、分别启用；某项失败只关闭依赖它的路径。外部单 PID 处理与来源追踪正交，始终在执行前重新校验 PID、创建时间、executable、用户和保护级别。依赖私有 `LocalTerminalHandle` shape 的 delayed PID repair 仍只对精确认证版本开放；未知版本遇到 PID `0` 时仅放弃该 Terminal 的 verified attribution。完整决定见 [ADR-0005](./adr/0005-capability-based-dsh-compatibility.md)。
+
+### D21：开发相关性和工具链视觉是独立展示维度
+
+Runtime Inspector Web 默认优先展示当前项目和明确识别的开发环境监听器，其他系统服务与桌面应用保持可搜索、可展开。Host 输出有界的开发分组、识别依据和工具链标识；常见端口号不能独立建立分类，证据不足时归入其他监听。
+
+工具链 Logo 帮助用户扫读，但不代表 Process origin、Verified attribution、Lifecycle owner 或处理方式，也不能改变 action kind。素材经维护者审核后随 Browser Client artifact 本地发布，面板运行时不得向工具链官网发送请求。
+
+### D22：Runtime Inspector 使用 DSH 原生 Modal Chrome
+
+Runtime Inspector 的业务内容保持端口列表、详情和安全操作模型，但弹窗外壳完全采用 DSH 原生 Web UI 的 Modal 语言：全屏遮罩与模糊、居中面板、原生尺寸与圆角、`lv3` 阴影、54px Header、Options 滚动区以及原生关闭和焦点行为。面板不保留只有一个菜单项的左侧导航栏，Header 直接显示 `Runtime Inspector`；只有来源追踪降级或扫描未完成时才显示对应状态提示。这样可以让用户把 Runtime Inspector 识别为 DSH Web 的一部分，而不是外部工具窗口。
+
+该决定不引入 DSH UI 包的运行时远程依赖，也不改变 Host/Browser 边界；当 Browser Bundle 无法直接复用原生 CSS Module 或 primitive 时，Runtime Inspector 在命名空间内复刻相同 Token 和几何约束。由于端口工具栏和双栏详情的信息密度高，Runtime Inspector 的桌面 Modal 宽度采用 `1040px`；视口低于 `960px` 时工具栏转为可控换行，避免牺牲控件完整性。
+
+工具栏不再显示与范围、筛选重复的四格摘要；改为用“查看范围”“启动方”和“仅显示可处理”三个控件表达不同的下一步动作，列表标题只显示当前筛选结果数量。
 
 ## 开放决定
 

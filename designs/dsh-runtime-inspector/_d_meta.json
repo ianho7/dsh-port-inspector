@@ -16,8 +16,36 @@
           }
         }
       ]
+    },
+    "Runtime Inspector · 开发端口": {
+      "versions": [
+        {
+          "path": "development-ports.html",
+          "createdAt": "2026-08-23T15:34:49.818Z",
+          "status": "needs-review",
+          "subtitle": "开发相关监听优先，其他后台监听默认收起",
+          "viewport": {
+            "width": 1280,
+            "height": 720
+          }
+        }
+      ]
+    },
+    "Runtime Inspector · 语义细节优化": {
+      "versions": [
+        {
+          "path": "runtime-inspector-semantic-refinement.html",
+          "createdAt": "2026-08-24T09:13:32.692Z",
+          "status": "needs-review",
+          "subtitle": "保留 DSH 原生 Modal，补充四种简约选中态并复用原有工具链 Logo 逻辑",
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          }
+        }
+      ]
     }
   },
   "createdAt": "2026-08-23T07:18:56.012Z",
-  "updatedAt": "2026-08-23T07:31:28.616Z"
+  "updatedAt": "2026-08-24T09:28:48.156Z"
 }
