@@ -868,6 +868,19 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   overflow-wrap: anywhere;
 }
 
+.dsh-ri-source-facts {
+  gap: 9px 14px;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.dsh-ri-source-facts .dsh-ri-fact {
+  padding: 0;
+  background: transparent;
+}
+
 .dsh-ri-source-card,
 .dsh-ri-handling-card {
   padding: 10px 11px;

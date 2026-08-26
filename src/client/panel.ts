@@ -216,6 +216,28 @@ function callId(row: HostListenerRow): string {
   return row.session?.callId ?? '—'
 }
 
+type AttributionField =
+  | 'sessionId'
+  | 'agentId'
+  | 'turn'
+  | 'step'
+  | 'callId'
+  | 'rootCallId'
+  | 'tool'
+  | 'command'
+  | 'workdir'
+  | 'kind'
+
+function attributionValue(row: HostListenerRow, field: AttributionField): string {
+  const value = row.session?.[field]
+  return value === undefined || value === '' ? '—' : String(value)
+}
+
+function turnAndStep(row: HostListenerRow): string {
+  if (row.session === undefined) return '—'
+  return `${String(row.session.turn)} / ${String(row.session.step)}`
+}
+
 function isActionable(row: HostListenerRow): boolean {
   return row.action.available
     && (row.action.kind === 'managed-shutdown' || row.action.kind === 'external-single-pid')
@@ -337,6 +359,11 @@ function rowSearchText(row: HostListenerRow): string {
     row.session?.tool,
     row.session?.command,
     row.session?.callId,
+    row.session?.rootCallId,
+    row.session?.workdir,
+    row.session?.kind,
+    row.session?.turn,
+    row.session?.step,
   ].filter(value => value !== undefined).join(' ').toLowerCase()
 }
 
@@ -560,14 +587,25 @@ function DetailPanel({
         occurrenceCount > 1 ? React.createElement(Fact, { label: '相同监听', value: `${String(occurrenceCount)} 条记录` }) : null,
         React.createElement(Fact, { label: '创建时间', value: formatProcessCreatedAt(row.processCreatedAt), wide: occurrenceCount <= 1, multiline: true }),
         React.createElement(Fact, { label: '项目目录', value: projectSummary(row, sessionContext), wide: true, multiline: true }),
+        React.createElement(Fact, { label: '启动命令', value: attributionValue(row, 'command'), wide: true, multiline: true }),
       ),
     ),
     React.createElement('section', { className: 'dsh-ri-detail-section' },
       React.createElement('h3', { className: 'dsh-ri-section-title' }, '会话上下文'),
       React.createElement('dl', { className: 'dsh-ri-fact-grid' },
         React.createElement(Fact, { label: 'Session', value: sessionTitle(row, sessionContext) }),
+        React.createElement(Fact, { label: 'Session ID', value: attributionValue(row, 'sessionId'), multiline: true }),
         React.createElement(Fact, { label: 'Call ID', value: callId(row), multiline: true }),
         React.createElement(Fact, { label: '用户请求', value: requestSummary(row, sessionContext), wide: true, multiline: true }),
+      ),
+    ),
+    React.createElement('section', { className: 'dsh-ri-detail-section' },
+      React.createElement('h3', { className: 'dsh-ri-section-title' }, '工具调用'),
+      React.createElement('dl', { className: 'dsh-ri-fact-grid' },
+        React.createElement(Fact, { label: 'Agent ID', value: attributionValue(row, 'agentId'), multiline: true }),
+        React.createElement(Fact, { label: 'Turn / Step', value: turnAndStep(row), multiline: true }),
+        React.createElement(Fact, { label: 'Tool', value: attributionValue(row, 'tool'), multiline: true }),
+        React.createElement(Fact, { label: 'Root Call ID', value: attributionValue(row, 'rootCallId'), multiline: true }),
       ),
     ),
     React.createElement('section', { className: 'dsh-ri-detail-section' },
@@ -575,6 +613,10 @@ function DetailPanel({
       React.createElement('div', { className: `dsh-ri-source-card${source === 'degraded' ? ' is-degraded' : ''}` },
         React.createElement(SourcePill, { row, snapshot }),
         React.createElement('p', { className: 'dsh-ri-source-copy' }, sourceDescription(row, snapshot)),
+        React.createElement('dl', { className: 'dsh-ri-fact-grid dsh-ri-source-facts' },
+          React.createElement(Fact, { label: 'Workdir', value: attributionValue(row, 'workdir'), wide: true, multiline: true }),
+          React.createElement(Fact, { label: 'Spawn 类型', value: attributionValue(row, 'kind'), multiline: true }),
+        ),
         row.lifecycleOwner === undefined ? null : React.createElement('div', { className: 'dsh-ri-owner-line' },
           React.createElement('span', { className: 'dsh-ri-owner-label' }, 'DSH 生命周期'),
           React.createElement('span', { className: 'dsh-ri-owner-pill' }, `${row.lifecycleOwner.kind} · ${row.lifecycleOwner.id}`),
