@@ -1,4 +1,7 @@
+import { resolve } from 'node:path'
 import { defineConfig } from 'tsdown'
+
+const toolchainAssetDirectory = resolve('assets/toolchains')
 
 /** DSH lazy-CJS Browser artifact: the shell supplies React through its module table. */
 export default defineConfig({
@@ -10,6 +13,14 @@ export default defineConfig({
   dts: false,
   sourcemap: true,
   clean: false,
+  alias: {
+    'toolchain-assets': toolchainAssetDirectory,
+  },
+  loader: {
+    '.svg': 'dataurl',
+    '.png': 'dataurl',
+    '.ico': 'dataurl',
+  },
   deps: {
     neverBundle: ['react', 'react/jsx-runtime'],
   },

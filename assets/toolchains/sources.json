@@ -1,23 +1,34 @@
 {
-  "vite": {
-    "name": "Vite",
-    "homepage": "https://vite.dev/",
-    "assetUrl": "https://vite.dev/logo.svg",
-    "sourceType": "official-site-logo",
-    "notes": "Official Vite logo used by the project website."
-  },
-  "nextjs": {
-    "name": "Next.js",
-    "homepage": "https://nextjs.org/",
-    "assetUrl": "https://nextjs.org/favicon.ico",
-    "sourceType": "official-site-favicon",
-    "notes": "Official favicon served by the Next.js website."
-  },
-  "nodejs": {
-    "name": "Node.js",
-    "homepage": "https://nodejs.org/",
-    "assetUrl": "https://nodejs.org/static/logos/nodejsHex.svg",
-    "sourceType": "official-brand-asset",
-    "notes": "Official Node.js hex logo from the Node.js branding page."
-  }
+  "vite": "https://vite.dev/logo.svg",
+  "nextjs": "https://nextjs.org/favicon.ico",
+  "nodejs": "https://nodejs.org/static/logos/nodejsHex.svg",
+  "bun": "https://bun.sh/logo.svg",
+  "deno": "https://deno.com/logo.svg",
+  "python": "https://www.python.org/static/favicon.ico",
+  "django": "https://www.djangoproject.com/favicon.ico",
+  "flask": "https://flask.palletsprojects.com/favicon.ico",
+  "fastapi": "https://fastapi.tiangolo.com/img/logo-margin/logo-teal.png",
+  "spring": "https://spring.io/img/spring.svg",
+  "go": "https://go.dev/images/go-logo-blue.svg",
+  "php": "https://www.php.net/favicon.ico",
+  "ruby": "https://www.ruby-lang.org/images/header-ruby-logo.png",
+  "postgresql": "https://www.postgresql.org/favicon.ico",
+  "mysql": "https://www.mysql.com/favicon.ico",
+  "mariadb": "https://mariadb.org/favicon.ico",
+  "mongodb": "https://www.mongodb.com/favicon.ico",
+  "docker": "https://www.docker.com/app/uploads/2022/03/vertical-logo-monochromatic.png",
+  "firebase": "https://firebase.google.com/static/images/brand-guidelines/logo-vertical.png",
+  "ollama": "https://ollama.com/public/ollama.png",
+  "redis": "https://redis.io/favicon.ico",
+  "metro": "https://reactnative.dev/img/header_logo.svg",
+  "adb": "https://developer.android.com/favicon.ico",
+  "openai": "https://images.ctfassets.net/kftzwdyauwt9/3hUGLn3ypllZ0oa01qOYVq/28e8188e6f11b84c3e876569d492734f/Blossom_Light.svg?q=90&w=3840",
+  "anthropic": "https://www.anthropic.com/images/icons/favicon-32x32.png",
+  "gemini": "https://www.gstatic.com/marketing-cms/assets/images/a4/97/92c1ec494d129f3fb8d7caa91584/gemini-update.png=s48",
+  "github-copilot": "https://brand.github.com/_next/static/media/copilot-01.0e1505e6.png",
+  "cursor": "https://ptht05hbb1ssoooe.public.blob.vercel-storage.com/assets/brand/brand-logo-13.svg",
+  "claude-code": "https://www.anthropic.com/images/icons/favicon-32x32.png",
+  "codex": "https://images.ctfassets.net/kftzwdyauwt9/3hUGLn3ypllZ0oa01qOYVq/28e8188e6f11b84c3e876569d492734f/Blossom_Light.svg?q=90&w=3840",
+  "vscode": "https://raw.githubusercontent.com/microsoft/vscode/main/resources/server/code-192.png",
+  "jetbrains": "https://www.jetbrains.com/favicon.ico"
 }

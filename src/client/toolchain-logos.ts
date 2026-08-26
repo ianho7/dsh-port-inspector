@@ -35,7 +35,7 @@ const labels: Readonly<Record<ToolchainId, string>> = Object.freeze({
   ollama: 'Ollama',
 })
 
-const localLogos: Partial<Record<ToolchainId, { readonly name: string; readonly dataUri: string }>> = TOOLCHAIN_LOGO_DATA
+const localLogos: Partial<Record<ToolchainId, string>> = TOOLCHAIN_LOGO_DATA
 
 export function toolchainName(toolchain: ToolchainId | undefined): string | undefined {
   return toolchain === undefined ? undefined : labels[toolchain]
@@ -57,7 +57,7 @@ export function ToolchainLogo({
   }
   return React.createElement('img', {
     className: `dsh-ri-toolchain-logo is-${size}`,
-    src: logo.dataUri,
+    src: logo,
     alt: '',
     'aria-hidden': true,
     draggable: false,

@@ -45,8 +45,8 @@ Logo 素材来自经过维护者审核的官方品牌素材或官网 favicon。�
 19. As a user, I want a generic local fallback when a Logo is missing or invalid, so that the UI never shows a broken image.
 20. As a privacy-conscious user, I want Runtime Inspector to avoid contacting toolchain websites while I use the panel, so that my installed tools are not disclosed to third parties.
 21. As an offline user, I want all shipped Logos to continue working, so that the panel remains complete without internet access.
-22. As a maintainer, I want every Logo to have an official source URL and recorded update information, so that provenance can be reviewed.
-23. As a maintainer, I want the asset updater to access only curated official domains, so that a process name can never become an arbitrary network request.
+22. As a maintainer, I want every Logo to come from an approved local asset or minimal source URL, so the Browser Bundle can remain offline.
+23. As a maintainer, I want the asset updater to access only curated HTTPS URLs, so that a process name can never become an arbitrary network request.
 24. As a maintainer, I want downloaded assets to have bounded MIME types and sizes, so that malformed or unexpectedly large files do not enter the Browser Bundle.
 25. As a developer, I want current-project classification to use explicit project or current-Session evidence, so that unrelated applications are not promoted merely because they opened a common port.
 26. As a developer, I want a known development executable or toolchain command to qualify for “开发环境”, so that shared infrastructure remains discoverable even when no single project owns it.
@@ -85,9 +85,9 @@ Logo 素材来自经过维护者审核的官方品牌素材或官网 favicon。�
 - Selected rows use a neutral gray-blue fill, no complete accent border, a three-pixel left accent inset, an accent-colored port value and an eight-pixel radius. Focus-visible retains a separate accessible outline.
 - Toolchain Logo size is approximately 22–24 px in compact list rows and 30–32 px in the detail heading. The Logo is decorative when the visible service/toolchain name conveys the same information.
 - Official brand assets are preferred over favicon assets. Official SVG or PNG favicon is the next choice; ICO is accepted only when no suitable official SVG/PNG exists and is normalized before generation. A local monogram or generic process mark is the final fallback.
-- The repository contains a curated icon-source manifest with toolchain ID, official homepage, exact asset URL, source type and provenance notes. The update script never discovers a domain from a scanned process.
-- The asset update script enforces HTTPS, an official-domain allowlist, response-size limits, accepted MIME types and deterministic output. SVG inputs reject scripts, `foreignObject`, external references and other active content.
-- Runtime Inspector never hotlinks official websites. Approved assets are converted into a generated Browser-safe module, preferably compact data URIs, so the existing Client Bundle remains self-contained and the package does not require a new static asset server.
+- The repository contains local Logo files under `assets/toolchains/` and a minimal toolchain-ID-to-URL map used only to fetch missing files. The update script never discovers a domain from a scanned process or stores additional provenance metadata.
+- The asset update script enforces HTTPS, response-size limits, accepted MIME types and deterministic output. SVG inputs reject scripts, `foreignObject`, external references and other active content.
+- Runtime Inspector never hotlinks official websites. Approved assets remain in `assets/toolchains/`; the generated Browser-safe module only imports those local files, so the existing Client Bundle remains self-contained and the source tree does not carry Base64 logo data.
 - Generated assets and their source manifest are reviewable repository content. Updating them is a maintainer action, not part of `npm install`, Bundle startup or panel opening.
 - Pin preferences are Browser-only presentation state stored under a namespaced, versioned key. Host does not persist user preferences and pinning does not affect `port_list`.
 - Host provides or enables construction of a bounded stable presentation key. PID and creation time are excluded. Project-aware runtime services include project identity; desktop applications and stable infrastructure use a normalized executable or toolchain identity.
@@ -132,5 +132,5 @@ Logo 素材来自经过维护者审核的官方品牌素材或官网 favicon。�
 - The accepted high-fidelity prototype is the visual reference for grouping, search, pinning, Logo placement and the “开发端口” hierarchy. The production selected-row treatment follows the later approved quiet-indicator refinement rather than the prototype’s complete blue outline.
 - Existing process-visual research recommends executable icons and explicitly treats identical Node icons as correct. This specification refines that decision for the human-facing development workflow: a deterministically identified toolchain may use its toolchain Logo; executable or generic process identity remains the fallback. Documentation must be reconciled before implementation so the distinction is explicit.
 - Logo is a presentation aid, not evidence. Text labels remain canonical and must be sufficient when images are unavailable.
-- Official marks are used only to identify the corresponding toolchain. Source and trademark notes should be retained with the asset manifest; this specification does not grant rights beyond the applicable upstream terms.
+- Official marks are used only to identify the corresponding toolchain. Local assets remain subject to their upstream terms; this specification does not grant additional rights.
 - The implementation should begin with a narrow catalog that covers fixtures and observed user workflows, then expand through reviewed entries. A large speculative signature database is not required for acceptance.

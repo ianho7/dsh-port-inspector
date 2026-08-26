@@ -6,8 +6,8 @@
 
 **Status:** resolved
 
-- [x] 图标来源清单记录工具链 ID、官方主页、精确素材 URL、来源类型和说明。
-- [x] 更新器仅允许 HTTPS 官方域名，并限制 MIME、文件大小和 SVG 活性内容；测试不依赖公共互联网。
+- [x] 审核后的 Logo 素材保存在本地，清单只保留获取缺失素材所需的工具链 ID 和 URL。
+- [x] 更新器只访问清单中的 HTTPS URL，并限制 MIME、文件大小和 SVG 活性内容；测试不依赖公共互联网。
 - [x] Vite、Next.js 和 Node.js 使用本地审核素材，未知或无效素材显示通用本地 fallback。
 - [x] 列表使用紧凑 Logo，详情使用较大 Logo；相邻文本已命名工具链时图片不重复朗读。
 - [x] 生成产物随现有 Browser Client artifact 发布，不增加独立静态服务器。
@@ -17,4 +17,4 @@
 
 ## Answer
 
-Logo 管线已落地：官方素材只在维护阶段由同域 HTTPS 清单更新，生成后进入现有 Client artifact；运行时不请求官网。更新器限制 MIME、响应大小、SVG 外部 XML/资源/事件/危险样式，未知工具链使用本地 fallback。
+Logo 管线已落地：审核后的官方素材保存在 `assets/toolchains/`，简洁 URL 清单只用于补齐缺失文件，生成后进入现有 Client artifact；运行时不请求官网。未知工具链使用本地 fallback。

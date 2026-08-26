@@ -29,6 +29,8 @@
     "build:host": "tsc -p tsconfig.json",
     "build:client": "tsdown --config tsdown.config.ts",
     "update:toolchain-logos": "node scripts/update-toolchain-logos.mjs",
+    "normalize:toolchain-logo-candidates": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/normalize-toolchain-logo-candidates.ps1",
+    "sync:toolchain-logo-candidates": "node scripts/sync-toolchain-logo-candidates.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build && node --test tests/*.test.mjs",
     "prepare": "npm run build"
