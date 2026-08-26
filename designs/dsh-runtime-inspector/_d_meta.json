@@ -44,8 +44,32 @@
           }
         }
       ]
+    },
+    "Runtime Inspector · DSH 来源详情": {
+      "versions": [
+        {
+          "path": "runtime-inspector-source-details.html",
+          "createdAt": "2026-08-26T00:00:00.000Z",
+          "status": "needs-review",
+          "subtitle": "在现有详情面板中扩展 Session、Tool Call、Agent 与归因边界",
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          }
+        },
+        {
+          "path": "runtime-inspector-source-details-code-faithful.html",
+          "createdAt": "2026-08-26T00:00:00.000Z",
+          "status": "needs-review",
+          "subtitle": "直接复用 src/client/panel.ts 的 DOM 结构和 src/client/styles.ts 的生产 CSS",
+          "viewport": {
+            "width": 1280,
+            "height": 800
+          }
+        }
+      ]
     }
   },
   "createdAt": "2026-08-23T07:18:56.012Z",
-  "updatedAt": "2026-08-24T09:28:48.156Z"
+  "updatedAt": "2026-08-26T00:00:00.000Z"
 }
