@@ -43,5 +43,6 @@ test('Browser registers additive sidebar and overlay slots and can unload both',
 
 test('Browser source has no Host process primitive import', async () => {
   const source = await (await import('node:fs/promises')).readFile(new URL('../src/client/index.ts', import.meta.url), 'utf8')
+  assert.match(source, /export const inject = \['slots', 'sessions'\]/)
   assert.equal(/node:|koffi|child_process|spawnTerminal|terminateExternal/.test(source), false)
 })

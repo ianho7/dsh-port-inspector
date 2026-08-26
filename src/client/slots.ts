@@ -1,12 +1,16 @@
 import type { RuntimeInspectorClientSessionsLike } from './session-context.js'
+import type { RuntimeInspectorLocaleSource } from './i18n.js'
 
 /** Small structural Client context used to keep Host-only types out of the Browser build. */
 export interface RuntimeInspectorClientContext {
+  readonly get?: (name: string) => unknown
   readonly slots: {
     inject(name: string, setup: () => unknown): unknown
     register(options: RuntimeInspectorSlotOptions, component: (props: unknown) => unknown): unknown
   }
   readonly sessions: RuntimeInspectorClientSessionsLike
+  /** Optional DSH Browser locale service; the Client has a document-language fallback. */
+  readonly locale?: RuntimeInspectorLocaleSource
 }
 
 export interface RuntimeInspectorSlotOptions {

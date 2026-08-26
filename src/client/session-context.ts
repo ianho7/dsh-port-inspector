@@ -1,4 +1,5 @@
 import { redactCommand, redactPath } from '../redaction.js'
+import type { RuntimeInspectorLocale } from './i18n.js'
 
 const WINDOWS_EPOCH_TICKS = 116_444_736_000_000_000n
 const TICKS_PER_MILLISECOND = 10_000n
@@ -110,10 +111,10 @@ function indexCalls(
   }
 }
 
-function formatDate(date: Date): string | undefined {
+function formatDate(date: Date, locale: RuntimeInspectorLocale): string | undefined {
   if (!Number.isFinite(date.getTime())) return undefined
   try {
-    return new Intl.DateTimeFormat('zh-CN', {
+    return new Intl.DateTimeFormat(locale === 'zh' ? 'zh-CN' : 'en-US', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -128,21 +129,21 @@ function formatDate(date: Date): string | undefined {
 }
 
 /** Convert Host identity time to a human-facing local time without changing its raw safety identity. */
-export function formatProcessCreatedAt(value: string | undefined): string {
+export function formatProcessCreatedAt(value: string | undefined, locale: RuntimeInspectorLocale = 'zh'): string {
   if (value === undefined || value.length === 0) return '—'
   if (/^\d{17,20}$/u.test(value)) {
     try {
       const ticks = BigInt(value)
       if (ticks >= WINDOWS_EPOCH_TICKS) {
         const milliseconds = Number((ticks - WINDOWS_EPOCH_TICKS) / TICKS_PER_MILLISECOND)
-        const formatted = formatDate(new Date(milliseconds))
+        const formatted = formatDate(new Date(milliseconds), locale)
         if (formatted !== undefined) return formatted
       }
     } catch {
       // Fall through to ordinary date parsing and finally the original value.
     }
   }
-  const formatted = formatDate(new Date(value))
+  const formatted = formatDate(new Date(value), locale)
   return formatted ?? value
 }
 

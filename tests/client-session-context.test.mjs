@@ -13,6 +13,15 @@ test('formats Windows FILETIME for people while preserving ordinary display valu
   assert.equal(formatProcessCreatedAt(undefined), '—')
 })
 
+test('formats process creation time in the selected UI locale', () => {
+  const value = '134319632994565251'
+  const zh = formatProcessCreatedAt(value, 'zh')
+  const en = formatProcessCreatedAt(value, 'en')
+  assert.notEqual(zh, en)
+  assert.match(zh, /2026/)
+  assert.match(en, /2026/)
+})
+
 test('projects the selected DSH session title, cwd, and the user request that initiated a Call ID', () => {
   const context = buildRuntimeInspectorSessionContext({
     sessionId: 'session-a',

@@ -2,11 +2,18 @@ import * as React from 'react'
 import type {
   HostActionKind,
   HostActionRequest,
+  HostActionResult,
   HostInventorySnapshot,
   HostListenerRow,
   HostOpenDirectoryResult,
 } from '../host-ui.js'
 import type { RuntimeInspectorBrowserRpc } from './bridge.js'
+import {
+  createRuntimeInspectorLocaleStore,
+  createRuntimeInspectorTranslator,
+  type RuntimeInspectorLocaleStore,
+  type RuntimeInspectorTranslator,
+} from './i18n.js'
 import {
   buildRuntimeInspectorSessionContext,
   formatProcessCreatedAt,
@@ -38,11 +45,13 @@ interface SidebarEntryProps {
   readonly onOpen: (trigger?: HTMLElement) => void
   readonly rpc: RuntimeInspectorBrowserRpc
   readonly sessions: RuntimeInspectorClientSessionsLike
+  readonly locale: RuntimeInspectorLocaleStore
 }
 
 interface PanelProps {
   readonly rpc: RuntimeInspectorBrowserRpc
   readonly sessions: RuntimeInspectorClientSessionsLike
+  readonly locale: RuntimeInspectorLocaleStore
 }
 
 interface PanelState {
@@ -132,6 +141,11 @@ function useRuntimeInspectorSessionContext(sessions: RuntimeInspectorClientSessi
   }), [conversation, sessionId, summary?.cwd, summary?.displayTitle])
 }
 
+function useRuntimeInspectorTranslator(localeStore: RuntimeInspectorLocaleStore): RuntimeInspectorTranslator {
+  const locale = React.useSyncExternalStore(localeStore.subscribe, localeStore.getSnapshot, localeStore.getSnapshot)
+  return React.useMemo(() => createRuntimeInspectorTranslator(locale), [locale])
+}
+
 function notifyPanelState(): void {
   for (const listener of [...panelState.listeners]) listener()
 }
@@ -156,39 +170,39 @@ function usePanelOpen(): boolean {
   return open
 }
 
-function actionLabel(kind: HostActionKind): string {
+function actionLabel(kind: HostActionKind, t: RuntimeInspectorTranslator['t']): string {
   switch (kind) {
-    case 'managed-shutdown': return '停止 DSH 任务'
-    case 'external-single-pid': return '结束该进程'
+    case 'managed-shutdown': return t('actionManaged')
+    case 'external-single-pid': return t('actionExternal')
     case 'read-only':
     case 'degraded':
-      return '仅可查看'
+      return t('actionReadOnly')
   }
 }
 
-function actionPillLabel(kind: HostActionKind, compact: boolean): string {
+function actionPillLabel(kind: HostActionKind, compact: boolean, t: RuntimeInspectorTranslator['t']): string {
   switch (kind) {
-    case 'managed-shutdown': return compact ? '可停止' : '可停止 DSH 任务'
-    case 'external-single-pid': return compact ? '可结束' : '可结束进程'
+    case 'managed-shutdown': return compact ? t('actionManagedCompact') : t('actionManaged')
+    case 'external-single-pid': return compact ? t('actionExternalCompact') : t('actionExternal')
     case 'read-only':
-    case 'degraded': return '仅可查看'
+    case 'degraded': return t('actionReadOnly')
   }
 }
 
-function displayExecutable(executable: string | undefined): string {
-  if (executable === undefined || executable.length === 0) return '未识别进程'
+function displayExecutable(executable: string | undefined, t: RuntimeInspectorTranslator['t']): string {
+  if (executable === undefined || executable.length === 0) return t('unknownProcess')
   const parts = executable.split(/[\\/]/u)
   return parts[parts.length - 1] || executable
 }
 
 /** The current Host DTO has no user-facing title field, so use a truthful contextual fallback. */
-function sessionTitle(row: HostListenerRow, context: RuntimeInspectorSessionContext): string {
+function sessionTitle(row: HostListenerRow, context: RuntimeInspectorSessionContext, t: RuntimeInspectorTranslator['t']): string {
   if (row.sessionVisibility === 'current-session'
     && row.session?.sessionId === context.sessionId
     && context.title !== undefined) return context.title
   switch (row.sessionVisibility) {
-    case 'current-session': return '当前 DSH 会话'
-    case 'another-dsh-session': return '另一个 DSH 会话'
+    case 'current-session': return t('currentSession')
+    case 'another-dsh-session': return t('anotherSession')
     case 'unknown-session':
     case 'unattributed': return '—'
   }
@@ -252,49 +266,49 @@ function sourceState(row: HostListenerRow, snapshot: HostInventorySnapshot): Sou
   return row.confidence
 }
 
-function sourceLabel(source: SourceState): string {
+function sourceLabel(source: SourceState, t: RuntimeInspectorTranslator['t']): string {
   switch (source) {
-    case 'verified': return '由 DSH 启动'
+    case 'verified': return t('sourceVerified')
     case 'inferred':
     case 'unattributed':
-      return '启动方未确认'
-    case 'degraded': return '来源追踪受限'
+      return t('sourceUnconfirmed')
+    case 'degraded': return t('sourceDegraded')
   }
 }
 
-function sourceDescription(row: HostListenerRow, snapshot: HostInventorySnapshot): string {
+function sourceDescription(row: HostListenerRow, snapshot: HostInventorySnapshot, t: RuntimeInspectorTranslator['t']): string {
   switch (sourceState(row, snapshot)) {
     case 'verified':
       return row.sessionVisibility === 'current-session'
-        ? '此监听端口由当前会话启动，DSH 已完成身份确认。'
-        : '此监听端口由另一个 DSH 会话启动，DSH 已完成身份确认。'
+        ? t('sourceVerifiedCurrent')
+        : t('sourceVerifiedAnother')
     case 'inferred':
-      return '发现 DSH 线索，但尚未确认启动方。'
+      return t('sourceInferredDescription')
     case 'unattributed':
-      return '当前扫描未确认启动方。'
+      return t('sourceUnattributedDescription')
     case 'degraded':
-      return '来源追踪当前不可用；这里的状态不代表单个进程已经完成来源判断。'
+      return t('sourceDegradedDescription')
   }
 }
 
-function handlingDescription(row: HostListenerRow, snapshot: HostInventorySnapshot): string {
+function handlingDescription(row: HostListenerRow, snapshot: HostInventorySnapshot, t: RuntimeInspectorTranslator['t']): string {
   if (!snapshot.scanComplete) {
-    return '本次监听扫描未完成，当前结果仅用于查看。'
+    return t('handlingScanIncomplete')
   }
   if (snapshot.mode === 'read-only-degraded' && row.action.kind !== 'external-single-pid') {
-    return '来源追踪暂不可用，此监听端口当前仅用于查看。'
+    return t('handlingDegraded')
   }
   switch (row.action.kind) {
     case 'managed-shutdown':
-      return '通过 DSH 生命周期执行停止；Host 会在执行前重新校验当前身份。'
+      return t('handlingManaged')
     case 'external-single-pid':
-      return '此操作与 DSH 来源归因无关；执行前会重新校验 PID、创建时间、可执行文件和监听端口。'
+      return t('handlingExternal')
     case 'read-only':
       return row.action.reason === 'identity-incomplete'
-        ? '进程身份信息不足，系统不会执行结束操作。'
-        : '当前监听端口仅提供查看。'
+        ? t('handlingIdentityIncomplete')
+        : t('handlingReadOnly')
     case 'degraded':
-      return '当前环境只允许查看，系统不会执行进程操作。'
+      return t('handlingDegraded')
   }
 }
 
@@ -307,22 +321,22 @@ function sourceIcon(source: SourceState): React.ReactNode {
   }
 }
 
-function SourcePill({ row, snapshot }: { readonly row: HostListenerRow; readonly snapshot: HostInventorySnapshot }): React.ReactNode {
+function SourcePill({ row, snapshot, t }: { readonly row: HostListenerRow; readonly snapshot: HostInventorySnapshot; readonly t: RuntimeInspectorTranslator['t'] }): React.ReactNode {
   const source = sourceState(row, snapshot)
   return React.createElement('span', {
     className: `dsh-ri-source-pill is-${source}`,
     'data-runtime-inspector-confidence': row.confidence,
-    title: source === 'inferred' ? '发现 DSH 线索，来源尚未确认' : sourceDescription(row, snapshot),
+    title: source === 'inferred' ? t('sourceInferredTitle') : sourceDescription(row, snapshot, t),
   },
   React.createElement('span', { className: 'dsh-ri-source-signal' }, sourceIcon(source)),
-  React.createElement('span', null, sourceLabel(source)),
+  React.createElement('span', null, sourceLabel(source, t)),
   )
 }
 
-function ActionPill({ row, compact = false }: { readonly row: HostListenerRow; readonly compact?: boolean }): React.ReactNode {
+function ActionPill({ row, compact = false, t }: { readonly row: HostListenerRow; readonly compact?: boolean; readonly t: RuntimeInspectorTranslator['t'] }): React.ReactNode {
   const disabled = !isActionable(row)
   const tone = disabled ? 'is-disabled' : row.action.kind === 'managed-shutdown' ? 'is-managed' : 'is-external'
-  return React.createElement('span', { className: `dsh-ri-action-pill ${tone}` }, actionPillLabel(row.action.kind, compact))
+  return React.createElement('span', { className: `dsh-ri-action-pill ${tone}` }, actionPillLabel(row.action.kind, compact, t))
 }
 
 function sortRows(rows: readonly HostListenerRow[], key: SortKey, direction: SortDirection): HostListenerRow[] {
@@ -399,14 +413,31 @@ function collapseDuplicateRows(rows: readonly HostListenerRow[]): {
   return { rows: uniqueRows, occurrenceCounts }
 }
 
-function openDirectoryResultMessage(result: HostOpenDirectoryResult): string {
-  if (result.ok) return '已打开项目目录。'
+function openDirectoryResultMessage(result: HostOpenDirectoryResult, t: RuntimeInspectorTranslator['t']): string {
+  if (result.ok) return t('openDirectorySuccess')
   switch (result.reason) {
-    case 'listener-not-found': return '监听器已不存在，请刷新后重试。'
-    case 'project-unavailable': return '项目目录不可用。'
-    case 'opener-unavailable': return '当前环境不支持打开项目目录。'
-    case 'open-failed': return result.error ?? '打开项目目录失败。'
-    default: return result.error ?? '打开项目目录失败。'
+    case 'listener-not-found': return t('openDirectoryListenerNotFound')
+    case 'project-unavailable': return t('openDirectoryProjectUnavailable')
+    case 'opener-unavailable': return t('openDirectoryOpenerUnavailable')
+    case 'open-failed': return result.error ?? t('openDirectoryFailed')
+    default: return result.error ?? t('openDirectoryFailed')
+  }
+}
+
+function actionResultMessage(result: HostActionResult, t: RuntimeInspectorTranslator['t']): string {
+  const action = actionLabel(result.action, t)
+  const port = result.port === undefined ? '—' : String(result.port)
+  if (result.status === 'completed') {
+    if (result.portReleased === true) return t('actionCompletedReleased', { action, port })
+    if (result.portReleased === false) return t('actionCompletedStillListening', { action, port })
+    return t('actionCompletedUnconfirmed', { action, port })
+  }
+  switch (result.reason) {
+    case 'listener-not-found': return t('actionListenerNotFound')
+    case 'action-not-allowed': return t('actionNotAllowed')
+    case 'confirmation-required': return t('actionConfirmationRequired')
+    case 'managed-owner-unavailable': return t('actionOwnerUnavailable')
+    default: return result.message
   }
 }
 
@@ -416,6 +447,7 @@ function ListenerRow({
   occurrenceCount,
   selected,
   pinned,
+  t,
   onSelect,
   onTogglePin,
 }: {
@@ -424,12 +456,13 @@ function ListenerRow({
   readonly occurrenceCount: number
   readonly selected: boolean
   readonly pinned: boolean
+  readonly t: RuntimeInspectorTranslator['t']
   readonly onSelect: (listenerId: string) => void
   readonly onTogglePin: (row: HostListenerRow) => void
 }): React.ReactNode {
   const toolchain = row.development.toolchain
   const name = toolchainName(toolchain)
-  const executable = displayExecutable(row.executable ?? row.session?.tool)
+  const executable = displayExecutable(row.executable ?? row.session?.tool, t)
   return React.createElement('li', {
     className: 'dsh-ri-row',
     'data-runtime-inspector-row': row.listenerId,
@@ -438,17 +471,18 @@ function ListenerRow({
   React.createElement('button', {
     type: 'button',
     className: `dsh-ri-row-button${selected ? ' is-selected' : ''}${row.development.group === 'other' ? ' has-pin' : ''}`,
-    'aria-label': `选择端口 ${String(row.port)}，PID ${String(row.pid)}`,
+    'aria-label': t('selectPortPid', { port: row.port, pid: row.pid }),
+    title: t('selectPortPid', { port: row.port, pid: row.pid }),
     'aria-pressed': selected,
     'data-runtime-inspector-select': row.listenerId,
     onClick: () => { onSelect(row.listenerId) },
   },
   React.createElement('div', { className: 'dsh-ri-row-top' },
     React.createElement('span', { className: 'dsh-ri-port' },
-      `端口 ${String(row.port)}`,
+      t('port', { port: row.port }),
       React.createElement('span', { className: 'dsh-ri-protocol' }, row.protocol),
     ),
-    React.createElement(SourcePill, { row, snapshot }),
+    React.createElement(SourcePill, { row, snapshot, t }),
   ),
   React.createElement('div', { className: 'dsh-ri-toolchain-line' },
     React.createElement(ToolchainLogo, { toolchain, size: 'compact' }),
@@ -456,24 +490,24 @@ function ListenerRow({
       name === undefined ? null : React.createElement('span', { className: 'dsh-ri-toolchain-name' }, name),
       React.createElement('span', {
         className: 'dsh-ri-executable',
-        title: row.executable ?? row.session?.tool ?? '未识别进程',
+        title: row.executable ?? row.session?.tool ?? t('unknownProcess'),
       }, executable),
     ),
   ),
   React.createElement('div', { className: 'dsh-ri-row-meta' },
-    React.createElement('span', null, `PID ${String(row.pid)}`),
+    React.createElement('span', null, t('pidValue', { pid: row.pid })),
     React.createElement('span', null, `${row.address}:${String(row.port)}`),
-    occurrenceCount > 1 ? React.createElement('span', { title: `${String(occurrenceCount)} 条相同监听记录` }, `×${String(occurrenceCount)}`) : null,
-    React.createElement(ActionPill, { row, compact: true }),
+    occurrenceCount > 1 ? React.createElement('span', { title: t('sameListenerRecordsTitle', { count: occurrenceCount }) }, `×${String(occurrenceCount)}`) : null,
+    React.createElement(ActionPill, { row, compact: true, t }),
   ),
   ),
   row.development.group !== 'other' ? null : React.createElement('button', {
     type: 'button',
     className: `dsh-ri-pin-button${pinned ? ' is-pinned' : ''}`,
-    'aria-label': pinned ? `取消固定端口 ${String(row.port)}` : `固定显示端口 ${String(row.port)}`,
+    'aria-label': pinned ? t('unpinPort', { port: row.port }) : t('pinPort', { port: row.port }),
     'aria-pressed': pinned,
     'data-runtime-inspector-pin': row.development.stableKey,
-    title: pinned ? '取消固定显示' : '固定显示',
+    title: pinned ? t('unpinDisplay') : t('pinDisplay'),
     onClick: () => { onTogglePin(row) },
   }, IconPin({ size: 14 })),
   )
@@ -505,6 +539,8 @@ function DetailPanel({
   onOpenDirectory,
   onRequest,
   sessionContext,
+  locale,
+  t,
 }: {
   readonly row: HostListenerRow | undefined
   readonly snapshot: HostInventorySnapshot
@@ -514,15 +550,17 @@ function DetailPanel({
   readonly onOpenDirectory: (row: HostListenerRow) => void
   readonly onRequest: (request: HostActionRequest) => void
   readonly sessionContext: RuntimeInspectorSessionContext
+  readonly locale: RuntimeInspectorTranslator['locale']
+  readonly t: RuntimeInspectorTranslator['t']
 }): React.ReactNode {
   if (row === undefined) {
     return React.createElement('div', { className: 'dsh-ri-empty' },
       React.createElement('div', null,
         React.createElement('span', { className: 'dsh-ri-state-icon' }, IconPulse({ size: 23 })),
-        React.createElement('div', { className: 'dsh-ri-empty-title' }, snapshot.listeners.length === 0 ? '当前没有监听端口' : '选择一个监听端口'),
+        React.createElement('div', { className: 'dsh-ri-empty-title' }, snapshot.listeners.length === 0 ? t('noListeners') : t('selectListener')),
         React.createElement('p', { className: 'dsh-ri-empty-copy' }, snapshot.listeners.length === 0
-          ? '刷新后会重新读取当前 DSH 会话可见的监听状态。'
-          : '从左侧列表选择一项，在这里查看来源、会话和处理方式。'),
+          ? t('emptyRefreshCopy')
+          : t('emptySelectCopy')),
       ),
     )
   }
@@ -537,11 +575,12 @@ function DetailPanel({
     ? React.createElement('button', {
       type: 'button',
       className: row.action.kind === 'external-single-pid' ? 'dsh-ri-danger-action' : 'dsh-ri-primary-action',
-      'aria-label': `${actionLabel(row.action.kind)}：端口 ${String(row.port)}`,
+      'aria-label': `${actionLabel(row.action.kind, t)}: ${t('port', { port: row.port })}`,
+      title: `${actionLabel(row.action.kind, t)}: ${t('port', { port: row.port })}`,
       'data-runtime-inspector-action': row.action.kind,
       disabled: actionDisabled,
       onClick: () => { onRequest({ listenerId: row.listenerId, kind: row.action.kind }) },
-    }, actionLabel(row.action.kind))
+    }, actionLabel(row.action.kind, t))
     : null
 
   return React.createElement(React.Fragment, null,
@@ -551,11 +590,11 @@ function DetailPanel({
         React.createElement('div', { className: 'dsh-ri-detail-head-copy' },
           name === undefined ? null : React.createElement('div', { className: 'dsh-ri-detail-toolchain' }, name),
           React.createElement('div', { className: 'dsh-ri-detail-port' },
-            `端口 ${String(row.port)}`,
+            t('port', { port: row.port }),
             React.createElement('span', { className: 'dsh-ri-protocol' }, row.protocol),
           ),
           React.createElement('div', { className: 'dsh-ri-detail-subline', title: row.executable ?? row.session?.tool ?? '' },
-            `${displayExecutable(row.executable ?? row.session?.tool)} · PID ${String(row.pid)}`,
+            `${displayExecutable(row.executable ?? row.session?.tool, t)} · ${t('pidValue', { pid: row.pid })}`,
           ),
         ),
       ),
@@ -563,7 +602,8 @@ function DetailPanel({
         React.createElement('button', {
           type: 'button',
           className: 'dsh-ri-icon-button',
-          'aria-label': `复制端口 ${String(row.port)} 详情`,
+          'aria-label': t('copyPortDetails', { port: row.port }),
+          title: t('copyPortDetails', { port: row.port }),
           'data-runtime-inspector-copy': row.listenerId,
           disabled: actionDisabled,
           onClick: () => { onCopy(row) },
@@ -571,7 +611,8 @@ function DetailPanel({
         React.createElement('button', {
           type: 'button',
           className: 'dsh-ri-icon-button',
-          'aria-label': `打开端口 ${String(row.port)} 项目目录`,
+          'aria-label': t('openPortProjectDirectory', { port: row.port }),
+          title: t('openPortProjectDirectory', { port: row.port }),
           'data-runtime-inspector-open-directory': row.listenerId,
           disabled: actionDisabled || !projectAvailable,
           onClick: () => { onOpenDirectory(row) },
@@ -579,56 +620,56 @@ function DetailPanel({
       ),
     ),
     React.createElement('section', { className: 'dsh-ri-detail-section' },
-      React.createElement('h3', { className: 'dsh-ri-section-title' }, '运行信息'),
+      React.createElement('h3', { className: 'dsh-ri-section-title' }, t('sectionRuntimeInfo')),
       React.createElement('dl', { className: 'dsh-ri-fact-grid' },
-        React.createElement(Fact, { label: '应用', value: row.executable ?? row.session?.tool ?? '—', wide: true, multiline: true }),
-        React.createElement(Fact, { label: 'PID', value: String(row.pid) }),
-        React.createElement(Fact, { label: '监听地址', value: `${row.address}:${String(row.port)}` }),
-        occurrenceCount > 1 ? React.createElement(Fact, { label: '相同监听', value: `${String(occurrenceCount)} 条记录` }) : null,
-        React.createElement(Fact, { label: '创建时间', value: formatProcessCreatedAt(row.processCreatedAt), wide: occurrenceCount <= 1, multiline: true }),
-        React.createElement(Fact, { label: '项目目录', value: projectSummary(row, sessionContext), wide: true, multiline: true }),
-        React.createElement(Fact, { label: '启动命令', value: attributionValue(row, 'command'), wide: true, multiline: true }),
+        React.createElement(Fact, { label: t('application'), value: row.executable ?? row.session?.tool ?? '—', wide: true, multiline: true }),
+        React.createElement(Fact, { label: t('pid'), value: String(row.pid) }),
+        React.createElement(Fact, { label: t('listenAddress'), value: `${row.address}:${String(row.port)}` }),
+        occurrenceCount > 1 ? React.createElement(Fact, { label: t('sameListener'), value: t('records', { count: occurrenceCount }) }) : null,
+        React.createElement(Fact, { label: t('createdAt'), value: formatProcessCreatedAt(row.processCreatedAt, locale), wide: occurrenceCount <= 1, multiline: true }),
+        React.createElement(Fact, { label: t('projectDirectory'), value: projectSummary(row, sessionContext), wide: true, multiline: true }),
+        React.createElement(Fact, { label: t('launchCommand'), value: attributionValue(row, 'command'), wide: true, multiline: true }),
       ),
     ),
     React.createElement('section', { className: 'dsh-ri-detail-section' },
-      React.createElement('h3', { className: 'dsh-ri-section-title' }, '会话上下文'),
+      React.createElement('h3', { className: 'dsh-ri-section-title' }, t('sectionSessionContext')),
       React.createElement('dl', { className: 'dsh-ri-fact-grid' },
-        React.createElement(Fact, { label: 'Session', value: sessionTitle(row, sessionContext) }),
-        React.createElement(Fact, { label: 'Session ID', value: attributionValue(row, 'sessionId'), multiline: true }),
-        React.createElement(Fact, { label: 'Call ID', value: callId(row), multiline: true }),
-        React.createElement(Fact, { label: '用户请求', value: requestSummary(row, sessionContext), wide: true, multiline: true }),
+        React.createElement(Fact, { label: t('session'), value: sessionTitle(row, sessionContext, t) }),
+        React.createElement(Fact, { label: t('sessionId'), value: attributionValue(row, 'sessionId'), multiline: true }),
+        React.createElement(Fact, { label: t('callId'), value: callId(row), multiline: true }),
+        React.createElement(Fact, { label: t('userRequest'), value: requestSummary(row, sessionContext), wide: true, multiline: true }),
       ),
     ),
     React.createElement('section', { className: 'dsh-ri-detail-section' },
-      React.createElement('h3', { className: 'dsh-ri-section-title' }, '工具调用'),
+      React.createElement('h3', { className: 'dsh-ri-section-title' }, t('sectionToolCall')),
       React.createElement('dl', { className: 'dsh-ri-fact-grid' },
-        React.createElement(Fact, { label: 'Agent ID', value: attributionValue(row, 'agentId'), multiline: true }),
-        React.createElement(Fact, { label: 'Turn / Step', value: turnAndStep(row), multiline: true }),
-        React.createElement(Fact, { label: 'Tool', value: attributionValue(row, 'tool'), multiline: true }),
-        React.createElement(Fact, { label: 'Root Call ID', value: attributionValue(row, 'rootCallId'), multiline: true }),
+        React.createElement(Fact, { label: t('agentId'), value: attributionValue(row, 'agentId'), multiline: true }),
+        React.createElement(Fact, { label: t('turnStep'), value: turnAndStep(row), multiline: true }),
+        React.createElement(Fact, { label: t('tool'), value: attributionValue(row, 'tool'), multiline: true }),
+        React.createElement(Fact, { label: t('rootCallId'), value: attributionValue(row, 'rootCallId'), multiline: true }),
       ),
     ),
     React.createElement('section', { className: 'dsh-ri-detail-section' },
-      React.createElement('h3', { className: 'dsh-ri-section-title' }, '来源'),
+      React.createElement('h3', { className: 'dsh-ri-section-title' }, t('sectionSource')),
       React.createElement('div', { className: `dsh-ri-source-card${source === 'degraded' ? ' is-degraded' : ''}` },
-        React.createElement(SourcePill, { row, snapshot }),
-        React.createElement('p', { className: 'dsh-ri-source-copy' }, sourceDescription(row, snapshot)),
+        React.createElement(SourcePill, { row, snapshot, t }),
+        React.createElement('p', { className: 'dsh-ri-source-copy' }, sourceDescription(row, snapshot, t)),
         React.createElement('dl', { className: 'dsh-ri-fact-grid dsh-ri-source-facts' },
-          React.createElement(Fact, { label: 'Workdir', value: attributionValue(row, 'workdir'), wide: true, multiline: true }),
-          React.createElement(Fact, { label: 'Spawn 类型', value: attributionValue(row, 'kind'), multiline: true }),
+          React.createElement(Fact, { label: t('workdir'), value: attributionValue(row, 'workdir'), wide: true, multiline: true }),
+          React.createElement(Fact, { label: t('spawnType'), value: attributionValue(row, 'kind'), multiline: true }),
         ),
         row.lifecycleOwner === undefined ? null : React.createElement('div', { className: 'dsh-ri-owner-line' },
-          React.createElement('span', { className: 'dsh-ri-owner-label' }, 'DSH 生命周期'),
+          React.createElement('span', { className: 'dsh-ri-owner-label' }, t('lifecycle')),
           React.createElement('span', { className: 'dsh-ri-owner-pill' }, `${row.lifecycleOwner.kind} · ${row.lifecycleOwner.id}`),
         ),
       ),
     ),
     React.createElement('section', { className: 'dsh-ri-detail-section' },
-      React.createElement('h3', { className: 'dsh-ri-section-title' }, '处理方式'),
+      React.createElement('h3', { className: 'dsh-ri-section-title' }, t('sectionHandling')),
       React.createElement('div', { className: `dsh-ri-handling-card${actionAvailable ? '' : ' is-disabled'}` },
         React.createElement('div', { className: 'dsh-ri-handling-content' },
-          React.createElement('div', { className: 'dsh-ri-action-line' }, React.createElement(ActionPill, { row })),
-          React.createElement('p', { className: 'dsh-ri-handling-copy' }, handlingDescription(row, snapshot)),
+          React.createElement('div', { className: 'dsh-ri-action-line' }, React.createElement(ActionPill, { row, t })),
+          React.createElement('p', { className: 'dsh-ri-handling-copy' }, handlingDescription(row, snapshot, t)),
         ),
         detailAction,
       ),
@@ -648,14 +689,18 @@ function ConfirmDialog({
   request,
   onConfirm,
   onCancel,
+  locale,
+  t,
 }: {
   readonly row: HostListenerRow
   readonly request: HostActionRequest
   readonly onConfirm: () => void
   readonly onCancel: () => void
+  readonly locale: RuntimeInspectorTranslator['locale']
+  readonly t: RuntimeInspectorTranslator['t']
 }): React.ReactNode {
   const external = request.kind === 'external-single-pid'
-  const title = external ? '确认结束该进程' : '确认停止 DSH 任务'
+  const title = external ? t('confirmEndProcess') : t('confirmStopTask')
   const cancelButton = React.useRef<HTMLButtonElement>(null)
   React.useEffect(() => { cancelButton.current?.focus() }, [])
   return React.createElement('div', {
@@ -675,28 +720,30 @@ function ConfirmDialog({
   },
   React.createElement('h2', { className: 'dsh-ri-confirm-title', id: 'dsh-runtime-inspector-confirm-title' }, title),
   React.createElement('p', { className: 'dsh-ri-confirm-copy', id: 'dsh-runtime-inspector-confirm-copy' }, external
-    ? '这会直接处理一个系统进程，与 DSH 来源判断无关。执行前 Host 会重新校验进程身份。'
-    : '这会通过 DSH 生命周期停止当前任务。执行前 Host 会重新校验当前归属。'),
+    ? t('confirmEndProcessCopy')
+    : t('confirmStopTaskCopy')),
   external ? React.createElement('div', { className: 'dsh-ri-confirm-note' },
     IconInfo({ size: 15 }),
-    React.createElement('span', null, '请确认下面的 PID、创建时间和可执行文件仍与当前目标一致。'),
+    React.createElement('span', null, t('confirmIdentityNote')),
   ) : null,
   React.createElement('div', { className: 'dsh-ri-confirm-identity' },
-    identityItem('监听端口', `${row.address}:${String(row.port)}`),
-    identityItem('PID', String(row.pid)),
-    identityItem('创建时间', formatProcessCreatedAt(row.processCreatedAt)),
-    identityItem('可执行文件', row.executable ?? '不可用'),
-    external ? null : identityItem('DSH 生命周期', row.lifecycleOwner === undefined ? '不可用' : `${row.lifecycleOwner.kind} · ${row.lifecycleOwner.id}`),
+    identityItem(t('listenPort'), `${row.address}:${String(row.port)}`),
+    identityItem(t('pid'), String(row.pid)),
+    identityItem(t('createdAt'), formatProcessCreatedAt(row.processCreatedAt, locale)),
+    identityItem(t('application'), row.executable ?? t('unavailable')),
+    external ? null : identityItem(t('lifecycle'), row.lifecycleOwner === undefined ? t('unavailable') : `${row.lifecycleOwner.kind} · ${row.lifecycleOwner.id}`),
   ),
   React.createElement('div', { className: 'dsh-ri-confirm-actions' },
-    React.createElement('button', { ref: cancelButton, type: 'button', className: 'dsh-ri-secondary-action', 'data-runtime-inspector-confirm': 'cancel', onClick: onCancel }, '取消'),
-    React.createElement('button', { type: 'button', className: external ? 'dsh-ri-danger-action' : 'dsh-ri-primary-action', 'data-runtime-inspector-confirm': 'confirm', onClick: onConfirm }, title),
+    React.createElement('button', { ref: cancelButton, type: 'button', className: 'dsh-ri-secondary-action', title: t('cancel'), 'data-runtime-inspector-confirm': 'cancel', onClick: onCancel }, t('cancel')),
+    React.createElement('button', { type: 'button', className: external ? 'dsh-ri-danger-action' : 'dsh-ri-primary-action', title, 'data-runtime-inspector-confirm': 'confirm', onClick: onConfirm }, title),
   ),
   ),
   )
 }
 
-function SidebarEntry({ wide = true, onOpen, rpc, sessions }: SidebarEntryProps): React.ReactNode {
+function SidebarEntry({ wide = true, onOpen, rpc, sessions, locale }: SidebarEntryProps): React.ReactNode {
+  const translator = useRuntimeInspectorTranslator(locale)
+  const { t } = translator
   const sessionContext = useRuntimeInspectorSessionContext(sessions)
   const badgeContextKey = entryBadgeContextKey(sessionContext.sessionId, sessionContext.cwd)
   const sharedBadge = React.useSyncExternalStore(subscribeEntryBadge, readEntryBadgeSnapshot, readEntryBadgeSnapshot)
@@ -732,25 +779,27 @@ function SidebarEntry({ wide = true, onOpen, rpc, sessions }: SidebarEntryProps)
   const countLabel = count === undefined ? '—' : count > 99 ? '99+' : String(count)
   const indicator = countLabel
   const accessibleLabel = count === undefined
-    ? '当前会话已确认监听端口数量暂不可用'
-    : `当前会话已确认监听端口 ${String(count)}`
+    ? t('entryAriaUnavailable')
+    : t('entryAriaCount', { count })
   return React.createElement('button', {
     type: 'button',
     className: `dsh-ri-entry${wide ? '' : ' is-compact'}`,
-    title: wide ? 'Runtime Inspector' : `Runtime Inspector ${indicator}`,
-    'aria-label': `打开 Runtime Inspector，${accessibleLabel}`,
+    title: wide ? 'Runtime Inspector' : t('entryCompactTitle', { indicator }),
+    'aria-label': t('openPanelAria', { details: accessibleLabel }),
     'data-runtime-inspector-entry': 'open',
     onClick: (event: React.MouseEvent<HTMLButtonElement>) => { onOpen(event.currentTarget) },
   },
   React.createElement('span', { className: 'dsh-ri-entry-icon' }, IconPulse({ size: 16 })),
   wide ? React.createElement(React.Fragment, null,
-    React.createElement('span', { className: 'dsh-ri-entry-label' }, '监听端口'),
+    React.createElement('span', { className: 'dsh-ri-entry-label' }, t('entryLabel')),
     React.createElement('span', { className: 'dsh-ri-entry-badge' }, indicator),
   ) : null,
   )
 }
 
-function RuntimeInspectorPanel({ rpc, sessions }: PanelProps): React.ReactNode {
+function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.ReactNode {
+  const translator = useRuntimeInspectorTranslator(locale)
+  const { t } = translator
   const sessionContext = useRuntimeInspectorSessionContext(sessions)
   const badgeContextKey = entryBadgeContextKey(sessionContext.sessionId, sessionContext.cwd)
   const open = usePanelOpen()
@@ -878,6 +927,7 @@ function RuntimeInspectorPanel({ rpc, sessions }: PanelProps): React.ReactNode {
     occurrenceCount: collapsedRows.occurrenceCounts.get(row.listenerId) ?? 1,
     selected: selectedRow?.listenerId === row.listenerId,
     pinned: pinnedKeys.has(row.development.stableKey),
+    t,
     onSelect: setSelectedListenerId,
     onTogglePin: togglePin,
   })))
@@ -887,8 +937,8 @@ function RuntimeInspectorPanel({ rpc, sessions }: PanelProps): React.ReactNode {
       setState(previous => ({
         ...previous,
         actionResult: result.ok && result.copied
-          ? '详情已复制。'
-          : result.ok ? '详情已生成，但剪贴板不可用。' : result.error ?? '复制失败。',
+          ? t('detailsCopied')
+          : result.ok ? t('detailsGeneratedClipboardUnavailable') : result.error ?? t('copyFailed'),
       }))
     }, error => {
       setState(previous => ({ ...previous, error: error instanceof Error ? error.message : String(error) }))
@@ -897,7 +947,7 @@ function RuntimeInspectorPanel({ rpc, sessions }: PanelProps): React.ReactNode {
 
   const openDirectory = (row: HostListenerRow): void => {
     void rpc.openProjectDirectory({ listenerId: row.listenerId }).then(result => {
-      setState(previous => ({ ...previous, actionResult: openDirectoryResultMessage(result) }))
+      setState(previous => ({ ...previous, actionResult: openDirectoryResultMessage(result, t) }))
     }, error => {
       setState(previous => ({ ...previous, error: error instanceof Error ? error.message : String(error) }))
     })
@@ -915,7 +965,7 @@ function RuntimeInspectorPanel({ rpc, sessions }: PanelProps): React.ReactNode {
     void rpc.performAction(request).then(
       result => {
         publishEntryBadgeSnapshot(result.freshScan, badgeContextKey)
-        setState({ snapshot: result.freshScan, actionResult: result.message, postAction: true, loading: false })
+        setState({ snapshot: result.freshScan, actionResult: actionResultMessage(result, t), postAction: true, loading: false })
       },
       error => {
         setState(previous => ({
@@ -964,13 +1014,13 @@ function RuntimeInspectorPanel({ rpc, sessions }: PanelProps): React.ReactNode {
       snapshot?.mode === 'read-only-degraded'
         ? React.createElement('span', { className: 'dsh-ri-status-pill is-limited' },
           React.createElement('span', { className: 'dsh-ri-status-dot' }),
-          '来源追踪受限',
+          t('statusSourceLimited'),
         )
         : null,
       snapshot !== undefined && !snapshot.scanComplete
         ? React.createElement('span', { className: 'dsh-ri-status-pill is-limited' },
           React.createElement('span', { className: 'dsh-ri-status-dot' }),
-          '扫描未完成',
+          t('statusScanIncomplete'),
         )
         : null,
     ),
@@ -979,7 +1029,8 @@ function RuntimeInspectorPanel({ rpc, sessions }: PanelProps): React.ReactNode {
         ref: closeButtonRef,
         type: 'button',
         className: 'dsh-ri-close',
-        'aria-label': '关闭 Runtime Inspector',
+        'aria-label': t('closePanel'),
+        title: t('closePanel'),
         'data-runtime-inspector-close': 'close',
         onClick: () => { setPending(undefined); setPanelOpen(false) },
       }, IconClose({ size: 14 })),
@@ -990,14 +1041,16 @@ function RuntimeInspectorPanel({ rpc, sessions }: PanelProps): React.ReactNode {
     ? React.createElement('div', { className: 'dsh-ri-state', 'data-runtime-inspector-state': 'loading' },
       React.createElement('div', null,
         React.createElement('span', { className: 'dsh-ri-state-icon' }, IconRefresh({ size: 23 })),
-        React.createElement('div', { className: 'dsh-ri-empty-title' }, '正在读取监听端口'),
+        React.createElement('div', { className: 'dsh-ri-empty-title' }, t('loadingListeners')),
       ),
     )
     : null,
   state.error !== undefined
     ? React.createElement('div', { className: 'dsh-ri-error', role: 'alert', 'data-runtime-inspector-state': 'failure' },
       IconInfo({ size: 15 }),
-      React.createElement('span', null, snapshot === undefined ? `面板暂不可用，只读：${state.error}` : `刷新未完成：${state.error}`),
+      React.createElement('span', null, snapshot === undefined
+        ? t('panelUnavailable', { error: state.error })
+        : t('refreshIncomplete', { error: state.error })),
     )
     : null,
   snapshot === undefined ? null : React.createElement(React.Fragment, null,
@@ -1007,8 +1060,9 @@ function RuntimeInspectorPanel({ rpc, sessions }: PanelProps): React.ReactNode {
         React.createElement('input', {
           type: 'search',
           value: search,
-          placeholder: '搜索端口、PID、应用或会话',
-          'aria-label': '搜索占用端口',
+          placeholder: t('searchPlaceholder'),
+          'aria-label': t('searchLabel'),
+          title: t('searchLabel'),
           'data-runtime-inspector-search': 'input',
           onChange: (event: React.ChangeEvent<HTMLInputElement>) => { setSearch(event.target.value) },
         }),
@@ -1016,77 +1070,82 @@ function RuntimeInspectorPanel({ rpc, sessions }: PanelProps): React.ReactNode {
       React.createElement('select', {
         className: 'dsh-ri-select',
         value: sortKey,
-        'aria-label': '排序占用端口',
+        'aria-label': t('sortLabel'),
+        title: t('sortLabel'),
         'data-runtime-inspector-sort': 'select',
         onChange: (event: React.ChangeEvent<HTMLSelectElement>) => { setSortKey(event.target.value as SortKey) },
       },
-      React.createElement('option', { value: 'port' }, '按端口'),
-      React.createElement('option', { value: 'application' }, '按应用'),
-      React.createElement('option', { value: 'pid' }, '按 PID'),
-      React.createElement('option', { value: 'project' }, '按项目'),
-      React.createElement('option', { value: 'session' }, '按会话'),
+      React.createElement('option', { value: 'port' }, t('sortPort')),
+      React.createElement('option', { value: 'application' }, t('sortApplication')),
+      React.createElement('option', { value: 'pid' }, t('sortPid')),
+      React.createElement('option', { value: 'project' }, t('sortProject')),
+      React.createElement('option', { value: 'session' }, t('sortSession')),
       ),
       React.createElement('button', {
         type: 'button',
         className: 'dsh-ri-toolbar-button',
-        'aria-label': '切换排序方向',
+        'aria-label': t('sortDirection'),
+        title: t('sortDirection'),
         'data-runtime-inspector-sort-direction': 'toggle',
         onClick: () => { setSortDirection(previous => previous === 'asc' ? 'desc' : 'asc') },
-      }, sortDirection === 'asc' ? '升序' : '降序', React.createElement('span', null, IconChevron({ size: 13 }))),
+      }, sortDirection === 'asc' ? t('ascending') : t('descending'), React.createElement('span', null, IconChevron({ size: 13 }))),
       React.createElement('button', {
         type: 'button',
         className: 'dsh-ri-toolbar-button',
-        'aria-label': '刷新端口列表',
+        'aria-label': t('refresh'),
+        title: t('refresh'),
         'data-runtime-inspector-refresh': 'refresh',
         disabled: state.loading === true,
         onClick: refresh,
-      }, IconRefresh({ size: 14 }), '刷新'),
+      }, IconRefresh({ size: 14 }), t('refresh')),
       React.createElement('div', { className: 'dsh-ri-toolbar-control dsh-ri-scope-control' },
-        React.createElement('span', { className: 'dsh-ri-control-label' }, '查看'),
-        React.createElement('div', { className: 'dsh-ri-scope-row', role: 'tablist', 'aria-label': '查看范围' },
+        React.createElement('span', { className: 'dsh-ri-control-label' }, t('view')),
+        React.createElement('div', { className: 'dsh-ri-scope-row', role: 'tablist', 'aria-label': t('viewRange') },
           ([
-            ['development', '开发相关'],
-            ['all', '全部监听'],
+            ['development', t('scopeDevelopment')],
+            ['all', t('scopeAll')],
           ] as const).map(([key, label]) => React.createElement('button', {
             key,
             type: 'button',
             className: `dsh-ri-scope-option${scope === key ? ' is-active' : ''}`,
             role: 'tab',
             'aria-selected': scope === key,
+            title: label,
             'data-runtime-inspector-scope': key,
             onClick: () => { setScope(key); setOtherOpen(key === 'all') },
           }, label)),
         ),
       ),
       React.createElement('label', { className: 'dsh-ri-toolbar-control dsh-ri-source-control' },
-        React.createElement('span', { className: 'dsh-ri-control-label' }, '启动方'),
+        React.createElement('span', { className: 'dsh-ri-control-label' }, t('sourceFilter')),
         React.createElement('select', {
           className: 'dsh-ri-select dsh-ri-source-select',
           value: sourceFilter,
-          'aria-label': '按启动方筛选',
+          'aria-label': t('sourceFilter'),
+          title: t('sourceFilter'),
           'data-runtime-inspector-source-filter': 'select',
           onChange: (event: React.ChangeEvent<HTMLSelectElement>) => { setSourceFilter(event.target.value as SourceFilterKey) },
         },
-        React.createElement('option', { value: 'all' }, '全部'),
-        React.createElement('option', { value: 'dsh' }, '由 DSH 启动'),
-        React.createElement('option', { value: 'unconfirmed' }, '启动方未确认'),
+        React.createElement('option', { value: 'all' }, t('sourceAll')),
+        React.createElement('option', { value: 'dsh' }, t('sourceDsh')),
+        React.createElement('option', { value: 'unconfirmed' }, t('sourceUnconfirmed')),
         ),
       ),
       React.createElement('label', { className: 'dsh-ri-action-toggle' },
         React.createElement('input', {
           type: 'checkbox',
           checked: actionableOnly,
-          'aria-label': '仅显示可处理',
+          'aria-label': t('actionableOnly'),
           'data-runtime-inspector-actionable-only': 'toggle',
           onChange: (event: React.ChangeEvent<HTMLInputElement>) => { setActionableOnly(event.target.checked) },
         }),
-        React.createElement('span', null, '仅显示可处理'),
+        React.createElement('span', null, t('actionableOnly')),
       ),
     ),
-    state.loading === true ? React.createElement('div', { className: 'dsh-ri-banner', role: 'status' }, IconRefresh({ size: 14 }), '正在更新端口状态…') : null,
-    snapshot.mode === 'read-only-degraded' ? React.createElement('div', { className: 'dsh-ri-banner is-limited', role: 'status' }, IconInfo({ size: 14 }), '来源追踪暂不可用；可处理项仍会基于进程身份独立校验。') : null,
-    !snapshot.scanComplete && snapshot.mode !== 'read-only-degraded' ? React.createElement('div', { className: 'dsh-ri-banner is-limited', role: 'status', 'data-runtime-inspector-state': 'incomplete' }, IconInfo({ size: 14 }), '本次监听扫描未完成，当前结果仅可查看。') : null,
-    snapshot.truncated ? React.createElement('div', { className: 'dsh-ri-banner', role: 'status' }, IconInfo({ size: 14 }), '结果数量已达到上限，列表显示当前可见部分。') : null,
+    state.loading === true ? React.createElement('div', { className: 'dsh-ri-banner', role: 'status' }, IconRefresh({ size: 14 }), t('updatingPortStatus')) : null,
+    snapshot.mode === 'read-only-degraded' ? React.createElement('div', { className: 'dsh-ri-banner is-limited', role: 'status' }, IconInfo({ size: 14 }), t('sourceDegradedBanner')) : null,
+    !snapshot.scanComplete && snapshot.mode !== 'read-only-degraded' ? React.createElement('div', { className: 'dsh-ri-banner is-limited', role: 'status', 'data-runtime-inspector-state': 'incomplete' }, IconInfo({ size: 14 }), t('scanIncompleteBanner')) : null,
+    snapshot.truncated ? React.createElement('div', { className: 'dsh-ri-banner', role: 'status' }, IconInfo({ size: 14 }), t('truncatedBanner')) : null,
     state.actionResult === undefined ? null : React.createElement('div', {
       className: 'dsh-ri-result',
       role: 'status',
@@ -1094,17 +1153,17 @@ function RuntimeInspectorPanel({ rpc, sessions }: PanelProps): React.ReactNode {
       'data-runtime-inspector-action-result': 'result',
     }, IconCheck({ size: 14 }), state.actionResult),
     React.createElement('div', { className: 'dsh-ri-body' },
-      React.createElement('section', { className: 'dsh-ri-list-column', 'aria-label': '监听端口列表' },
+      React.createElement('section', { className: 'dsh-ri-list-column', 'aria-label': t('listenerList') },
         React.createElement('div', { className: 'dsh-ri-column-heading' },
-          React.createElement('span', null, '监听端口'),
-          React.createElement('span', { className: 'dsh-ri-column-heading-count' }, `显示 ${String(visibleRows.length)} 项`),
+          React.createElement('span', null, t('listenPort')),
+          React.createElement('span', { className: 'dsh-ri-column-heading-count' }, t('displayCount', { count: visibleRows.length })),
         ),
         rows.length === 0
           ? React.createElement('div', { className: 'dsh-ri-state', 'data-runtime-inspector-state': 'empty' },
             React.createElement('div', null,
               React.createElement('span', { className: 'dsh-ri-state-icon' }, IconSearch({ size: 23 })),
-              React.createElement('div', { className: 'dsh-ri-empty-title' }, allRows.length === 0 ? '没有发现监听端口' : '没有匹配项'),
-              React.createElement('p', { className: 'dsh-ri-empty-copy' }, allRows.length === 0 ? '当前 DSH 会话没有可显示的监听端口。' : '调整搜索词或筛选条件后重试。'),
+              React.createElement('div', { className: 'dsh-ri-empty-title' }, allRows.length === 0 ? t('noDiscoveredListeners') : t('noMatch')),
+              React.createElement('p', { className: 'dsh-ri-empty-copy' }, allRows.length === 0 ? t('noVisibleListeners') : t('adjustSearch')),
             ),
           )
           : React.createElement(React.Fragment, null,
@@ -1113,8 +1172,8 @@ function RuntimeInspectorPanel({ rpc, sessions }: PanelProps): React.ReactNode {
               'data-runtime-inspector-group': 'current-project',
             },
             React.createElement('div', { className: 'dsh-ri-list-group-heading' },
-              React.createElement('span', null, '当前项目'),
-              React.createElement('span', null, `${String(currentProjectRows.length)}项`),
+              React.createElement('span', null, t('groupCurrentProject')),
+              React.createElement('span', null, t('records', { count: currentProjectRows.length })),
             ),
             listenerRows(currentProjectRows),
             ),
@@ -1123,8 +1182,8 @@ function RuntimeInspectorPanel({ rpc, sessions }: PanelProps): React.ReactNode {
               'data-runtime-inspector-group': 'development-environment',
             },
             React.createElement('div', { className: 'dsh-ri-list-group-heading' },
-              React.createElement('span', null, '开发环境'),
-              React.createElement('span', null, `${String(developmentEnvironmentRows.length)}项`),
+              React.createElement('span', null, t('groupDevelopmentEnvironment')),
+              React.createElement('span', null, t('records', { count: developmentEnvironmentRows.length })),
             ),
             listenerRows(developmentEnvironmentRows),
             ),
@@ -1133,8 +1192,8 @@ function RuntimeInspectorPanel({ rpc, sessions }: PanelProps): React.ReactNode {
               'data-runtime-inspector-group': 'pinned',
             },
             React.createElement('div', { className: 'dsh-ri-list-group-heading' },
-              React.createElement('span', null, '固定显示'),
-              React.createElement('span', null, `${String(pinnedRows.length)}项`),
+              React.createElement('span', null, t('groupPinned')),
+              React.createElement('span', null, t('records', { count: pinnedRows.length })),
             ),
             listenerRows(pinnedRows),
             ),
@@ -1145,26 +1204,27 @@ function RuntimeInspectorPanel({ rpc, sessions }: PanelProps): React.ReactNode {
             showOtherRows
               ? React.createElement(React.Fragment, null,
                 React.createElement('div', { className: 'dsh-ri-list-group-heading' },
-                  React.createElement('span', null, '其他监听'),
-                  React.createElement('span', null, `${String(otherRows.length)}项`),
+                  React.createElement('span', null, t('groupOther')),
+                  React.createElement('span', null, t('records', { count: otherRows.length })),
                 ),
-                searching ? React.createElement('p', { className: 'dsh-ri-search-scope-note' }, '搜索已覆盖全部监听，包括默认收起的后台进程。') : null,
+                searching ? React.createElement('p', { className: 'dsh-ri-search-scope-note' }, t('searchScopeNote')) : null,
                 listenerRows(otherRows),
               )
               : React.createElement('button', {
                 type: 'button',
                 className: 'dsh-ri-other-toggle',
                 'aria-expanded': false,
+                title: t('collapsedOther', { count: otherRows.length }),
                 'data-runtime-inspector-other-toggle': 'open',
                 onClick: () => { setOtherOpen(true) },
               },
-              React.createElement('span', null, `已收起 ${String(otherRows.length)} 个其他监听`),
+              React.createElement('span', null, t('collapsedOther', { count: otherRows.length })),
               React.createElement('span', null, IconChevron({ size: 14 })),
               ),
             ),
           ),
       ),
-      React.createElement('section', { className: 'dsh-ri-detail-column', 'aria-label': '监听端口详情' },
+      React.createElement('section', { className: 'dsh-ri-detail-column', 'aria-label': t('detailColumn') },
         React.createElement(DetailPanel, {
           row: selectedRow,
           snapshot,
@@ -1174,6 +1234,8 @@ function RuntimeInspectorPanel({ rpc, sessions }: PanelProps): React.ReactNode {
           onOpenDirectory: openDirectory,
           onRequest: setPending,
           sessionContext,
+          locale: translator.locale,
+          t,
         }),
       ),
     ),
@@ -1185,6 +1247,8 @@ function RuntimeInspectorPanel({ rpc, sessions }: PanelProps): React.ReactNode {
     request: pending,
     onConfirm: confirmAction,
     onCancel: () => { setPending(undefined) },
+    locale: translator.locale,
+    t,
   }),
   ),
   )
@@ -1194,16 +1258,18 @@ export function createSidebarEntry(
   rpc: RuntimeInspectorBrowserRpc,
   onOpen: (trigger?: HTMLElement) => void,
   sessions: RuntimeInspectorClientSessionsLike,
+  locale: RuntimeInspectorLocaleStore = createRuntimeInspectorLocaleStore(undefined),
 ): (props: unknown) => React.ReactNode {
   return (props: unknown) => {
     const options = typeof props === 'object' && props !== null ? props as Partial<SidebarEntryProps> : {}
-    return SidebarEntry({ wide: options.wide, onOpen, rpc, sessions })
+    return SidebarEntry({ wide: options.wide, onOpen, rpc, sessions, locale })
   }
 }
 
 export function createRuntimeInspectorPanel(
   rpc: RuntimeInspectorBrowserRpc,
   sessions: RuntimeInspectorClientSessionsLike,
+  locale: RuntimeInspectorLocaleStore = createRuntimeInspectorLocaleStore(undefined),
 ): (props: unknown) => React.ReactNode {
-  return () => RuntimeInspectorPanel({ rpc, sessions })
+  return () => RuntimeInspectorPanel({ rpc, sessions, locale })
 }

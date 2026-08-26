@@ -252,7 +252,7 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   display: grid;
   grid-template-columns: minmax(160px, 1fr) repeat(6, auto);
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   min-width: 0;
   padding: 0 0 12px;
 }
@@ -379,7 +379,7 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 }
 
 .dsh-ri-source-select {
-  min-width: 124px;
+  min-width: 108px;
 }
 
 .dsh-ri-action-toggle {
@@ -388,7 +388,7 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   align-items: center;
   gap: 6px;
   min-height: 30px;
-  padding: 0 8px;
+  padding: 0 3px;
   border: 1px solid var(--dsh-ri-border);
   border-radius: 7px;
   color: var(--dsh-ri-label-secondary);
