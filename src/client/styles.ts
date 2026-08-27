@@ -672,7 +672,6 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   display: inline-flex;
   align-items: center;
   height: 20px;
-  margin-left: 5px;
   padding: 0 5px;
   border: 1px solid var(--dsh-ri-border);
   border-radius: 5px;
