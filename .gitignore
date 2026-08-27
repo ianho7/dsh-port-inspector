@@ -3,6 +3,7 @@ lib/
 .tmp/
 *.tsbuildinfo
 coverage/
+.volta-temp
 
 # Local package artifacts
 /dsh-runtime-inspector-*.tgz

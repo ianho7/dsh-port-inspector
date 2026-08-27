@@ -107,6 +107,32 @@ dsh plugin --profile web add dsh-runtime-inspector@0.1.0
 
 来源状态与处理方式不是同一个概念：推断来源不能获得 DSH 生命周期权限；来源未确认的外部进程，在身份完整且安全检查通过时，仍可能允许单 PID 处理。
 
+## 运行机制
+
+### 从 Agent 工具调用归因到监听端口
+
+Runtime Inspector 在 `tool/call` 阶段缓存调用证据，由 `tools/execute` 的 AsyncLocalStorage 执行帧把它带到 `spawn` 或 `spawnTerminal`。随后，根 PID 与创建时间共同形成进程身份，Job/Terminal 提供生命周期归属，Windows 祖先链再把实际监听进程连接回这次 Agent 操作。
+
+![Agent 工具调用到监听端口的归因工作流](./docs/assets/agent-tool-call.svg)
+
+只有完整进程身份与祖先链均匹配时，来源才是 `verified`。非唯一线索只能得到 `inferred`，证据不足则保持 `unattributed`；观察器不会替换 subprocess provider，也不取得进程的关闭所有权。
+
+### 用户操作如何穿过 Host 安全边界
+
+浏览器面板只通过同源、可序列化的 RPC 请求 Host，不会接触 Windows 扫描器、进程句柄或终止原语。用户确认操作后，Host 会先重新扫描并校验当前监听记录，再根据所有权进入托管关闭或外部单 PID 处理路径。
+
+![浏览器确认操作后的 Host RPC 与安全处理时序](./docs/assets/api-request.svg)
+
+托管资源只调用对应的 Job/Terminal 生命周期 owner；外部目标则使用 PID、创建时间、端口等证据再次核验。无论操作成功、失败还是被拒绝，Host 都会在处理后重新扫描，并通过 `freshScan` 返回最新事实，避免界面继续展示旧状态。
+
+### Terminal 延迟 PID 如何完成归因
+
+部分 Stock DSH 与 Windows ConPTY 组合会先返回 `PID = 0` 的 `LocalTerminalHandle`。仅在精确版本和精确句柄形状均匹配时，兼容层才等待 PTY 发布正 PID，再通过 `processTree(PID)` 获取创建身份并补齐 `pid` 与 `rootIdentity`。
+
+![Terminal 从 PID 为零到完成归因的异步时序](./docs/assets/async-roundtrip.svg)
+
+原生句柄已经包含正 PID 时不会进入修复路径。句柄不受支持、Terminal 提前退出或等待超时时，能力会安全降级为 `unavailable`，不会写入未经验证的 PID，也不会据此建立 `verified` 归因。
+
 ## Agent 的只读能力
 
 项目提供只读 `port_list` Tool，帮助 Agent 诊断端口冲突，但模型不能通过该 Tool 直接执行进程操作。
