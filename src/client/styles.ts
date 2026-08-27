@@ -659,6 +659,8 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 
 .dsh-ri-port,
 .dsh-ri-detail-port {
+  display: flex;
+  align-items: center;
   color: var(--dsh-ri-label);
   font-family: var(--dsh-ri-font-mono);
   font-size: var(--dsh-ri-type-port);
@@ -666,6 +668,10 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   font-variant-numeric: tabular-nums;
   line-height: 1.25;
   white-space: nowrap;
+}
+
+.dsh-ri-port .dsh-ri-protocol {
+  margin-left: 5px;
 }
 
 .dsh-ri-protocol {
