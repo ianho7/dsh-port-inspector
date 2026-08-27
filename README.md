@@ -71,6 +71,16 @@ npm install
 
 脚本会安装当前版本的 `dsh-runtime-inspector`。完成后，完全退出并重新启动目标 DSH Web Profile。
 
+正式发布到 npm 后，普通用户无需克隆源码，直接在目标 DSH Profile 中安装：
+
+```powershell
+dsh plugin --profile web add dsh-runtime-inspector@latest
+# 或固定到某个版本
+dsh plugin --profile web add dsh-runtime-inspector@0.1.0
+```
+
+安装后完全退出并重新启动目标 DSH Web Profile；卸载时使用 `dsh plugin --profile web remove dsh-runtime-inspector`。
+
 ### 调查端口
 
 1. 创建一个新的 DSH Session，让 Agent 启动本地服务。
@@ -130,6 +140,38 @@ npm test
 核心 Windows MVP 已实现；确定性测试和真实 Stock DSH Web 路径已有通过记录。当前开发端口改动后的独立原生 G1–G6 fixture 因 Terminal listener readiness 仍需在环境恢复后复跑；新增 DSH、Node-PTY 版本或 Host/Browser 生命周期边界变更时，也仍需执行原生 G1–G6 release gate 和真实 Web smoke。
 
 完整的打包、Profile 安装、DSH 端口、PowerShell 外部端口和 opt-in smoke 步骤见[测试与手工验收指南](./docs/dsh-runtime-inspector-testing.md)。
+
+## 维护者发布
+
+`scripts/publish-release.ps1` 将检查、构建、测试、npm tarball、npm 发布和 GitHub Release 串成一个流程。默认只检查并生成 `.tgz`，不会发布或推送：
+
+```powershell
+.\scripts\publish-release.ps1 -DryRun
+```
+
+正式发布前，先确认 `package.json` 的版本已经提交，仓库工作树干净，并准备好实际的 `LICENSE` 文件、`repository.url`、npm 登录状态和 GitHub CLI 登录状态。需要运行真实 Stock DSH 门禁时：
+
+```powershell
+.\scripts\publish-release.ps1 `
+  -Version 0.1.0 `
+  -DshRepo 'D:\project\deepseek-harness' `
+  -RequireStockDshGates `
+  -DryRun
+```
+
+确认产物后执行完整发布。`-CreateTag` 和 `-PushTag` 是显式的 Git 写操作，脚本不会自动覆盖已有 Tag：
+
+```powershell
+.\scripts\publish-release.ps1 `
+  -Version 0.1.0 `
+  -DshRepo 'D:\project\deepseek-harness' `
+  -RequireStockDshGates `
+  -Publish `
+  -CreateTag `
+  -PushTag
+```
+
+脚本会把同一份 tarball 发布到 npm，并作为附件上传到 `v0.1.0` GitHub Release；已有 npm 版本不会被覆盖，已有 Release 会以 `--clobber` 更新附件。需要自定义 Release 文案时传入 `-ReleaseNotesPath`。脚本不自动修改版本号、不创建提交，也不替代 GitHub Actions 的 npm Trusted Publishing 配置。
 
 ### 更新工具链 Logo
 

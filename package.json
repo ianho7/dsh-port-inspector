@@ -2,6 +2,14 @@
   "name": "dsh-runtime-inspector",
   "version": "0.1.0",
   "description": "Windows Runtime Inspector Bundle for DeepSeek Harness",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ianho7/dsh-runtime-inspector.git"
+  },
+  "homepage": "https://github.com/ianho7/dsh-runtime-inspector#readme",
+  "bugs": {
+    "url": "https://github.com/ianho7/dsh-runtime-inspector/issues"
+  },
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
