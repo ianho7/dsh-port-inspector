@@ -5,7 +5,35 @@ import test from 'node:test'
 const source = await readFile(new URL('../src/client/panel.ts', import.meta.url), 'utf8')
 const slotsSource = await readFile(new URL('../src/client/slots.ts', import.meta.url), 'utf8')
 const stylesSource = await readFile(new URL('../src/client/styles.ts', import.meta.url), 'utf8')
+const previewStylesSource = await readFile(new URL('../designs/dsh-runtime-inspector/runtime-inspector-production.css', import.meta.url), 'utf8')
 const logoSource = await readFile(new URL('../src/client/toolchain-logos.ts', import.meta.url), 'utf8').catch(() => '')
+
+function normalizedCss(value) {
+  return value
+    .replace(/\/\*[\s\S]*?\*\//gu, '')
+    .replace(/\r/gu, '')
+    .replace(/\s+/gu, ' ')
+    .trim()
+}
+
+function productionCssFromSource(value) {
+  const marker = 'String.raw`'
+  const start = value.indexOf(marker)
+  const end = value.lastIndexOf('`')
+  assert.ok(start >= 0, 'the production stylesheet should use the tagged CSS source')
+  assert.ok(end > start + marker.length, 'the production stylesheet should have a complete CSS source')
+  return value.slice(start + marker.length, end)
+}
+
+function productionCssFromPreview(value) {
+  const startMarker = '.dsh-ri-entry,\n.dsh-ri-overlay,\n.dsh-ri-panel'
+  const endMarker = '\n.dsh-ri-prototype-'
+  const start = value.indexOf(startMarker)
+  const end = value.indexOf(endMarker, start)
+  assert.ok(start >= 0, 'the design preview should include the production stylesheet')
+  assert.ok(end > start, 'the design preview should keep prototype scaffolding after production CSS')
+  return value.slice(start, end)
+}
 
 test('Runtime Inspector panel exposes semantic stable controls and all required state labels', () => {
   for (const locator of [
@@ -132,12 +160,13 @@ test('Runtime Inspector modal follows the native DSH centered dialog chrome with
   assert.match(stylesSource, /\.dsh-ri-overlay\s*\{[\s\S]*?display:\s*flex[\s\S]*?align-items:\s*center[\s\S]*?justify-content:\s*center/su)
   assert.match(stylesSource, /\.dsh-ri-mask\s*\{[\s\S]*?backdrop-filter:\s*var\(--dsh-ri-mask-blur\)/su)
   assert.match(stylesSource, /\.dsh-ri-entry,\s*\.dsh-ri-overlay,\s*\.dsh-ri-panel\s*\{/su)
-  assert.match(stylesSource, /\.dsh-ri-panel\s*\{[\s\S]*?width:\s*1040px[\s\S]*?height:\s*min\(800px,\s*calc\(100vh - 48px\)\)[\s\S]*?border-radius:\s*24px/su)
-  assert.match(stylesSource, /\.dsh-ri-toolbar\s*\{[\s\S]*?display:\s*grid[\s\S]*?grid-template-columns:\s*minmax\(160px,\s*1fr\) repeat\(6,\s*auto\)/su)
-  assert.match(stylesSource, /@media\s*\(max-width:\s*960px\)[\s\S]*?\.dsh-ri-toolbar\s*\{[\s\S]*?display:\s*flex[\s\S]*?flex-wrap:\s*wrap/su)
+  assert.match(stylesSource, /\.dsh-ri-panel\s*\{[\s\S]*?width:\s*1120px[\s\S]*?height:\s*min\(840px,\s*calc\(100vh - 48px\)\)[\s\S]*?border-radius:\s*24px/su)
+  assert.match(stylesSource, /\.dsh-ri-toolbar\s*\{[\s\S]*?display:\s*flex[\s\S]*?flex-wrap:\s*wrap[\s\S]*?gap:\s*8px/su)
+  assert.match(stylesSource, /@media\s*\(max-width:\s*1040px\)[\s\S]*?\.dsh-ri-search\s*\{[\s\S]*?flex:\s*1 1 100%/su)
   assert.match(stylesSource, /--dsh-ri-shadow:\s*var\(--dsw-shadow-lv3/su)
-  assert.match(stylesSource, /\.dsh-ri-header\s*\{[\s\S]*?height:\s*54px/su)
-  assert.match(stylesSource, /\.dsh-ri-header-title\s*\{[\s\S]*?font-size:\s*16px/su)
+  assert.match(stylesSource, /\.dsh-ri-header\s*\{[\s\S]*?flex-wrap:\s*wrap[\s\S]*?min-height:\s*64px[\s\S]*?height:\s*auto/su)
+  assert.match(stylesSource, /\.dsh-ri-header-status\s*\{[^}]*flex:\s*1 1 auto/su)
+  assert.match(stylesSource, /\.dsh-ri-header-title\s*\{[\s\S]*?font-size:\s*var\(--dsh-ri-type-title\)/su)
   assert.doesNotMatch(source, /dsh-ri-nav/)
   assert.doesNotMatch(stylesSource, /dsh-ri-nav/)
   assert.doesNotMatch(source, /dsh-ri-summary/)
@@ -150,6 +179,46 @@ test('Runtime Inspector modal follows the native DSH centered dialog chrome with
   assert.match(stylesSource, /\.dsh-ri-detail-column\s*\{[\s\S]*?overflow-y:\s*auto/su)
   assert.doesNotMatch(stylesSource, /\.dsh-ri-panel\s*\{[^}]*top:/su)
   assert.doesNotMatch(stylesSource, /\.dsh-ri-panel\s*\{[^}]*right:/su)
+})
+
+test('readable typography gives the centered panel a responsive space budget', () => {
+  assert.match(stylesSource, /--dsh-ri-type-body:\s*14px/)
+  assert.match(stylesSource, /--dsh-ri-type-title:\s*22px/)
+  assert.match(stylesSource, /--dsh-ri-type-port:\s*16px/)
+  assert.match(stylesSource, /--dsh-ri-type-detail-port:\s*32px/)
+  assert.match(stylesSource, /--dsh-ri-font-sans:/)
+  assert.match(stylesSource, /--dsh-ri-font-mono:/)
+  assert.match(stylesSource, /font-family:\s*var\(--dsh-ri-font-sans\)/)
+  assert.match(source, /lang: translator\.locale/)
+  assert.match(stylesSource, /@media\s*\(max-width:\s*720px\)[\s\S]*?\.dsh-ri-panel\s*\{[\s\S]*?width:\s*calc\(100vw - 32px\)[\s\S]*?max-width:\s*calc\(100vw - 32px\)[\s\S]*?height:\s*calc\(100vh - 32px\)/su)
+  assert.match(stylesSource, /@media\s*\(max-width:\s*480px\)[\s\S]*?\.dsh-ri-panel\s*\{[\s\S]*?width:\s*calc\(100vw - 16px\)[\s\S]*?max-width:\s*calc\(100vw - 16px\)[\s\S]*?height:\s*calc\(100vh - 16px\)/su)
+})
+
+test('readable list and detail content reflows before it can overflow', () => {
+  assert.match(stylesSource, /\.dsh-ri-row-top,\s*\.dsh-ri-row-meta\s*\{[\s\S]*?flex-wrap:\s*wrap[\s\S]*?row-gap:\s*4px/su)
+  assert.match(stylesSource, /\.dsh-ri-source-pill,[\s\S]*?\.dsh-ri-action-pill\s*\{[\s\S]*?overflow:\s*hidden[\s\S]*?text-overflow:\s*ellipsis/su)
+  assert.match(stylesSource, /\.dsh-ri-pill-label\s*\{[\s\S]*?min-width:\s*0[\s\S]*?overflow:\s*hidden[\s\S]*?text-overflow:\s*ellipsis/su)
+  assert.match(stylesSource, /\.dsh-ri-technical-value\s*\{[\s\S]*?font-family:\s*var\(--dsh-ri-font-mono\)/su)
+  assert.match(stylesSource, /\.dsh-ri-row-address\s*\{[\s\S]*?display:\s*inline-block[\s\S]*?min-width:\s*0[\s\S]*?overflow:\s*hidden[\s\S]*?text-overflow:\s*ellipsis/su)
+  assert.match(stylesSource, /\.dsh-ri-fact\.is-technical\s+dd\s*\{[\s\S]*?font-family:\s*var\(--dsh-ri-font-mono\)/su)
+  assert.match(source, /className: 'dsh-ri-pill-label'/)
+  assert.match(source, /className: 'dsh-ri-row-address dsh-ri-technical-value'/)
+  assert.match(source, /dsh-ri-detail-subline'[\s\S]*?dsh-ri-technical-value/su)
+  assert.match(source, /identityItem\(t\('listenPort'\)[\s\S]*?true\)/su)
+  assert.match(source, /title: `\$\{row\.address\}:\$\{String\(row\.port\)\}`/)
+  assert.match(source, /technical: true/)
+  assert.match(stylesSource, /\.dsh-ri-detail-head\s*\{[\s\S]*?flex-wrap:\s*wrap/su)
+  assert.match(stylesSource, /\.dsh-ri-handling-card\s*\{[\s\S]*?flex-wrap:\s*wrap/su)
+  assert.match(stylesSource, /\.dsh-ri-fact dd\.is-multiline\s*\{[\s\S]*?line-height:\s*var\(--dsh-ri-leading-prose\)/su)
+  assert.match(stylesSource, /\.dsh-ri-confirm\s*\{[\s\S]*?width:\s*min\(480px,/su)
+})
+
+test('code-faithful design preview stays aligned with the production typography budget', () => {
+  assert.equal(
+    normalizedCss(productionCssFromPreview(previewStylesSource)),
+    normalizedCss(productionCssFromSource(stylesSource)),
+    'the design preview production segment should remain aligned with the Browser source',
+  )
 })
 
 test('Runtime Inspector confirmation keeps native dialog semantics and safe focus targets', () => {
@@ -165,20 +234,20 @@ test('installed panel keeps the approved hi-fi density and semantic palette unde
   assert.match(stylesSource, /--dsh-ri-accent:\s*#3066c7/)
   assert.match(stylesSource, /--dsh-ri-success:\s*#2f704f/)
   assert.match(stylesSource, /--dsh-ri-border:\s*#e2e5e9/)
-  assert.match(stylesSource, /\.dsh-ri-row-button\s*\{[^}]*padding:\s*9px 10px 8px/su)
-  assert.match(stylesSource, /\.dsh-ri-port,[\s\S]*?font-size:\s*13px/su)
-  assert.match(stylesSource, /\.dsh-ri-protocol\s*\{[^}]*height:\s*18px[^}]*font-size:\s*9px/su)
+  assert.match(stylesSource, /\.dsh-ri-row-button\s*\{[^}]*padding:\s*10px 11px 9px/su)
+  assert.match(stylesSource, /\.dsh-ri-port,[\s\S]*?font-size:\s*var\(--dsh-ri-type-port\)/su)
+  assert.match(stylesSource, /\.dsh-ri-protocol\s*\{[^}]*height:\s*20px[^}]*font-size:\s*var\(--dsh-ri-type-caption\)/su)
   assert.match(stylesSource, /\.dsh-ri-toolchain-line\s*\{[^}]*margin-top:\s*5px/su)
-  assert.match(stylesSource, /\.dsh-ri-executable\s*\{[^}]*font-size:\s*10\.5px/su)
-  assert.match(stylesSource, /\.dsh-ri-row-meta\s*\{[^}]*margin-top:\s*6px[^}]*font-size:\s*10px/su)
-  assert.match(stylesSource, /\.dsh-ri-source-pill,[\s\S]*?padding:\s*2px 7px[\s\S]*?font-size:\s*9\.5px/su)
-  assert.match(stylesSource, /\.dsh-ri-detail-section\s*\{[^}]*margin-top:\s*14px/su)
-  assert.match(stylesSource, /\.dsh-ri-detail-subline\s*\{[^}]*margin-top:\s*2px[^}]*font-size:\s*10\.5px/su)
-  assert.match(stylesSource, /\.dsh-ri-fact\s*\{[^}]*padding:\s*8px 10px 9px/su)
-  assert.match(stylesSource, /\.dsh-ri-fact dd\s*\{[^}]*font-size:\s*10\.5px/su)
+  assert.match(stylesSource, /\.dsh-ri-executable\s*\{[^}]*font-size:\s*var\(--dsh-ri-type-meta\)/su)
+  assert.match(stylesSource, /\.dsh-ri-row-meta\s*\{[^}]*margin-top:\s*6px[^}]*font-size:\s*var\(--dsh-ri-type-meta\)/su)
+  assert.match(stylesSource, /\.dsh-ri-source-pill,[\s\S]*?padding:\s*2px 7px[\s\S]*?font-size:\s*var\(--dsh-ri-type-caption\)/su)
+  assert.match(stylesSource, /\.dsh-ri-detail-section\s*\{[^}]*margin-top:\s*16px/su)
+  assert.match(stylesSource, /\.dsh-ri-detail-subline\s*\{[^}]*margin-top:\s*2px[^}]*font-size:\s*var\(--dsh-ri-type-meta\)/su)
+  assert.match(stylesSource, /\.dsh-ri-fact\s*\{[^}]*padding:\s*9px 11px 10px/su)
+  assert.match(stylesSource, /\.dsh-ri-fact dd\s*\{[^}]*font-size:\s*var\(--dsh-ri-type-label\)/su)
   assert.match(stylesSource, /\.dsh-ri-source-card,[\s\S]*?padding:\s*10px 11px/su)
   assert.match(stylesSource, /\.dsh-ri-source-facts\s*\{[\s\S]*?border:\s*0[\s\S]*?background:\s*transparent/su)
-  assert.match(stylesSource, /\.dsh-ri-source-copy,[\s\S]*?margin:\s*7px 0 0[\s\S]*?font-size:\s*10\.5px/su)
+  assert.match(stylesSource, /\.dsh-ri-source-copy,[\s\S]*?margin:\s*7px 0 0[\s\S]*?font-size:\s*var\(--dsh-ri-type-label\)/su)
   assert.doesNotMatch(stylesSource, /\.dsh-ri-row-button:focus-visible\s*\{[^}]*border-color:\s*var\(--dsh-ri-accent\)/su)
 })
 

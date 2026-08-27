@@ -361,31 +361,39 @@ test('real Stock DSH Web loads the Bundle, opens the panel, and rechecks an exte
         listHeight: listRect?.height,
         detailHeight: detailRect?.height,
         toolbarOverflow: toolbar === null ? undefined : toolbar.scrollWidth - toolbar.clientWidth,
+        panelOverflow: element.scrollWidth - element.clientWidth,
+        bodyOverflow: body === null ? undefined : body.scrollWidth - body.clientWidth,
         centeredOffset: Math.abs(element.getBoundingClientRect().x - ((window.innerWidth - element.getBoundingClientRect().width) / 2)),
         maskBackdropFilter: maskStyle?.backdropFilter,
         maskBackground: maskStyle?.backgroundColor,
       }
     })
-    assert.equal(modalChrome.width, '1040px')
+    assert.equal(modalChrome.width, '1120px')
     assert.equal(modalChrome.height, '672px')
     assert.equal(modalChrome.borderRadius, '24px')
     assert.equal(modalChrome.position, 'relative')
     assert.ok((modalChrome.centeredOffset ?? Number.POSITIVE_INFINITY) < 1, 'the modal should be centered instead of right-anchored')
     assert.equal(modalChrome.navCount, 0)
     assert.equal(modalChrome.headerTitle, 'Runtime Inspector')
-    assert.equal(modalChrome.headerHeight, '54px')
-    assert.equal(modalChrome.toolbarDisplay, 'grid')
+    assert.equal(modalChrome.headerHeight, '64px')
+    assert.equal(modalChrome.toolbarDisplay, 'flex')
     assert.equal(modalChrome.optionsOverflowY, 'hidden')
     assert.equal(modalChrome.listOverflowY, 'auto')
     assert.equal(modalChrome.detailOverflowY, 'auto')
     assert.equal(modalChrome.bodyOverflowY, 'hidden')
     assert.ok((modalChrome.toolbarOverflow ?? Number.POSITIVE_INFINITY) <= 0, `toolbar controls should fit without horizontal overflow (overflow=${String(modalChrome.toolbarOverflow)})`)
+    assert.ok((modalChrome.panelOverflow ?? Number.POSITIVE_INFINITY) <= 0, `the panel should contain its content horizontally (overflow=${String(modalChrome.panelOverflow)})`)
+    assert.ok((modalChrome.bodyOverflow ?? Number.POSITIVE_INFINITY) <= 0, `the body should contain its columns horizontally (overflow=${String(modalChrome.bodyOverflow)})`)
     assert.ok(Math.abs((modalChrome.listHeight ?? 0) - (modalChrome.detailHeight ?? 0)) < 1, 'list and detail columns should share a fixed viewport height')
     assert.notEqual(modalChrome.maskBackground, 'rgba(0, 0, 0, 0)')
     for (const viewportCase of [
-      { width: 1440, height: 900, panelWidth: '1040px', panelHeight: '800px' },
+      { width: 1440, height: 900, panelWidth: '1120px', panelHeight: '840px', bodyDisplay: 'grid' },
       { width: 1024, height: 768, panelWidth: '976px', panelHeight: '720px' },
-      { width: 800, height: 600, panelWidth: '752px', panelHeight: '552px' },
+      { width: 1000, height: 768, panelWidth: '952px', panelHeight: '720px' },
+      { width: 960, height: 768, panelWidth: '912px', panelHeight: '720px' },
+      { width: 800, height: 600, panelWidth: '752px', panelHeight: '552px', bodyDisplay: 'grid' },
+      { width: 720, height: 600, panelWidth: '688px', panelHeight: '568px', bodyDisplay: 'flex' },
+      { width: 480, height: 600, panelWidth: '464px', panelHeight: '584px', bodyDisplay: 'flex' },
     ]) {
       await page.setViewportSize({ width: viewportCase.width, height: viewportCase.height })
       const responsiveChrome = await panel.evaluate(element => {
@@ -394,14 +402,20 @@ test('real Stock DSH Web loads the Bundle, opens the panel, and rechecks an exte
           width: style.width,
           height: style.height,
           toolbarDisplay: getComputedStyle(element.querySelector('.dsh-ri-toolbar')).display,
+          bodyDisplay: getComputedStyle(element.querySelector('.dsh-ri-body')).display,
           toolbarOverflow: element.querySelector('.dsh-ri-toolbar').scrollWidth - element.querySelector('.dsh-ri-toolbar').clientWidth,
+          panelOverflow: element.scrollWidth - element.clientWidth,
+          bodyOverflow: element.querySelector('.dsh-ri-body').scrollWidth - element.querySelector('.dsh-ri-body').clientWidth,
         }
       })
       assert.deepEqual(responsiveChrome, {
         width: viewportCase.panelWidth,
         height: viewportCase.panelHeight,
-        toolbarDisplay: viewportCase.width <= 960 ? 'flex' : 'grid',
+        bodyDisplay: viewportCase.bodyDisplay ?? 'grid',
+        toolbarDisplay: 'flex',
         toolbarOverflow: 0,
+        panelOverflow: 0,
+        bodyOverflow: 0,
       })
     }
     await page.setViewportSize({ width: 1280, height: 720 })

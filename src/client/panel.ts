@@ -323,20 +323,24 @@ function sourceIcon(source: SourceState): React.ReactNode {
 
 function SourcePill({ row, snapshot, t }: { readonly row: HostListenerRow; readonly snapshot: HostInventorySnapshot; readonly t: RuntimeInspectorTranslator['t'] }): React.ReactNode {
   const source = sourceState(row, snapshot)
+  const label = sourceLabel(source, t)
   return React.createElement('span', {
     className: `dsh-ri-source-pill is-${source}`,
     'data-runtime-inspector-confidence': row.confidence,
     title: source === 'inferred' ? t('sourceInferredTitle') : sourceDescription(row, snapshot, t),
   },
   React.createElement('span', { className: 'dsh-ri-source-signal' }, sourceIcon(source)),
-  React.createElement('span', null, sourceLabel(source, t)),
+  React.createElement('span', { className: 'dsh-ri-pill-label' }, label),
   )
 }
 
 function ActionPill({ row, compact = false, t }: { readonly row: HostListenerRow; readonly compact?: boolean; readonly t: RuntimeInspectorTranslator['t'] }): React.ReactNode {
   const disabled = !isActionable(row)
   const tone = disabled ? 'is-disabled' : row.action.kind === 'managed-shutdown' ? 'is-managed' : 'is-external'
-  return React.createElement('span', { className: `dsh-ri-action-pill ${tone}` }, actionPillLabel(row.action.kind, compact, t))
+  const label = actionPillLabel(row.action.kind, compact, t)
+  return React.createElement('span', { className: `dsh-ri-action-pill ${tone}`, title: label },
+    React.createElement('span', { className: 'dsh-ri-pill-label' }, label),
+  )
 }
 
 function sortRows(rows: readonly HostListenerRow[], key: SortKey, direction: SortDirection): HostListenerRow[] {
@@ -495,9 +499,9 @@ function ListenerRow({
     ),
   ),
   React.createElement('div', { className: 'dsh-ri-row-meta' },
-    React.createElement('span', null, t('pidValue', { pid: row.pid })),
-    React.createElement('span', null, `${row.address}:${String(row.port)}`),
-    occurrenceCount > 1 ? React.createElement('span', { title: t('sameListenerRecordsTitle', { count: occurrenceCount }) }, `×${String(occurrenceCount)}`) : null,
+    React.createElement('span', { className: 'dsh-ri-technical-value' }, t('pidValue', { pid: row.pid })),
+    React.createElement('span', { className: 'dsh-ri-row-address dsh-ri-technical-value', title: `${row.address}:${String(row.port)}` }, `${row.address}:${String(row.port)}`),
+    occurrenceCount > 1 ? React.createElement('span', { className: 'dsh-ri-technical-value', title: t('sameListenerRecordsTitle', { count: occurrenceCount }) }, `×${String(occurrenceCount)}`) : null,
     React.createElement(ActionPill, { row, compact: true, t }),
   ),
   ),
@@ -518,13 +522,15 @@ function Fact({
   value,
   wide = false,
   multiline = false,
+  technical = false,
 }: {
   readonly label: string
   readonly value: string
   readonly wide?: boolean
   readonly multiline?: boolean
+  readonly technical?: boolean
 }): React.ReactNode {
-  return React.createElement('div', { className: `dsh-ri-fact${wide ? ' is-wide' : ''}` },
+  return React.createElement('div', { className: `dsh-ri-fact${wide ? ' is-wide' : ''}${technical ? ' is-technical' : ''}` },
     React.createElement('dt', null, label),
     React.createElement('dd', { className: multiline ? 'is-multiline' : undefined, title: value }, value),
   )
@@ -593,8 +599,12 @@ function DetailPanel({
             t('port', { port: row.port }),
             React.createElement('span', { className: 'dsh-ri-protocol' }, row.protocol),
           ),
-          React.createElement('div', { className: 'dsh-ri-detail-subline', title: row.executable ?? row.session?.tool ?? '' },
-            `${displayExecutable(row.executable ?? row.session?.tool, t)} · ${t('pidValue', { pid: row.pid })}`,
+          React.createElement('div', {
+            className: 'dsh-ri-detail-subline',
+            title: `${row.executable ?? row.session?.tool ?? t('unknownProcess')} · ${t('pidValue', { pid: row.pid })}`,
+          },
+            React.createElement('span', null, displayExecutable(row.executable ?? row.session?.tool, t)),
+            React.createElement('span', { className: 'dsh-ri-technical-value' }, ` · ${t('pidValue', { pid: row.pid })}`),
           ),
         ),
       ),
@@ -622,31 +632,31 @@ function DetailPanel({
     React.createElement('section', { className: 'dsh-ri-detail-section' },
       React.createElement('h3', { className: 'dsh-ri-section-title' }, t('sectionRuntimeInfo')),
       React.createElement('dl', { className: 'dsh-ri-fact-grid' },
-        React.createElement(Fact, { label: t('application'), value: row.executable ?? row.session?.tool ?? '—', wide: true, multiline: true }),
-        React.createElement(Fact, { label: t('pid'), value: String(row.pid) }),
-        React.createElement(Fact, { label: t('listenAddress'), value: `${row.address}:${String(row.port)}` }),
-        occurrenceCount > 1 ? React.createElement(Fact, { label: t('sameListener'), value: t('records', { count: occurrenceCount }) }) : null,
+        React.createElement(Fact, { label: t('application'), value: row.executable ?? row.session?.tool ?? '—', wide: true, multiline: true, technical: true }),
+        React.createElement(Fact, { label: t('pid'), value: String(row.pid), technical: true }),
+        React.createElement(Fact, { label: t('listenAddress'), value: `${row.address}:${String(row.port)}`, technical: true }),
+        occurrenceCount > 1 ? React.createElement(Fact, { label: t('sameListener'), value: t('records', { count: occurrenceCount }), technical: true }) : null,
         React.createElement(Fact, { label: t('createdAt'), value: formatProcessCreatedAt(row.processCreatedAt, locale), wide: occurrenceCount <= 1, multiline: true }),
-        React.createElement(Fact, { label: t('projectDirectory'), value: projectSummary(row, sessionContext), wide: true, multiline: true }),
-        React.createElement(Fact, { label: t('launchCommand'), value: attributionValue(row, 'command'), wide: true, multiline: true }),
+        React.createElement(Fact, { label: t('projectDirectory'), value: projectSummary(row, sessionContext), wide: true, multiline: true, technical: true }),
+        React.createElement(Fact, { label: t('launchCommand'), value: attributionValue(row, 'command'), wide: true, multiline: true, technical: true }),
       ),
     ),
     React.createElement('section', { className: 'dsh-ri-detail-section' },
       React.createElement('h3', { className: 'dsh-ri-section-title' }, t('sectionSessionContext')),
       React.createElement('dl', { className: 'dsh-ri-fact-grid' },
         React.createElement(Fact, { label: t('session'), value: sessionTitle(row, sessionContext, t) }),
-        React.createElement(Fact, { label: t('sessionId'), value: attributionValue(row, 'sessionId'), multiline: true }),
-        React.createElement(Fact, { label: t('callId'), value: callId(row), multiline: true }),
+        React.createElement(Fact, { label: t('sessionId'), value: attributionValue(row, 'sessionId'), multiline: true, technical: true }),
+        React.createElement(Fact, { label: t('callId'), value: callId(row), multiline: true, technical: true }),
         React.createElement(Fact, { label: t('userRequest'), value: requestSummary(row, sessionContext), wide: true, multiline: true }),
       ),
     ),
     React.createElement('section', { className: 'dsh-ri-detail-section' },
       React.createElement('h3', { className: 'dsh-ri-section-title' }, t('sectionToolCall')),
       React.createElement('dl', { className: 'dsh-ri-fact-grid' },
-        React.createElement(Fact, { label: t('agentId'), value: attributionValue(row, 'agentId'), multiline: true }),
-        React.createElement(Fact, { label: t('turnStep'), value: turnAndStep(row), multiline: true }),
-        React.createElement(Fact, { label: t('tool'), value: attributionValue(row, 'tool'), multiline: true }),
-        React.createElement(Fact, { label: t('rootCallId'), value: attributionValue(row, 'rootCallId'), multiline: true }),
+        React.createElement(Fact, { label: t('agentId'), value: attributionValue(row, 'agentId'), multiline: true, technical: true }),
+        React.createElement(Fact, { label: t('turnStep'), value: turnAndStep(row), multiline: true, technical: true }),
+        React.createElement(Fact, { label: t('tool'), value: attributionValue(row, 'tool'), multiline: true, technical: true }),
+        React.createElement(Fact, { label: t('rootCallId'), value: attributionValue(row, 'rootCallId'), multiline: true, technical: true }),
       ),
     ),
     React.createElement('section', { className: 'dsh-ri-detail-section' },
@@ -655,8 +665,8 @@ function DetailPanel({
         React.createElement(SourcePill, { row, snapshot, t }),
         React.createElement('p', { className: 'dsh-ri-source-copy' }, sourceDescription(row, snapshot, t)),
         React.createElement('dl', { className: 'dsh-ri-fact-grid dsh-ri-source-facts' },
-          React.createElement(Fact, { label: t('workdir'), value: attributionValue(row, 'workdir'), wide: true, multiline: true }),
-          React.createElement(Fact, { label: t('spawnType'), value: attributionValue(row, 'kind'), multiline: true }),
+          React.createElement(Fact, { label: t('workdir'), value: attributionValue(row, 'workdir'), wide: true, multiline: true, technical: true }),
+          React.createElement(Fact, { label: t('spawnType'), value: attributionValue(row, 'kind'), multiline: true, technical: true }),
         ),
         row.lifecycleOwner === undefined ? null : React.createElement('div', { className: 'dsh-ri-owner-line' },
           React.createElement('span', { className: 'dsh-ri-owner-label' }, t('lifecycle')),
@@ -677,10 +687,10 @@ function DetailPanel({
   )
 }
 
-function identityItem(label: string, value: string): React.ReactNode {
+function identityItem(label: string, value: string, technical = false): React.ReactNode {
   return React.createElement('div', { className: 'dsh-ri-confirm-identity-item' },
     React.createElement('span', { className: 'dsh-ri-confirm-identity-label' }, label),
-    React.createElement('span', { className: 'dsh-ri-confirm-identity-value', title: value }, value),
+    React.createElement('span', { className: `dsh-ri-confirm-identity-value${technical ? ' dsh-ri-technical-value' : ''}`, title: value }, value),
   )
 }
 
@@ -727,11 +737,11 @@ function ConfirmDialog({
     React.createElement('span', null, t('confirmIdentityNote')),
   ) : null,
   React.createElement('div', { className: 'dsh-ri-confirm-identity' },
-    identityItem(t('listenPort'), `${row.address}:${String(row.port)}`),
-    identityItem(t('pid'), String(row.pid)),
-    identityItem(t('createdAt'), formatProcessCreatedAt(row.processCreatedAt, locale)),
-    identityItem(t('application'), row.executable ?? t('unavailable')),
-    external ? null : identityItem(t('lifecycle'), row.lifecycleOwner === undefined ? t('unavailable') : `${row.lifecycleOwner.kind} · ${row.lifecycleOwner.id}`),
+    identityItem(t('listenPort'), `${row.address}:${String(row.port)}`, true),
+    identityItem(t('pid'), String(row.pid), true),
+    identityItem(t('createdAt'), formatProcessCreatedAt(row.processCreatedAt, locale), true),
+    identityItem(t('application'), row.executable ?? t('unavailable'), true),
+    external ? null : identityItem(t('lifecycle'), row.lifecycleOwner === undefined ? t('unavailable') : `${row.lifecycleOwner.kind} · ${row.lifecycleOwner.id}`, true),
   ),
   React.createElement('div', { className: 'dsh-ri-confirm-actions' },
     React.createElement('button', { ref: cancelButton, type: 'button', className: 'dsh-ri-secondary-action', title: t('cancel'), 'data-runtime-inspector-confirm': 'cancel', onClick: onCancel }, t('cancel')),
@@ -784,6 +794,7 @@ function SidebarEntry({ wide = true, onOpen, rpc, sessions, locale }: SidebarEnt
   return React.createElement('button', {
     type: 'button',
     className: `dsh-ri-entry${wide ? '' : ' is-compact'}`,
+    lang: translator.locale,
     title: wide ? 'Runtime Inspector' : t('entryCompactTitle', { indicator }),
     'aria-label': t('openPanelAria', { details: accessibleLabel }),
     'data-runtime-inspector-entry': 'open',
@@ -997,6 +1008,7 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
   React.createElement('section', {
     ref: panelRef,
     className: 'dsh-ri-panel',
+    lang: translator.locale,
     role: 'dialog',
     'aria-modal': true,
     'aria-labelledby': 'dsh-runtime-inspector-title',

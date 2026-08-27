@@ -2,6 +2,18 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 .dsh-ri-entry,
 .dsh-ri-overlay,
 .dsh-ri-panel {
+  --dsh-ri-font-sans: var(--dsw-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI"), "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --dsh-ri-font-mono: var(--dsw-font-mono, "SFMono-Regular", "Cascadia Code", "JetBrains Mono", Consolas, "Liberation Mono", monospace);
+  --dsh-ri-type-body: 14px;
+  --dsh-ri-type-control: 13px;
+  --dsh-ri-type-label: 12px;
+  --dsh-ri-type-meta: 11px;
+  --dsh-ri-type-caption: 10.5px;
+  --dsh-ri-type-title: 22px;
+  --dsh-ri-type-port: 16px;
+  --dsh-ri-type-detail-port: 32px;
+  --dsh-ri-leading-body: 1.55;
+  --dsh-ri-leading-prose: 1.7;
   --dsh-ri-bg: var(--dsw-alias-bg-layer-2, #ffffff);
   --dsh-ri-bg-muted: var(--dsw-alias-bg-layer-1, #f6f7f9);
   --dsh-ri-bg-raised: var(--dsw-alias-bg-layer-3, #ffffff);
@@ -23,9 +35,9 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   --dsh-ri-border-strong: #d9dde3;
   --dsh-ri-bg-panel: var(--dsw-alias-bg-layer-2, #ffffff);
   color: var(--dsh-ri-label);
-  font-family: var(--dsw-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif);
-  font-size: 13px;
-  line-height: 1.45;
+  font-family: var(--dsh-ri-font-sans);
+  font-size: var(--dsh-ri-type-body);
+  line-height: var(--dsh-ri-leading-body);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -113,8 +125,8 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   z-index: 1;
   display: flex;
   flex-direction: column;
-  width: 1040px;
-  height: min(800px, calc(100vh - 48px));
+  width: 1120px;
+  height: min(840px, calc(100vh - 48px));
   max-width: calc(100vw - 48px);
   overflow: hidden;
   border: 0;
@@ -150,11 +162,13 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 18px;
   flex: none;
   min-width: 0;
-  height: 54px;
-  padding: 20px 14px 8px 24px;
+  min-height: 64px;
+  height: auto;
+  padding: 18px 14px 10px 24px;
 }
 
 .dsh-ri-header-status,
@@ -165,7 +179,10 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 }
 
 .dsh-ri-header-status {
+  flex: 1 1 auto;
+  flex-wrap: wrap;
   gap: 10px;
+  row-gap: 4px;
 }
 
 .dsh-ri-header-actions {
@@ -177,9 +194,9 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 .dsh-ri-header-title {
   margin: 0;
   color: var(--dsh-ri-label);
-  font-size: 16px;
+  font-size: var(--dsh-ri-type-title);
   font-weight: 500;
-  line-height: 24px;
+  line-height: 1.2;
   white-space: nowrap;
 }
 
@@ -188,9 +205,11 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   align-items: center;
   gap: 6px;
   color: var(--dsh-ri-label-tertiary);
-  font-size: 12px;
+  max-width: 100%;
+  font-size: var(--dsh-ri-type-label);
   font-weight: 600;
-  white-space: nowrap;
+  line-height: 1.4;
+  white-space: normal;
 }
 
 .dsh-ri-status-pill.is-limited {
@@ -249,10 +268,10 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 }
 
 .dsh-ri-toolbar {
-  display: grid;
-  grid-template-columns: minmax(160px, 1fr) repeat(6, auto);
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
   min-width: 0;
   padding: 0 0 12px;
 }
@@ -260,8 +279,9 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 .dsh-ri-search {
   position: relative;
   display: flex;
+  flex: 1 1 260px;
   align-items: center;
-  min-width: 0;
+  min-width: 220px;
 }
 
 .dsh-ri-search-icon {
@@ -274,11 +294,12 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 .dsh-ri-search input,
 .dsh-ri-select,
 .dsh-ri-toolbar-button {
-  height: 32px;
+  height: 34px;
   border: 1px solid var(--dsh-ri-border);
   border-radius: 7px;
   color: var(--dsh-ri-label);
   background: var(--dsh-ri-bg);
+  font-size: var(--dsh-ri-type-control);
 }
 
 .dsh-ri-search input {
@@ -303,7 +324,7 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 }
 
 .dsh-ri-select {
-  min-width: 92px;
+  min-width: 100px;
   padding: 0 28px 0 10px;
 }
 
@@ -312,7 +333,7 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 0 10px;
+  padding: 0 11px;
   color: var(--dsh-ri-label-secondary);
   background: var(--dsh-ri-bg);
   cursor: pointer;
@@ -351,18 +372,19 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 
 .dsh-ri-control-label {
   color: var(--dsh-ri-label-tertiary);
-  font-size: 11px;
+  font-size: var(--dsh-ri-type-label);
   white-space: nowrap;
 }
 
 .dsh-ri-scope-option {
-  height: 28px;
-  padding: 0 8px;
+  height: 30px;
+  padding: 0 9px;
   border: 1px solid transparent;
   border-radius: 6px;
   color: var(--dsh-ri-label-tertiary);
   background: transparent;
   cursor: pointer;
+  font-size: var(--dsh-ri-type-control);
   white-space: nowrap;
 }
 
@@ -379,7 +401,7 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 }
 
 .dsh-ri-source-select {
-  min-width: 108px;
+  min-width: 126px;
 }
 
 .dsh-ri-action-toggle {
@@ -387,14 +409,14 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   flex: 0 0 auto;
   align-items: center;
   gap: 6px;
-  min-height: 30px;
-  padding: 0 3px;
+  min-height: 34px;
+  padding: 0 8px;
   border: 1px solid var(--dsh-ri-border);
   border-radius: 7px;
   color: var(--dsh-ri-label-secondary);
   background: var(--dsh-ri-bg);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--dsh-ri-type-control);
   white-space: nowrap;
 }
 
@@ -422,7 +444,8 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   border-radius: 8px;
   color: var(--dsh-ri-label-secondary);
   background: var(--dsh-ri-bg-muted);
-  font-size: 12px;
+  font-size: var(--dsh-ri-type-control);
+  line-height: var(--dsh-ri-leading-prose);
 }
 
 .dsh-ri-banner.is-limited,
@@ -441,7 +464,7 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 .dsh-ri-body {
   display: grid;
   flex: 1 1 auto;
-  grid-template-columns: minmax(350px, 0.82fr) minmax(500px, 1.18fr);
+  grid-template-columns: minmax(360px, 0.82fr) minmax(520px, 1.18fr);
   min-height: 0;
   overflow: hidden;
   border-top: 1px solid var(--dsh-ri-border-soft);
@@ -471,7 +494,7 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   gap: 10px;
   padding: 12px 15px 9px;
   color: var(--dsh-ri-label-secondary);
-  font-size: 12px;
+  font-size: var(--dsh-ri-type-label);
   font-weight: 600;
 }
 
@@ -505,7 +528,7 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   justify-content: space-between;
   padding: 6px 10px 5px;
   color: var(--dsh-ri-label-secondary);
-  font-size: 10.5px;
+  font-size: var(--dsh-ri-type-meta);
   font-weight: 650;
 }
 
@@ -528,7 +551,8 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   color: var(--dsh-ri-label-secondary);
   background: var(--dsh-ri-bg-muted);
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--dsh-ri-type-meta);
+  line-height: 1.5;
   text-align: left;
 }
 
@@ -540,8 +564,8 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 .dsh-ri-search-scope-note {
   margin: 0 10px 7px;
   color: var(--dsh-ri-label-tertiary);
-  font-size: 10px;
-  line-height: 1.5;
+  font-size: var(--dsh-ri-type-caption);
+  line-height: var(--dsh-ri-leading-prose);
 }
 
 .dsh-ri-row-button {
@@ -549,7 +573,7 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   -webkit-appearance: none;
   display: block;
   width: 100%;
-  padding: 9px 10px 8px;
+  padding: 10px 11px 9px;
   border: 1px solid transparent;
   border-radius: 9px;
   color: inherit;
@@ -627,24 +651,34 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   gap: 9px;
 }
 
+.dsh-ri-row-top,
+.dsh-ri-row-meta {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
 .dsh-ri-port,
 .dsh-ri-detail-port {
   color: var(--dsh-ri-label);
-  font-size: 13px;
+  font-family: var(--dsh-ri-font-mono);
+  font-size: var(--dsh-ri-type-port);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+  white-space: nowrap;
 }
 
 .dsh-ri-protocol {
   display: inline-flex;
   align-items: center;
-  height: 18px;
+  height: 20px;
   margin-left: 5px;
   padding: 0 5px;
   border: 1px solid var(--dsh-ri-border);
   border-radius: 5px;
   color: var(--dsh-ri-label-tertiary);
-  font-size: 9px;
+  font-family: var(--dsh-ri-font-mono);
+  font-size: var(--dsh-ri-type-caption);
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -670,15 +704,16 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 
 .dsh-ri-toolchain-name {
   color: var(--dsh-ri-label);
-  font-size: 11.5px;
+  font-size: var(--dsh-ri-type-label);
   font-weight: 650;
-  line-height: 1.25;
+  line-height: 1.35;
 }
 
 .dsh-ri-executable {
   overflow: hidden;
   color: var(--dsh-ri-label-secondary);
-  font-size: 10.5px;
+  font-size: var(--dsh-ri-type-meta);
+  line-height: 1.4;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -714,7 +749,8 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   gap: 7px;
   margin-top: 6px;
   color: var(--dsh-ri-label-tertiary);
-  font-size: 10px;
+  font-size: var(--dsh-ri-type-meta);
+  line-height: 1.45;
 }
 
 .dsh-ri-row-meta > span:not(.dsh-ri-action-pill) + span:not(.dsh-ri-action-pill)::before {
@@ -736,9 +772,32 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   border-radius: 999px;
   color: var(--dsh-ri-label-secondary);
   background: var(--dsh-ri-bg);
-  font-size: 9.5px;
+  overflow: hidden;
+  font-size: var(--dsh-ri-type-caption);
   font-weight: 600;
-  line-height: 1.25;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dsh-ri-pill-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dsh-ri-technical-value {
+  font-family: var(--dsh-ri-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.dsh-ri-row-address {
+  display: inline-block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -773,14 +832,16 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 }
 
 .dsh-ri-detail-column {
-  padding: 15px 16px 24px;
+  padding: 18px 18px 28px;
 }
 
 .dsh-ri-detail-head {
   align-items: flex-start;
+  flex-wrap: wrap;
 }
 
 .dsh-ri-detail-identity {
+  flex: 1 1 280px;
   gap: 11px;
 }
 
@@ -791,20 +852,22 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 .dsh-ri-detail-toolchain {
   margin-bottom: 2px;
   color: var(--dsh-ri-label-secondary);
-  font-size: 11px;
+  font-size: var(--dsh-ri-type-meta);
   font-weight: 650;
 }
 
 .dsh-ri-detail-port {
-  font-size: 18px;
-  letter-spacing: -0.01em;
+  font-size: var(--dsh-ri-type-detail-port);
+  letter-spacing: -0.02em;
+  line-height: 1.05;
 }
 
 .dsh-ri-detail-subline {
   overflow: hidden;
   margin-top: 2px;
   color: var(--dsh-ri-label-secondary);
-  font-size: 10.5px;
+  font-size: var(--dsh-ri-type-meta);
+  line-height: 1.5;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -816,16 +879,22 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 }
 
 .dsh-ri-detail-section {
-  margin-top: 14px;
+  margin-top: 16px;
 }
 
 .dsh-ri-section-title {
   margin: 0 0 7px;
   color: var(--dsh-ri-label-tertiary);
-  font-size: 10px;
+  font-size: var(--dsh-ri-type-meta);
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
+  line-height: 1.35;
+}
+
+.dsh-ri-panel:lang(zh) .dsh-ri-section-title {
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .dsh-ri-fact-grid {
@@ -840,7 +909,7 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 
 .dsh-ri-fact {
   min-width: 0;
-  padding: 8px 10px 9px;
+  padding: 9px 11px 10px;
   background: var(--dsh-ri-bg);
 }
 
@@ -851,21 +920,29 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 .dsh-ri-fact dt {
   margin-bottom: 2px;
   color: var(--dsh-ri-label-tertiary);
-  font-size: 9.5px;
+  font-size: var(--dsh-ri-type-caption);
+  line-height: 1.4;
 }
 
 .dsh-ri-fact dd {
   overflow: hidden;
   margin: 0;
   color: var(--dsh-ri-label-secondary);
-  font-size: 10.5px;
+  font-size: var(--dsh-ri-type-label);
+  line-height: 1.5;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.dsh-ri-fact.is-technical dd {
+  font-family: var(--dsh-ri-font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .dsh-ri-fact dd.is-multiline {
   white-space: normal;
   overflow-wrap: anywhere;
+  line-height: var(--dsh-ri-leading-prose);
 }
 
 .dsh-ri-source-facts {
@@ -898,14 +975,17 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 .dsh-ri-handling-copy {
   margin: 7px 0 0;
   color: var(--dsh-ri-label-secondary);
-  font-size: 10.5px;
+  font-size: var(--dsh-ri-type-label);
+  line-height: var(--dsh-ri-leading-prose);
 }
 
 .dsh-ri-owner-line {
+  flex-wrap: wrap;
   gap: 7px;
   margin-top: 10px;
   color: var(--dsh-ri-label-secondary);
-  font-size: 10.5px;
+  font-size: var(--dsh-ri-type-meta);
+  line-height: 1.5;
 }
 
 .dsh-ri-owner-label {
@@ -913,12 +993,14 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 }
 
 .dsh-ri-owner-pill {
+  min-width: 0;
+  max-width: 100%;
   overflow: hidden;
   padding: 3px 7px;
   border-radius: 5px;
   color: var(--dsh-ri-success);
   background: var(--dsh-ri-bg);
-  font-size: 11px;
+  font-size: var(--dsh-ri-type-meta);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -927,10 +1009,12 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 14px;
 }
 
 .dsh-ri-handling-content {
+  flex: 1 1 280px;
   min-width: 0;
 }
 
@@ -941,12 +1025,13 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  min-height: 32px;
+  min-height: 34px;
   padding: 0 11px;
   border-radius: 7px;
-  font-size: 10.5px;
+  font-size: var(--dsh-ri-type-control);
   font-weight: 600;
   cursor: pointer;
+  line-height: 1.35;
   white-space: nowrap;
 }
 
@@ -1013,13 +1098,15 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 
 .dsh-ri-empty-title {
   color: var(--dsh-ri-label-secondary);
+  font-size: var(--dsh-ri-type-label);
   font-weight: 600;
 }
 
 .dsh-ri-empty-copy {
   max-width: 260px;
   margin: 5px 0 0;
-  font-size: 12px;
+  font-size: var(--dsh-ri-type-control);
+  line-height: var(--dsh-ri-leading-prose);
 }
 
 .dsh-ri-confirm-backdrop {
@@ -1035,7 +1122,7 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 }
 
 .dsh-ri-confirm {
-  width: min(440px, calc(100% - 48px));
+  width: min(480px, calc(100% - 48px));
   max-height: 100%;
   overflow: auto;
   padding: 24px;
@@ -1048,15 +1135,16 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 .dsh-ri-confirm-title {
   margin: 0;
   color: var(--dsh-ri-label);
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 500;
-  line-height: 24px;
+  line-height: 1.35;
 }
 
 .dsh-ri-confirm-copy {
   margin: 8px 0 0;
   color: var(--dsh-ri-label-secondary);
-  font-size: 13px;
+  font-size: var(--dsh-ri-type-control);
+  line-height: var(--dsh-ri-leading-prose);
 }
 
 .dsh-ri-confirm-note {
@@ -1068,7 +1156,8 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   border-radius: 8px;
   color: var(--dsh-ri-warning);
   background: color-mix(in srgb, var(--dsh-ri-warning) 5%, var(--dsh-ri-bg));
-  font-size: 12px;
+  font-size: var(--dsh-ri-type-label);
+  line-height: var(--dsh-ri-leading-prose);
 }
 
 .dsh-ri-confirm-identity {
@@ -1091,7 +1180,7 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 .dsh-ri-confirm-identity-label {
   display: block;
   color: var(--dsh-ri-label-tertiary);
-  font-size: 11px;
+  font-size: var(--dsh-ri-type-meta);
 }
 
 .dsh-ri-confirm-identity-value {
@@ -1099,26 +1188,26 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   overflow: hidden;
   margin-top: 2px;
   color: var(--dsh-ri-label-secondary);
-  font-size: 12px;
+  font-size: var(--dsh-ri-type-label);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .dsh-ri-confirm-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
   margin-top: 18px;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 1040px) {
   .dsh-ri-panel {
     width: calc(100vw - 48px);
   }
 
   .dsh-ri-toolbar {
-    display: flex;
-    flex-wrap: wrap;
+    gap: 8px;
   }
 
   .dsh-ri-search {
@@ -1133,6 +1222,7 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 @media (max-width: 720px) {
   .dsh-ri-panel {
     width: calc(100vw - 32px);
+    max-width: calc(100vw - 32px);
     height: calc(100vh - 32px);
     border-radius: 20px;
   }
@@ -1165,6 +1255,7 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 @media (max-width: 480px) {
   .dsh-ri-panel {
     width: calc(100vw - 16px);
+    max-width: calc(100vw - 16px);
     height: calc(100vh - 16px);
     border-radius: 16px;
   }
