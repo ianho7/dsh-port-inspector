@@ -10,7 +10,7 @@ coverage/
 
 # Local logo download and normalization candidates
 /assets/toolchains/s2-candidates/
-/assets/logo-candidates/
+# /assets/logo-candidates/
 
 # npm is the authoritative package workflow for this repository
 /pnpm-lock.yaml
