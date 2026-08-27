@@ -39,6 +39,7 @@ import {
 } from './icons.js'
 import { loadPinnedListenerKeys, savePinnedListenerKeys, togglePinnedListenerKey } from './pinned-listeners.js'
 import { ToolchainLogo, toolchainName } from './toolchain-logos.js'
+import runtimeInspectorLogo from '../../assets/logo-candidates/A1-v4-rounded.png'
 
 interface SidebarEntryProps {
   readonly wide?: boolean
@@ -1022,7 +1023,16 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
         ? 'loading'
         : snapshot.scanComplete ? 'ready' : 'incomplete',
     },
-      React.createElement('h1', { className: 'dsh-ri-header-title', id: 'dsh-runtime-inspector-title' }, 'Runtime Inspector'),
+      React.createElement('div', { className: 'dsh-ri-brand' },
+        React.createElement('img', {
+          className: 'dsh-ri-brand-logo',
+          src: runtimeInspectorLogo,
+          alt: '',
+          'aria-hidden': true,
+          draggable: false,
+        }),
+        React.createElement('h1', { className: 'dsh-ri-header-title', id: 'dsh-runtime-inspector-title' }, 'Runtime Inspector'),
+      ),
       snapshot?.mode === 'read-only-degraded'
         ? React.createElement('span', { className: 'dsh-ri-status-pill is-limited' },
           React.createElement('span', { className: 'dsh-ri-status-dot' }),

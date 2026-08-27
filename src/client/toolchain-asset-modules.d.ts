@@ -8,6 +8,11 @@ declare module 'toolchain-assets/*.png' {
   export default source
 }
 
+declare module '*.png' {
+  const source: string
+  export default source
+}
+
 declare module 'toolchain-assets/*.ico' {
   const source: string
   export default source

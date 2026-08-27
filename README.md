@@ -1,6 +1,8 @@
-# DSH Runtime Inspector
-
-> DSH Web 内面向 Windows 本地开发的端口来源追踪与安全处理工具。
+<div align="center">
+  <img src="./assets/logo-candidates/A1-v4-rounded.png" alt="DSH Runtime Inspector logo" width="128" height="128">
+  <h1>DSH Runtime Inspector</h1>
+  <p>DSH Web 内面向 Windows 本地开发的端口来源追踪与安全处理工具。</p>
+</div>
 
 Coding Agent 启动 Vite、Next.js、Node API 或其他本地服务后，用户通常只能看到“某个端口被占用”，却不知道它来自哪个项目、哪个 DSH Session、哪次 Tool Call，也不知道应该停止 DSH 任务还是处理一个外部进程。
 

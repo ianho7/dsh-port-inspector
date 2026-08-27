@@ -185,6 +185,22 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   row-gap: 4px;
 }
 
+.dsh-ri-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.dsh-ri-brand-logo {
+  display: block;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  object-fit: contain;
+}
+
 .dsh-ri-header-actions {
   justify-content: flex-end;
   gap: 8px;
