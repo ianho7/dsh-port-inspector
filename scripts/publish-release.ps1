@@ -117,6 +117,7 @@ function Add-RequiredFile {
         [Parameter(Mandatory = $true)]
         [string]$Reason,
         [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
         [System.Collections.Generic.List[string]]$Missing
     )
 
@@ -144,6 +145,7 @@ function Add-ExportTargets {
         [Parameter(Mandatory = $true)]
         [string]$Label,
         [Parameter(Mandatory = $true)]
+        [AllowEmptyCollection()]
         [System.Collections.Generic.List[string]]$Missing
     )
 
