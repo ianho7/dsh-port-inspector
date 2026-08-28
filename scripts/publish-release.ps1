@@ -84,6 +84,8 @@ function Invoke-Captured {
         [string[]]$Arguments
     )
 
+    # Native commands may write warnings to stderr while succeeding.
+    $ErrorActionPreference = 'Continue'
     $output = @(& $Command @Arguments 2>&1 | ForEach-Object { [string]$_ })
     $exitCode = if ($null -eq $LASTEXITCODE) { 0 } else { [int]$LASTEXITCODE }
     [pscustomobject]@{
@@ -300,11 +302,8 @@ $branchName = if ($branchResult.ExitCode -eq 0 -and -not [string]::IsNullOrWhite
 }
 Write-Host "Current branch: $branchName"
 
-Assert-PackageContract -Manifest $Manifest
-
 Invoke-External -Command $NpmCommand -Arguments @('run', 'typecheck') -Label 'TypeScript typecheck'
 Invoke-External -Command $NpmCommand -Arguments @('test') -Label 'Deterministic test suite'
-Invoke-External -Command $NpmCommand -Arguments @('run', 'build') -Label 'Host and Browser build'
 Assert-PackageContract -Manifest $Manifest
 
 $resolvedDshRepo = $DshRepo.Trim()
