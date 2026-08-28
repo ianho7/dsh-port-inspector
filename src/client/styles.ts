@@ -766,6 +766,15 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   font-size: 13px;
 }
 
+.dsh-ri-compose-logo {
+  display: block;
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  opacity: 0.78;
+}
+
 .dsh-ri-row-meta {
   gap: 7px;
   margin-top: 6px;
@@ -793,6 +802,26 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   border-radius: 999px;
   color: var(--dsh-ri-label-secondary);
   background: var(--dsh-ri-bg);
+  overflow: hidden;
+  font-size: var(--dsh-ri-type-caption);
+  font-weight: 600;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dsh-ri-compose-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 2px 7px;
+  border: 1px solid var(--dsh-ri-border);
+  border-color: color-mix(in srgb, var(--dsh-ri-label-secondary) 32%, var(--dsh-ri-border));
+  border-radius: 999px;
+  color: var(--dsh-ri-label-secondary);
+  background: var(--dsh-ri-bg-muted);
   overflow: hidden;
   font-size: var(--dsh-ri-type-caption);
   font-weight: 600;

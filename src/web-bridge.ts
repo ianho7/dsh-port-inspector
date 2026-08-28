@@ -55,8 +55,12 @@ function readString(value: unknown, field: string): string {
   return value[field] as string
 }
 
-function readBodyRequest(value: unknown): { readonly listenerId: string } {
-  return { listenerId: readString(value, 'listenerId') }
+function readBodyRequest(value: unknown): { readonly listenerId: string; readonly currentSessionId?: string } {
+  if (!isRecord(value)) throw new Error('invalid listener request')
+  return {
+    listenerId: readString(value, 'listenerId'),
+    ...value.currentSessionId === undefined ? {} : { currentSessionId: readString(value, 'currentSessionId') },
+  }
 }
 
 function readActionRequest(value: unknown): HostActionRequest {
@@ -74,6 +78,7 @@ function readActionRequest(value: unknown): HostActionRequest {
     kind,
     ...value.confirmed === undefined ? {} : { confirmed: value.confirmed },
     ...value.currentSessionId === undefined ? {} : { currentSessionId: readString(value, 'currentSessionId') },
+    ...value.currentProject === undefined ? {} : { currentProject: readString(value, 'currentProject') },
   }
 }
 

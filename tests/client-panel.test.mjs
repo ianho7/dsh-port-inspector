@@ -133,6 +133,18 @@ test('toolchain logos are bundled locally for compact rows and details', () => {
   assert.match(stylesSource, /\.dsh-ri-toolchain-logo/)
 })
 
+test('Compose associations show independent evidence and product/context logos', () => {
+  assert.match(source, /row\.compose === undefined \? null : React\.createElement\(ComposePill/)
+  assert.match(source, /data-runtime-inspector-compose-details/)
+  assert.match(source, /row\.compose\.relativeComposeFile/)
+  assert.match(source, /row\.compose\.containerId/)
+  assert.match(source, /handlingComposeReadOnly/)
+  assert.match(source, /snapshot\.composeStatus === 'unavailable'/)
+  assert.match(source, /ComposeContextLogo/)
+  assert.match(logoSource, /ComposeContextLogo/)
+  assert.match(stylesSource, /\.dsh-ri-compose-pill/)
+})
+
 test('pin controls stay dormant without removing the saved pin model', () => {
   assert.match(source, /data-runtime-inspector-pin/)
   assert.match(source, /row\.development\.stableKey/)

@@ -2,7 +2,7 @@ import type { ProcessOrigin } from './attribution.js'
 import type { ListenerRecord } from './windows-scanner.js'
 
 export type DevelopmentGroup = 'current-project' | 'development-environment' | 'other'
-export type DevelopmentReason = 'current-session' | 'current-project' | 'project' | 'toolchain' | 'runtime'
+export type DevelopmentReason = 'current-session' | 'current-project' | 'compose-project' | 'project' | 'toolchain' | 'runtime'
 
 export type ToolchainId =
   | 'vite'
@@ -98,6 +98,20 @@ function executableToolchain(executable: string | undefined): ToolchainId | unde
   return undefined
 }
 
+function imageToolchain(image: string | undefined): ToolchainId | undefined {
+  if (image === undefined) return undefined
+  const withoutDigest = image.split('@', 1)[0]
+  const lastPathSegment = withoutDigest?.slice((withoutDigest.lastIndexOf('/') + 1))
+  const repository = lastPathSegment?.replace(/:[^:]+$/u, '').toLocaleLowerCase()
+  if (repository === undefined) return undefined
+  if (/^(?:postgres|postgresql)$/u.test(repository)) return 'postgresql'
+  if (/^redis$/u.test(repository)) return 'redis'
+  if (/^mysql$/u.test(repository)) return 'mysql'
+  if (/^mariadb$/u.test(repository)) return 'mariadb'
+  if (/^mongo(?:db)?$/u.test(repository)) return 'mongodb'
+  return undefined
+}
+
 const runtimeToolchains = new Set<ToolchainId>([
   'nodejs', 'bun', 'deno', 'python', 'java', 'dotnet', 'go', 'rust', 'php', 'ruby',
 ])
@@ -105,6 +119,13 @@ const runtimeToolchains = new Set<ToolchainId>([
 function stablePart(value: string | undefined): string {
   const part = basename(value)?.replace(/[^a-z0-9._-]+/giu, '-')
   return part === undefined || part.length === 0 ? 'unknown' : part.slice(0, 96)
+}
+
+function stableComposePart(value: string | undefined): string {
+  if (value === undefined || value.length === 0) return 'unknown'
+  const normalized = value.replaceAll('\\', '/').replace(/^\.\//u, '')
+  const part = normalized.replace(/[^a-z0-9._/-]+/giu, '-').replaceAll('/', '-')
+  return part.length === 0 ? 'unknown' : part.slice(0, 96)
 }
 
 function stableProjectPart(value: string): string {
@@ -121,6 +142,7 @@ export function projectDevelopmentPresentation(
   row: ListenerRecord,
   origin: ProcessOrigin | undefined,
   context: DevelopmentPresentationContext,
+  compose?: { readonly image?: string; readonly relativeComposeFile?: string; readonly service?: string },
 ): DevelopmentPresentation {
   const project = origin?.workdir ?? row.project
   const currentSession = origin !== undefined
@@ -128,22 +150,26 @@ export function projectDevelopmentPresentation(
     && origin.sessionId === context.currentSessionId
   const currentProject = normalizedPath(project) !== undefined
     && normalizedPath(project) === normalizedPath(context.currentProject)
-  const toolchain = commandToolchain(origin?.command) ?? executableToolchain(row.executable)
+  const toolchain = imageToolchain(compose?.image)
+    ?? (compose === undefined ? commandToolchain(origin?.command) ?? executableToolchain(row.executable) : 'docker')
   const reasons: DevelopmentReason[] = []
   if (currentSession) reasons.push('current-session')
   if (currentProject) reasons.push('current-project')
-  if (!currentSession && !currentProject && normalizedPath(project) !== undefined) reasons.push('project')
-  if (!currentSession && !currentProject && toolchain !== undefined) {
+  if (compose !== undefined) reasons.push('compose-project')
+  if (!currentSession && !currentProject && compose === undefined && normalizedPath(project) !== undefined) reasons.push('project')
+  if (!currentSession && !currentProject && compose === undefined && toolchain !== undefined) {
     reasons.push(runtimeToolchains.has(toolchain) ? 'runtime' : 'toolchain')
   }
 
-  const group: DevelopmentGroup = currentSession || currentProject
+  const group: DevelopmentGroup = currentSession || currentProject || compose !== undefined
     ? 'current-project'
     : toolchain !== undefined || normalizedPath(project) !== undefined ? 'development-environment' : 'other'
   const identity = toolchain ?? stablePart(row.executable)
-  const stableKey = normalizedPath(project) === undefined
-    ? `application:${identity}`
-    : `project:${stableProjectPart(project as string)}:${identity}`
+  const stableKey = compose !== undefined
+    ? `project:compose-${stableComposePart(compose.relativeComposeFile)}-${stablePart(compose.service)}:${identity}`
+    : normalizedPath(project) === undefined
+      ? `application:${identity}`
+      : `project:${stableProjectPart(project as string)}:${identity}`
 
   return Object.freeze({
     group,

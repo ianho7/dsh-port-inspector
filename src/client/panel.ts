@@ -38,7 +38,7 @@ import {
   IconSearch,
 } from './icons.js'
 import { loadPinnedListenerKeys, savePinnedListenerKeys, togglePinnedListenerKey } from './pinned-listeners.js'
-import { ToolchainLogo, toolchainName } from './toolchain-logos.js'
+import { ComposeContextLogo, ToolchainLogo, toolchainName } from './toolchain-logos.js'
 import runtimeInspectorLogo from '../../assets/logo-candidates/A1-v4-rounded.png'
 
 interface SidebarEntryProps {
@@ -79,6 +79,11 @@ const EMPTY_SESSION_LIST: RuntimeInspectorSessionListLike = Object.freeze({ byId
 const EMPTY_CONVERSATION: RuntimeInspectorConversationLike = Object.freeze({ nodes: Object.freeze([]), runningCalls: Object.freeze([]) })
 const noopSubscribe = (): (() => void) => () => {}
 const ENTRY_BADGE_REFRESH_MS = 5_000
+
+function shortContainerId(value: string | undefined): string {
+  if (value === undefined || value.length <= 12) return value ?? '—'
+  return `${value.slice(0, 12)}…`
+}
 
 interface EntryBadgeSnapshot {
   readonly contextKey: string
@@ -299,6 +304,7 @@ function handlingDescription(row: HostListenerRow, snapshot: HostInventorySnapsh
   if (snapshot.mode === 'read-only-degraded' && row.action.kind !== 'external-single-pid') {
     return t('handlingDegraded')
   }
+  if (row.compose !== undefined) return t('handlingComposeReadOnly')
   switch (row.action.kind) {
     case 'managed-shutdown':
       return t('handlingManaged')
@@ -311,6 +317,17 @@ function handlingDescription(row: HostListenerRow, snapshot: HostInventorySnapsh
     case 'degraded':
       return t('handlingDegraded')
   }
+}
+
+function ComposePill({ t }: { readonly t: RuntimeInspectorTranslator['t'] }): React.ReactNode {
+  return React.createElement('span', {
+    className: 'dsh-ri-compose-pill',
+    title: t('composeAssociation'),
+    'data-runtime-inspector-compose': 'associated',
+  },
+  React.createElement(ComposeContextLogo, { size: 'compact' }),
+  React.createElement('span', { className: 'dsh-ri-pill-label' }, t('composeAssociation')),
+  )
 }
 
 function sourceIcon(source: SourceState): React.ReactNode {
@@ -371,6 +388,9 @@ function rowSearchText(row: HostListenerRow): string {
     row.address,
     row.executable,
     row.project,
+    row.compose?.relativeComposeFile,
+    row.compose?.service,
+    row.compose?.image,
     row.sessionVisibility,
     row.confidence,
     row.session?.sessionId,
@@ -482,12 +502,13 @@ function ListenerRow({
     'data-runtime-inspector-select': row.listenerId,
     onClick: () => { onSelect(row.listenerId) },
   },
-  React.createElement('div', { className: 'dsh-ri-row-top' },
+    React.createElement('div', { className: 'dsh-ri-row-top' },
     React.createElement('span', { className: 'dsh-ri-port' },
       t('port', { port: row.port }),
       React.createElement('span', { className: 'dsh-ri-protocol' }, row.protocol),
     ),
     React.createElement(SourcePill, { row, snapshot, t }),
+    row.compose === undefined ? null : React.createElement(ComposePill, { t }),
   ),
   React.createElement('div', { className: 'dsh-ri-toolchain-line' },
     React.createElement(ToolchainLogo, { toolchain, size: 'compact' }),
@@ -586,7 +607,7 @@ function DetailPanel({
       title: `${actionLabel(row.action.kind, t)}: ${t('port', { port: row.port })}`,
       'data-runtime-inspector-action': row.action.kind,
       disabled: actionDisabled,
-      onClick: () => { onRequest({ listenerId: row.listenerId, kind: row.action.kind }) },
+      onClick: () => { onRequest({ listenerId: row.listenerId, kind: row.action.kind, ...sessionContext.cwd === undefined ? {} : { currentProject: sessionContext.cwd } }) },
     }, actionLabel(row.action.kind, t))
     : null
 
@@ -596,6 +617,7 @@ function DetailPanel({
         React.createElement(ToolchainLogo, { toolchain, size: 'detail' }),
         React.createElement('div', { className: 'dsh-ri-detail-head-copy' },
           name === undefined ? null : React.createElement('div', { className: 'dsh-ri-detail-toolchain' }, name),
+          row.compose === undefined ? null : React.createElement(ComposePill, { t }),
           React.createElement('div', { className: 'dsh-ri-detail-port' },
             t('port', { port: row.port }),
           ),
@@ -640,6 +662,16 @@ function DetailPanel({
         React.createElement(Fact, { label: t('createdAt'), value: formatProcessCreatedAt(row.processCreatedAt, locale), wide: occurrenceCount <= 1, multiline: true }),
         React.createElement(Fact, { label: t('projectDirectory'), value: projectSummary(row, sessionContext), wide: true, multiline: true, technical: true }),
         React.createElement(Fact, { label: t('launchCommand'), value: attributionValue(row, 'command'), wide: true, multiline: true, technical: true }),
+      ),
+    ),
+    row.compose === undefined ? null : React.createElement('section', { className: 'dsh-ri-detail-section', 'data-runtime-inspector-compose-details': 'associated' },
+      React.createElement('h3', { className: 'dsh-ri-section-title' }, t('composeDetails')),
+      React.createElement('dl', { className: 'dsh-ri-fact-grid' },
+        React.createElement(Fact, { label: t('composeFile'), value: row.compose.relativeComposeFile, wide: true, multiline: true, technical: true }),
+        React.createElement(Fact, { label: t('composeService'), value: row.compose.service, technical: true }),
+        React.createElement(Fact, { label: t('composeImage'), value: row.compose.image, wide: true, multiline: true, technical: true }),
+        React.createElement(Fact, { label: t('composeContainer'), value: shortContainerId(row.compose.containerId), wide: true, multiline: true, technical: true }),
+        React.createElement(Fact, { label: t('composeMapping'), value: `${String(row.compose.hostPort)}:${String(row.compose.containerPort ?? '?')}/${row.compose.protocol}`, technical: true }),
       ),
     ),
     React.createElement('section', { className: 'dsh-ri-detail-section' },
@@ -945,7 +977,10 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
   })))
 
   const copyDetails = (row: HostListenerRow): void => {
-    void rpc.copyDetails({ listenerId: row.listenerId }).then(result => {
+    void rpc.copyDetails({
+      listenerId: row.listenerId,
+      ...sessionContext.sessionId === undefined ? {} : { currentSessionId: sessionContext.sessionId },
+    }).then(result => {
       setState(previous => ({
         ...previous,
         actionResult: result.ok && result.copied
@@ -958,7 +993,10 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
   }
 
   const openDirectory = (row: HostListenerRow): void => {
-    void rpc.openProjectDirectory({ listenerId: row.listenerId }).then(result => {
+    void rpc.openProjectDirectory({
+      listenerId: row.listenerId,
+      ...sessionContext.sessionId === undefined ? {} : { currentSessionId: sessionContext.sessionId },
+    }).then(result => {
       setState(previous => ({ ...previous, actionResult: openDirectoryResultMessage(result, t) }))
     }, error => {
       setState(previous => ({ ...previous, error: error instanceof Error ? error.message : String(error) }))
@@ -1166,6 +1204,7 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
     ),
     state.loading === true ? React.createElement('div', { className: 'dsh-ri-banner', role: 'status' }, IconRefresh({ size: 14 }), t('updatingPortStatus')) : null,
     snapshot.mode === 'read-only-degraded' ? React.createElement('div', { className: 'dsh-ri-banner is-limited', role: 'status' }, IconInfo({ size: 14 }), t('sourceDegradedBanner')) : null,
+    snapshot.composeStatus === 'unavailable' ? React.createElement('div', { className: 'dsh-ri-banner is-limited', role: 'status', 'data-runtime-inspector-compose-state': 'unavailable' }, IconInfo({ size: 14 }), t('composeUnavailableBanner')) : null,
     !snapshot.scanComplete && snapshot.mode !== 'read-only-degraded' ? React.createElement('div', { className: 'dsh-ri-banner is-limited', role: 'status', 'data-runtime-inspector-state': 'incomplete' }, IconInfo({ size: 14 }), t('scanIncompleteBanner')) : null,
     snapshot.truncated ? React.createElement('div', { className: 'dsh-ri-banner', role: 'status' }, IconInfo({ size: 14 }), t('truncatedBanner')) : null,
     state.actionResult === undefined ? null : React.createElement('div', {

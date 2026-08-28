@@ -40,6 +40,7 @@ import {
   type RuntimeInspectorWebServer,
 } from './web-bridge.js'
 import { createRuntimeInspectorDshAdapters } from './dsh-adapters.js'
+import { createComposeRuntimeAssociationReader } from './compose-association.js'
 
 export { evaluateCompatibility, SUPPORTED_DSH_VERSION }
 export type * from './compatibility.js'
@@ -74,6 +75,7 @@ export {
   type HostActionResult,
   type HostActionState,
   type HostActionStatus,
+  type HostComposeAssociation,
   type HostCopyResult,
   type HostExternalOutcome,
   type HostInventoryMode,
@@ -81,6 +83,7 @@ export {
   type HostInventorySnapshot,
   type HostLifecycleOwner,
   type HostListenerAttribution,
+  type HostListenerRequest,
   type HostListenerRow,
   type HostManagedOutcome,
   type HostOpenDirectoryResult,
@@ -99,6 +102,17 @@ export {
   type RuntimeInspectorWebRoute,
   type RuntimeInspectorWebServer,
 } from './web-bridge.js'
+export {
+  composeAssociationForPort,
+  createComposeRuntimeAssociationReader,
+  type ComposeAssociation,
+  type ComposeCommandResult,
+  type ComposeDockerRunner,
+  type ComposeRuntimeAssociationOptions,
+  type ComposeRuntimeAssociationReader,
+  type ComposeRuntimeRead,
+  type ComposeRuntimeStatus,
+} from './compose-association.js'
 
 export const name = 'dsh-runtime-inspector'
 export const inject = ['tools'] as const
@@ -197,6 +211,24 @@ function sessionIdForHost(ctx: PluginContext): string | undefined {
   return undefined
 }
 
+function workspaceForHost(ctx: PluginContext, sessionId: string | undefined): string | undefined {
+  if (sessionId === undefined) return undefined
+  try {
+    const sessions = ctx.get?.('sessions')
+    if (sessions === null || typeof sessions !== 'object') return undefined
+    const get = (sessions as { readonly get?: unknown }).get
+    if (typeof get !== 'function') return undefined
+    const session = (get as (id: string) => unknown).call(sessions, sessionId)
+    if (session === null || typeof session !== 'object') return undefined
+    const header = (session as { readonly header?: unknown }).header
+    if (header === null || typeof header !== 'object') return undefined
+    const cwd = (header as { readonly cwd?: unknown }).cwd
+    return typeof cwd === 'string' && cwd.length > 0 ? cwd : undefined
+  } catch {
+    return undefined
+  }
+}
+
 function readSubprocessProbe(ctx: PluginContext): {
   subprocessProvider: string | undefined
   hasSpawn: boolean
@@ -218,6 +250,7 @@ export function apply(ctx: PluginContext): void {
   const registry = new ProcessOriginRegistry()
   const lifecycle = new LifecycleOwnerRegistry(registry)
   const scanner = createWindowsListenerScanner()
+  const compose = createComposeRuntimeAssociationReader()
   const attribution = new RuntimeAttribution({
     registry,
     lifecycle,
@@ -260,10 +293,12 @@ export function apply(ctx: PluginContext): void {
       ? 'observing'
       : 'read-only-degraded',
     currentSessionId: () => sessionIdForHost(ctx),
+    currentWorkspace: sessionId => workspaceForHost(ctx, sessionId),
     shutdown: (originId, options) => lifecycle.shutdown(originId, options),
     terminateExternal: (target, request) => externalTerminator.terminate(target, request),
     openDirectory: dshAdapters.openDirectory,
     openDirectoryAvailable: dshAdapters.openDirectoryAvailable,
+    compose,
   })
   let unregisterWebRoute: (() => void) | undefined
   const registerWebRouteWhenAvailable = (server: RuntimeInspectorWebServer | undefined): void => {

@@ -63,3 +63,16 @@ export function ToolchainLogo({
     draggable: false,
   })
 }
+
+/** Small local Docker mark used only to identify the Compose context. */
+export function ComposeContextLogo({ size }: { readonly size: ToolchainLogoSize }): React.ReactNode {
+  const logo = localLogos.docker
+  if (logo === undefined) return null
+  return React.createElement('img', {
+    className: `dsh-ri-compose-logo is-${size}`,
+    src: logo,
+    alt: '',
+    'aria-hidden': true,
+    draggable: false,
+  })
+}

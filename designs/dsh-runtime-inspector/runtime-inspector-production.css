@@ -206,6 +206,22 @@
   row-gap: 4px;
 }
 
+.dsh-ri-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.dsh-ri-brand-logo {
+  display: block;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  object-fit: contain;
+}
+
 .dsh-ri-header-actions {
   justify-content: flex-end;
   gap: 8px;
@@ -682,6 +698,8 @@
 
 .dsh-ri-port,
 .dsh-ri-detail-port {
+  display: flex;
+  align-items: center;
   color: var(--dsh-ri-label);
   font-family: var(--dsh-ri-font-mono);
   font-size: var(--dsh-ri-type-port);
@@ -691,11 +709,14 @@
   white-space: nowrap;
 }
 
+.dsh-ri-port .dsh-ri-protocol {
+  margin-left: 5px;
+}
+
 .dsh-ri-protocol {
   display: inline-flex;
   align-items: center;
   height: 20px;
-  margin-left: 5px;
   padding: 0 5px;
   border: 1px solid var(--dsh-ri-border);
   border-radius: 5px;
@@ -769,6 +790,15 @@
   font-size: 13px;
 }
 
+.dsh-ri-compose-logo {
+  display: block;
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  opacity: 0.78;
+}
+
 .dsh-ri-row-meta {
   gap: 7px;
   margin-top: 6px;
@@ -796,6 +826,26 @@
   border-radius: 999px;
   color: var(--dsh-ri-label-secondary);
   background: var(--dsh-ri-bg);
+  overflow: hidden;
+  font-size: var(--dsh-ri-type-caption);
+  font-weight: 600;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dsh-ri-compose-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 2px 7px;
+  border: 1px solid var(--dsh-ri-border);
+  border-color: color-mix(in srgb, var(--dsh-ri-label-secondary) 32%, var(--dsh-ri-border));
+  border-radius: 999px;
+  color: var(--dsh-ri-label-secondary);
+  background: var(--dsh-ri-bg-muted);
   overflow: hidden;
   font-size: var(--dsh-ri-type-caption);
   font-weight: 600;

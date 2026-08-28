@@ -46,12 +46,21 @@ export type RuntimeInspectorMessageKey =
   | 'sourceInferredDescription'
   | 'sourceUnattributedDescription'
   | 'sourceDegradedDescription'
+  | 'composeAssociation'
+  | 'composeDetails'
+  | 'composeFile'
+  | 'composeService'
+  | 'composeImage'
+  | 'composeContainer'
+  | 'composeMapping'
+  | 'composeUnavailableBanner'
   | 'handlingScanIncomplete'
   | 'handlingDegraded'
   | 'handlingManaged'
   | 'handlingExternal'
   | 'handlingIdentityIncomplete'
   | 'handlingReadOnly'
+  | 'handlingComposeReadOnly'
   | 'openDirectorySuccess'
   | 'openDirectoryListenerNotFound'
   | 'openDirectoryProjectUnavailable'
@@ -190,12 +199,21 @@ const messages: Record<RuntimeInspectorLocale, Record<RuntimeInspectorMessageKey
     sourceInferredDescription: '发现 DSH 线索，但尚未确认启动方。',
     sourceUnattributedDescription: '当前扫描未确认启动方。',
     sourceDegradedDescription: '来源追踪当前不可用；这里的状态不代表单个进程已经完成来源判断。',
+    composeAssociation: 'Compose 项目关联已确认',
+    composeDetails: 'Compose 运行时证据',
+    composeFile: 'Compose 文件',
+    composeService: '服务',
+    composeImage: '镜像',
+    composeContainer: '容器 ID',
+    composeMapping: '端口映射',
+    composeUnavailableBanner: 'Compose 运行时暂不可用；监听扫描仍可继续，关联信息将在下次刷新重试。',
     handlingScanIncomplete: '本次监听扫描未完成，当前结果仅用于查看。',
     handlingDegraded: '来源追踪暂不可用，此监听端口当前仅用于查看。',
     handlingManaged: '通过 DSH 生命周期执行停止；Host 会在执行前重新校验当前身份。',
     handlingExternal: '此操作与 DSH 来源归因无关；执行前会重新校验 PID、创建时间、可执行文件和监听端口。',
     handlingIdentityIncomplete: '进程身份信息不足，系统不会执行结束操作。',
     handlingReadOnly: '当前监听端口仅提供查看。',
+    handlingComposeReadOnly: '已确认属于当前项目的 Compose 服务；Docker Desktop 代理端口仅可查看，不会直接终止。',
     openDirectorySuccess: '已打开项目目录。',
     openDirectoryListenerNotFound: '监听器已不存在，请刷新后重试。',
     openDirectoryProjectUnavailable: '项目目录不可用。',
@@ -324,12 +342,21 @@ const messages: Record<RuntimeInspectorLocale, Record<RuntimeInspectorMessageKey
     sourceInferredDescription: 'A DSH signal was found, but the starter is not confirmed.',
     sourceUnattributedDescription: 'The current scan did not confirm the starter.',
     sourceDegradedDescription: 'Attribution is currently unavailable; this state does not determine the origin of an individual process.',
+    composeAssociation: 'Compose project association confirmed',
+    composeDetails: 'Compose runtime evidence',
+    composeFile: 'Compose file',
+    composeService: 'Service',
+    composeImage: 'Image',
+    composeContainer: 'Container ID',
+    composeMapping: 'Port mapping',
+    composeUnavailableBanner: 'Compose runtime is unavailable; listener scanning continues and association will retry on refresh.',
     handlingScanIncomplete: 'This listener scan is incomplete, so the current result is view-only.',
     handlingDegraded: 'Attribution is unavailable; this listener is currently view-only.',
     handlingManaged: 'Stop through the DSH lifecycle; Host revalidates the current identity before execution.',
     handlingExternal: 'This action is independent of DSH attribution; Host revalidates the PID, creation time, executable, and listening port before execution.',
     handlingIdentityIncomplete: 'Process identity is incomplete, so the system will not end the process.',
     handlingReadOnly: 'This listener is currently view-only.',
+    handlingComposeReadOnly: 'This Compose service is associated with the current project; Docker Desktop proxy ports are view-only and will not be terminated directly.',
     openDirectorySuccess: 'Project directory opened.',
     openDirectoryListenerNotFound: 'The listener no longer exists; refresh and try again.',
     openDirectoryProjectUnavailable: 'The project directory is unavailable.',

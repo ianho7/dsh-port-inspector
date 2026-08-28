@@ -40,8 +40,8 @@ function row({ pid = 101, port = 3000, originId, confidence = 'verified', create
   }
 }
 
-function harness({ rows, origins = [], mode = 'observing', clipboard, openDirectory } = {}) {
-  const calls = { shutdown: [], external: [], clipboard: [], open: [] }
+function harness({ rows, origins = [], mode = 'observing', clipboard, openDirectory, compose, currentWorkspace } = {}) {
+  const calls = { shutdown: [], external: [], clipboard: [], open: [], composeWorkspaces: [] }
   let currentRows = rows ?? [row({ originId: 1 })]
   const host = createRuntimeInspectorHost({
     scanner: {
@@ -70,9 +70,120 @@ function harness({ rows, origins = [], mode = 'observing', clipboard, openDirect
       calls.open.push(value)
       await openDirectory?.(value)
     },
+    currentWorkspace: currentWorkspace === undefined
+      ? undefined
+      : typeof currentWorkspace === 'function' ? currentWorkspace : () => currentWorkspace,
+    compose: compose === undefined ? undefined : { read: workspace => { calls.composeWorkspaces.push(workspace); return compose } },
   })
   return { host, calls, setRows(value) { currentRows = value } }
 }
+
+test('Host inventory associates Compose services with current project while preserving unconfirmed source and read-only handling', async () => {
+  const compose = [{
+    composeFile: 'C:\\workspace\\demo\\compose.yaml',
+    relativeComposeFile: 'demo/compose.yaml',
+    service: 'redis',
+    image: 'registry.local:5000/redis:7-alpine',
+    containerId: 'container-redis',
+    projectName: 'runtime-story',
+    hostPort: 6379,
+    containerPort: 6379,
+    protocol: 'tcp',
+  }]
+  const { host, calls } = harness({
+    rows: [row({ pid: 900, port: 6379, confidence: 'unattributed', executable: 'C:\\Docker\\com.docker.backend.exe', project: '' })],
+    currentWorkspace: 'C:\\workspace',
+    compose,
+  })
+
+  const listener = host.inventory({ currentProject: 'C:\\workspace' }).listeners[0]
+  assert.deepEqual(listener.compose, {
+    relativeComposeFile: 'demo/compose.yaml',
+    service: 'redis',
+    image: 'registry.local:5000/redis:7-alpine',
+    containerId: 'container-redis',
+    projectName: 'runtime-story',
+    hostPort: 6379,
+    containerPort: 6379,
+    protocol: 'tcp',
+  })
+  assert.equal(listener.development.group, 'current-project')
+  assert.equal(listener.development.toolchain, 'redis')
+  assert.deepEqual(listener.development.reasons, ['compose-project'])
+  assert.equal(listener.confidence, 'unattributed')
+  assert.equal(listener.action.kind, 'read-only')
+  assert.equal(listener.action.reason, 'compose-managed')
+
+  const denied = await host.performAction({ listenerId: listener.listenerId, kind: 'external-single-pid', currentProject: 'C:\\elsewhere', confirmed: true })
+  assert.equal(denied.reason, 'action-not-allowed')
+  assert.deepEqual(calls.external, [])
+  assert.deepEqual(calls.composeWorkspaces, ['C:\\workspace', 'C:\\workspace'])
+})
+
+test('Host inventory search includes Compose runtime evidence', () => {
+  const { host } = harness({
+    currentWorkspace: 'C:\\workspace',
+    rows: [row({ pid: 903, port: 6379, confidence: 'unattributed', executable: 'C:\\Docker\\com.docker.backend.exe', project: '' })],
+    compose: [{
+      composeFile: 'C:\\workspace\\infra\\compose.yaml',
+      relativeComposeFile: 'infra/compose.yaml',
+      service: 'redis',
+      image: 'redis:7-alpine',
+      containerId: 'container-redis',
+      projectName: 'runtime-story',
+      hostPort: 6379,
+      containerPort: 6379,
+      protocol: 'tcp',
+    }],
+  })
+
+  assert.equal(host.inventory({ search: 'redis' }).listeners.length, 1)
+  assert.equal(host.inventory({ search: 'infra/compose.yaml' }).listeners.length, 1)
+})
+
+test('Host does not reuse a previous workspace for an explicitly selected unknown Session', async () => {
+  const { host, calls } = harness({
+    currentWorkspace: sessionId => sessionId === 'known-session' ? 'C:\\known' : undefined,
+    compose: [{
+      composeFile: 'C:\\known\\compose.yaml',
+      relativeComposeFile: 'compose.yaml',
+      service: 'redis',
+      image: 'redis:7',
+      containerId: 'container-known',
+      hostPort: 6379,
+      containerPort: 6379,
+      protocol: 'tcp',
+    }],
+    rows: [row({ pid: 902, port: 6379, confidence: 'unattributed', executable: 'C:\\Docker\\com.docker.backend.exe', project: '' })],
+  })
+
+  const known = host.inventory({ currentSessionId: 'known-session' })
+  assert.equal(known.listeners[0].compose?.service, 'redis')
+  assert.equal(host.inventory({ currentSessionId: 'unknown-session', currentProject: 'C:\\known' }).listeners[0].compose, undefined)
+  const copied = await host.copyDetails({ listenerId: known.listeners[0].listenerId, currentSessionId: 'unknown-session' })
+  assert.match(copied.text, /Compose association: <none>/u)
+  assert.deepEqual(calls.composeWorkspaces, ['C:\\known'])
+})
+
+test('Host inventory uses Docker as the fallback logo identity for an unknown Compose image', () => {
+  const { host } = harness({
+    currentWorkspace: 'C:\\workspace',
+    rows: [row({ pid: 901, port: 9000, confidence: 'unattributed', executable: 'C:\\Docker\\com.docker.backend.exe', project: '' })],
+    compose: [{
+      composeFile: 'C:\\workspace\\compose.yaml',
+      relativeComposeFile: 'compose.yaml',
+      service: 'custom',
+      image: 'registry.local/example/custom-service:1',
+      containerId: 'container-custom',
+      hostPort: 9000,
+      containerPort: 9000,
+      protocol: 'tcp',
+    }],
+  })
+
+  const listener = host.inventory({ currentProject: 'C:\\workspace' }).listeners[0]
+  assert.equal(listener.development.toolchain, 'docker')
+})
 
 test('Host inventory exposes redacted listener attribution and searches/sorts by UI fields', () => {
   const { host } = harness({

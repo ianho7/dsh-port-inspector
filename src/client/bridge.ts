@@ -5,6 +5,7 @@ import type {
   HostInventoryQuery,
   HostInventorySnapshot,
   HostOpenDirectoryResult,
+  HostListenerRequest,
 } from '../host-ui.js'
 import { writeRuntimeInspectorClipboard } from './clipboard.js'
 import { RUNTIME_INSPECTOR_ROUTE } from '../runtime-inspector-route.js'
@@ -14,8 +15,8 @@ export const RUNTIME_INSPECTOR_BROWSER_ROUTE = RUNTIME_INSPECTOR_ROUTE
 
 export interface RuntimeInspectorBrowserRpc {
   readonly inventory: (query?: HostInventoryQuery) => Promise<HostInventorySnapshot>
-  readonly copyDetails: (request: { readonly listenerId: string }) => Promise<HostCopyResult>
-  readonly openProjectDirectory: (request: { readonly listenerId: string }) => Promise<HostOpenDirectoryResult>
+  readonly copyDetails: (request: HostListenerRequest) => Promise<HostCopyResult>
+  readonly openProjectDirectory: (request: HostListenerRequest) => Promise<HostOpenDirectoryResult>
   readonly performAction: (request: HostActionRequest) => Promise<HostActionResult>
 }
 

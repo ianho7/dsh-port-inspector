@@ -1,13 +1,28 @@
 declare module 'node:fs' {
   export function readFileSync(path: string, encoding: 'utf8'): string
+  export interface Dirent {
+    readonly name: string
+    isFile(): boolean
+    isDirectory(): boolean
+  }
+  export function readdirSync(path: string, options: { readonly withFileTypes: true }): Dirent[]
+  export function realpathSync(path: string): string
+  export function statSync(path: string): { readonly isDirectory: () => boolean }
 }
 
 declare module 'node:child_process' {
   export function spawnSync(
     file: string,
     args?: readonly string[],
-    options?: { readonly encoding?: string; readonly windowsHide?: boolean },
-  ): { readonly stdout?: unknown; readonly stderr?: unknown; readonly status?: number; readonly error?: unknown }
+    options?: {
+      readonly encoding?: string
+      readonly windowsHide?: boolean
+      readonly cwd?: string
+      readonly timeout?: number
+      readonly maxBuffer?: number
+      readonly shell?: boolean
+    },
+  ): { readonly stdout?: unknown; readonly stderr?: unknown; readonly status?: number | null; readonly error?: unknown }
 }
 
 declare module 'node:process' {
@@ -18,6 +33,8 @@ declare module 'node:process' {
 declare module 'node:path' {
   export function dirname(path: string): string
   export function join(...paths: readonly string[]): string
+  export function relative(from: string, to: string): string
+  export function resolve(...paths: readonly string[]): string
 }
 
 declare module 'node:async_hooks' {

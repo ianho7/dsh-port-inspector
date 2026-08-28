@@ -12,6 +12,12 @@ import {
   projectDevelopmentPresentation,
   type DevelopmentPresentation,
 } from './development-presentation.js'
+import {
+  composeAssociationForPort,
+  type ComposeAssociation,
+  type ComposeRuntimeStatus,
+  type ComposeRuntimeAssociationReader,
+} from './compose-association.js'
 import { redactCommand, redactPath } from './redaction.js'
 import type {
   AttributionConfidence,
@@ -47,6 +53,17 @@ export interface HostInventoryQuery {
     readonly key: HostSortKey
     readonly direction?: HostSortDirection
   }
+}
+
+export interface HostComposeAssociation {
+  readonly relativeComposeFile: string
+  readonly service: string
+  readonly image: string
+  readonly containerId: string
+  readonly projectName?: string
+  readonly hostPort: number
+  readonly containerPort?: number
+  readonly protocol: 'tcp'
 }
 
 export interface HostListenerAttribution {
@@ -89,6 +106,7 @@ export interface HostListenerRow {
   readonly sessionVisibility: HostSessionVisibility
   readonly session?: HostListenerAttribution
   readonly lifecycleOwner?: HostLifecycleOwner
+  readonly compose?: HostComposeAssociation
   readonly action: HostActionState
   readonly development: DevelopmentPresentation
 }
@@ -97,6 +115,7 @@ export interface HostInventorySnapshot {
   readonly mode: HostInventoryMode
   readonly scanComplete: boolean
   readonly truncated: boolean
+  readonly composeStatus?: ComposeRuntimeStatus
   readonly listeners: readonly HostListenerRow[]
 }
 
@@ -120,6 +139,8 @@ export interface HostActionRequest {
   readonly confirmed?: boolean
   /** Browser-selected Session used only to project the returned fresh scan. */
   readonly currentSessionId?: string
+  /** Browser-selected project; presentation-only input used to recheck Compose read-only state. */
+  readonly currentProject?: string
 }
 
 export interface HostManagedOutcome {
@@ -173,12 +194,22 @@ export interface RuntimeInspectorHostOptions {
   readonly openDirectory?: (path: string) => void | Promise<void>
   /** Dynamic capability probe for an opener published after Bundle apply. */
   readonly openDirectoryAvailable?: () => boolean
+  /** Host-owned workspace lookup keyed by the selected Session; never use Browser paths for probing. */
+  readonly currentWorkspace?: (sessionId: string | undefined) => string | undefined
+  /** Optional read-only Compose correlation; never grants process authority. */
+  readonly compose?: ComposeRuntimeAssociationReader
+}
+
+export interface HostListenerRequest {
+  readonly listenerId: string
+  /** Optional selected Session used to keep Host workspace reads session-scoped. */
+  readonly currentSessionId?: string
 }
 
 export interface RuntimeInspectorHostRpc {
   readonly inventory: (query?: HostInventoryQuery) => HostInventorySnapshot
-  readonly copyDetails: (request: { readonly listenerId: string }) => Promise<HostCopyResult>
-  readonly openProjectDirectory: (request: { readonly listenerId: string }) => Promise<HostOpenDirectoryResult>
+  readonly copyDetails: (request: HostListenerRequest) => Promise<HostCopyResult>
+  readonly openProjectDirectory: (request: HostListenerRequest) => Promise<HostOpenDirectoryResult>
   readonly performAction: (request: HostActionRequest) => Promise<HostActionResult>
 }
 
@@ -189,12 +220,14 @@ export interface RuntimeInspectorHost extends RuntimeInspectorHostRpc {
 interface InternalEntry {
   readonly row: ListenerRecord
   readonly origin?: ProcessOrigin
+  readonly compose?: ComposeAssociation
   readonly listenerId: string
 }
 
 interface InternalScan {
   readonly scan: WindowsListenerScan
   readonly entries: readonly InternalEntry[]
+  readonly composeStatus?: ComposeRuntimeStatus
 }
 
 function bounded(value: unknown, maxLength: number): string | undefined {
@@ -230,6 +263,102 @@ function safeOrigins(read: () => readonly ProcessOrigin[]): readonly ProcessOrig
   } catch {
     return []
   }
+}
+
+function isComposeRuntimeStatus(value: unknown): value is ComposeRuntimeStatus {
+  return value === 'available' || value === 'unavailable' || value === 'not-detected'
+}
+
+function isPort(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0 && value <= 65_535
+}
+
+function safeComposeAssociation(value: unknown): ComposeAssociation | undefined {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return undefined
+  const candidate = value as Record<string, unknown>
+  const composeFile = typeof candidate.composeFile === 'string' && candidate.composeFile.length > 0 && candidate.composeFile.length <= MAX_ID_LENGTH
+    ? candidate.composeFile
+    : undefined
+  const relativeComposeFile = typeof candidate.relativeComposeFile === 'string' && candidate.relativeComposeFile.length > 0 && candidate.relativeComposeFile.length <= MAX_DISPLAY_LENGTH
+    ? candidate.relativeComposeFile
+    : undefined
+  const service = typeof candidate.service === 'string' && candidate.service.length > 0 && candidate.service.length <= MAX_DISPLAY_LENGTH
+    ? candidate.service
+    : undefined
+  const image = typeof candidate.image === 'string' && candidate.image.length > 0 && candidate.image.length <= MAX_DISPLAY_LENGTH
+    ? candidate.image
+    : undefined
+  if (composeFile === undefined || relativeComposeFile === undefined || service === undefined || image === undefined) return undefined
+  if (!isPort(candidate.hostPort) || candidate.protocol !== 'tcp') return undefined
+  if (candidate.containerPort !== undefined && !isPort(candidate.containerPort)) return undefined
+  const containerId = boundedId(candidate.containerId)
+  const projectName = boundedId(candidate.projectName)
+  if (containerId === undefined) return undefined
+  return Object.freeze({
+    composeFile,
+    relativeComposeFile,
+    service,
+    image,
+    containerId,
+    ...projectName === undefined ? {} : { projectName },
+    hostPort: candidate.hostPort,
+    ...candidate.containerPort === undefined ? {} : { containerPort: candidate.containerPort },
+    protocol: 'tcp',
+  })
+}
+
+function safeCompose(options: RuntimeInspectorHostOptions, workspace: string | undefined): { readonly associations: readonly ComposeAssociation[]; readonly status?: ComposeRuntimeStatus } {
+  if (options.compose === undefined || workspace === undefined) return { associations: [] }
+  try {
+    if (options.compose.readWithStatus !== undefined) {
+      const result = options.compose.readWithStatus(workspace)
+      if (result !== null && typeof result === 'object' && Array.isArray(result.associations)) {
+        const associations = result.associations.map(safeComposeAssociation).filter((value): value is ComposeAssociation => value !== undefined)
+        const status = isComposeRuntimeStatus(result.status)
+          ? result.status
+          : associations.length > 0 ? 'available' : 'unavailable'
+        return { associations, status }
+      }
+    }
+    const associations = options.compose.read(workspace)
+    const sanitized = Array.isArray(associations)
+      ? associations.map(safeComposeAssociation).filter((value): value is ComposeAssociation => value !== undefined)
+      : []
+    return { associations: sanitized, status: sanitized.length > 0 ? 'available' : 'not-detected' }
+  } catch {
+    return { associations: [], status: 'unavailable' }
+  }
+}
+
+function safeCurrentWorkspace(options: RuntimeInspectorHostOptions, sessionId: string | undefined): string | undefined {
+  if (options.currentWorkspace === undefined) return undefined
+  try {
+    const workspace = options.currentWorkspace(sessionId)
+    return typeof workspace === 'string' && workspace.length > 0 ? workspace : undefined
+  } catch {
+    return undefined
+  }
+}
+
+function publicCompose(value: ComposeAssociation | undefined): HostComposeAssociation | undefined {
+  if (value === undefined) return undefined
+  const relativeComposeFile = bounded(value.relativeComposeFile, MAX_DISPLAY_LENGTH)
+  const service = bounded(value.service, MAX_DISPLAY_LENGTH)
+  const image = bounded(value.image, MAX_DISPLAY_LENGTH)
+  if (relativeComposeFile === undefined || service === undefined || image === undefined || !isPort(value.hostPort)) return undefined
+  if (value.containerPort !== undefined && !isPort(value.containerPort)) return undefined
+  const containerId = boundedId(value.containerId)
+  if (containerId === undefined) return undefined
+  return Object.freeze({
+    relativeComposeFile,
+    service,
+    image,
+    containerId,
+    ...boundedId(value.projectName) === undefined ? {} : { projectName: boundedId(value.projectName) },
+    hostPort: value.hostPort,
+    ...value.containerPort === undefined ? {} : { containerPort: value.containerPort },
+    protocol: 'tcp',
+  })
 }
 
 function listenerFingerprint(row: ListenerRecord): string {
@@ -295,6 +424,7 @@ function actionState(
   scanComplete: boolean,
   row: ListenerRecord,
   owner: HostLifecycleOwner | undefined,
+  compose?: HostComposeAssociation,
 ): HostActionState {
   if (!scanComplete) {
     return Object.freeze({
@@ -303,6 +433,15 @@ function actionState(
       available: false,
       requiresConfirmation: false,
       reason: 'listener-scan-incomplete',
+    })
+  }
+  if (compose !== undefined) {
+    return Object.freeze({
+      kind: 'read-only',
+      label: 'Read-only',
+      available: false,
+      requiresConfirmation: false,
+      reason: 'compose-managed',
     })
   }
   if (mode === 'observing' && owner !== undefined) {
@@ -371,11 +510,13 @@ function toPublicEntry(
   scanComplete: boolean,
   currentSessionId: string | undefined,
   currentProject?: string,
+  composeOverride?: ComposeAssociation,
 ): HostListenerRow {
   const { row, origin } = entry
   const owner = lifecycleOwner(row, origin)
   const attribution = origin === undefined ? undefined : displayOrigin(origin)
   const project = projectFor(row, origin)
+  const compose = publicCompose(composeOverride ?? entry.compose)
   return Object.freeze({
     listenerId: entry.listenerId,
     protocol: row.protocol,
@@ -393,8 +534,9 @@ function toPublicEntry(
     sessionVisibility: sessionVisibility(origin, currentSessionId),
     ...attribution === undefined ? {} : { session: attribution },
     ...owner === undefined ? {} : { lifecycleOwner: owner },
-    action: actionState(mode, scanComplete, row, owner),
-    development: projectDevelopmentPresentation(row, origin, { currentSessionId, currentProject }),
+    ...compose === undefined ? {} : { compose },
+    action: actionState(mode, scanComplete, row, owner, compose),
+    development: projectDevelopmentPresentation(row, origin, { currentSessionId, currentProject }, compose),
   })
 }
 
@@ -433,6 +575,7 @@ function sortEntries(entries: readonly InternalEntry[], sort: HostInventoryQuery
 function searchText(entry: InternalEntry): string {
   const row = entry.row
   const origin = entry.origin
+  const compose = entry.compose
   return [
     row.localPort,
     row.localAddress,
@@ -444,6 +587,13 @@ function searchText(entry: InternalEntry): string {
     displayId(origin?.tool),
     displayCommand(origin?.command),
     row.confidence,
+    compose?.relativeComposeFile,
+    compose?.service,
+    compose?.image,
+    compose?.containerId,
+    compose?.projectName,
+    compose?.hostPort,
+    compose?.containerPort,
   ].filter(value => value !== undefined).join(' ').toLocaleLowerCase()
 }
 
@@ -452,7 +602,7 @@ function matchesSearch(entry: InternalEntry, query: string | undefined): boolean
   return search === undefined || search.length === 0 || searchText(entry).includes(search)
 }
 
-function readInternalScan(options: RuntimeInspectorHostOptions): InternalScan {
+function readInternalScan(options: RuntimeInspectorHostOptions, workspace?: string): InternalScan {
   const origins = safeOrigins(options.origins)
   let scan: WindowsListenerScan
   try {
@@ -464,12 +614,14 @@ function readInternalScan(options: RuntimeInspectorHostOptions): InternalScan {
     scan = { rows: [], complete: false }
   }
   const originsById = new Map(origins.map(origin => [origin.id, origin]))
+  const compose = safeCompose(options, workspace)
   const entries = scan.rows.slice(0, MAX_INVENTORY_ROWS).map(row => ({
     row,
     origin: row.originId === undefined ? undefined : originsById.get(row.originId),
+    compose: composeAssociationForPort(compose.associations, row.protocol, row.localPort),
     listenerId: listenerId(row),
   }))
-  return { scan, entries }
+  return { scan, entries, ...compose.status === undefined ? {} : { composeStatus: compose.status } }
 }
 
 function readCurrentSession(options: RuntimeInspectorHostOptions, selected?: unknown): string | undefined {
@@ -495,7 +647,8 @@ function snapshotFrom(
     mode,
     scanComplete: internal.scan.complete,
     truncated: filtered.length > visible.length || internal.scan.rows.length > MAX_INVENTORY_ROWS,
-    listeners: Object.freeze(visible.map(entry => toPublicEntry(entry, mode, internal.scan.complete, currentSessionId, query.currentProject))),
+    ...internal.composeStatus === undefined ? {} : { composeStatus: internal.composeStatus },
+    listeners: Object.freeze(visible.map(entry => toPublicEntry(entry, mode, internal.scan.complete, currentSessionId, query.currentProject, entry.compose))),
   })
 }
 
@@ -572,6 +725,12 @@ function redactedDetails(entry: InternalEntry, publicRow: HostListenerRow): stri
     `Lifecycle owner: ${publicRow.lifecycleOwner === undefined ? '<none>' : `${publicRow.lifecycleOwner.kind}:${publicRow.lifecycleOwner.id}`}`,
     `Action: ${publicRow.action.label}`,
     `Command: ${displayCommand(origin?.command) ?? '<unavailable>'}`,
+    `Compose association: ${publicRow.compose === undefined ? '<none>' : 'confirmed'}`,
+    `Compose file: ${publicRow.compose?.relativeComposeFile ?? '<unavailable>'}`,
+    `Compose service: ${publicRow.compose?.service ?? '<unavailable>'}`,
+    `Compose image: ${publicRow.compose?.image ?? '<unavailable>'}`,
+    `Container ID: ${publicRow.compose?.containerId ?? '<unavailable>'}`,
+    `Published mapping: ${publicRow.compose === undefined ? '<unavailable>' : `${publicRow.compose.hostPort}:${publicRow.compose.containerPort ?? '?'}/${publicRow.compose.protocol}`}`,
   ]
   return bounded(lines.join('\n'), MAX_COPY_LENGTH) ?? ''
 }
@@ -595,17 +754,32 @@ function emptyActionResult(request: HostActionRequest, message: string, internal
  * no scanner, origin registry, or termination callback in its RPC surface.
  */
 export function createRuntimeInspectorHost(options: RuntimeInspectorHostOptions): RuntimeInspectorHost {
+  let lastWorkspace: string | undefined
+  const workspaceBySession = new Map<string, string>()
+  const resolveWorkspace = (sessionId: string | undefined): string | undefined => {
+    const workspace = safeCurrentWorkspace(options, sessionId)
+    if (sessionId !== undefined) {
+      if (workspace === undefined) workspaceBySession.delete(sessionId)
+      else workspaceBySession.set(sessionId, workspace)
+      return workspace
+    }
+    if (workspace !== undefined) lastWorkspace = workspace
+    return workspace ?? lastWorkspace
+  }
   const inventory = (query: HostInventoryQuery = {}): HostInventorySnapshot => {
-    const internal = readInternalScan(options)
-    return snapshotFrom(internal, safeMode(options.mode), readCurrentSession(options, query.currentSessionId), query)
+    const currentSessionId = readCurrentSession(options, query.currentSessionId)
+    const workspace = resolveWorkspace(currentSessionId)
+    const internal = readInternalScan(options, workspace)
+    return snapshotFrom(internal, safeMode(options.mode), currentSessionId, query)
   }
 
-  const copyDetails = async (request: { readonly listenerId: string }): Promise<HostCopyResult> => {
-    const internal = readInternalScan(options)
+  const copyDetails = async (request: HostListenerRequest): Promise<HostCopyResult> => {
+    const currentSessionId = readCurrentSession(options, request.currentSessionId)
+    const internal = readInternalScan(options, resolveWorkspace(currentSessionId))
     const entry = rowFor(internal.entries, request.listenerId)
     if (entry === undefined) return Object.freeze({ ok: false, text: '', copied: false, reason: 'listener-not-found' })
     const mode = safeMode(options.mode)
-    const publicRow = toPublicEntry(entry, mode, internal.scan.complete, readCurrentSession(options))
+    const publicRow = toPublicEntry(entry, mode, internal.scan.complete, currentSessionId)
     const text = redactedDetails(entry, publicRow)
     if (options.clipboard === undefined) return Object.freeze({ ok: true, text, copied: false })
     try {
@@ -616,8 +790,9 @@ export function createRuntimeInspectorHost(options: RuntimeInspectorHostOptions)
     }
   }
 
-  const openProjectDirectory = async (request: { readonly listenerId: string }): Promise<HostOpenDirectoryResult> => {
-    const entry = rowFor(readInternalScan(options).entries, request.listenerId)
+  const openProjectDirectory = async (request: HostListenerRequest): Promise<HostOpenDirectoryResult> => {
+    const currentSessionId = readCurrentSession(options, request.currentSessionId)
+    const entry = rowFor(readInternalScan(options, resolveWorkspace(currentSessionId)).entries, request.listenerId)
     if (entry === undefined) return Object.freeze({ ok: false, reason: 'listener-not-found' })
     const path = projectPathForOpen(entry.row, entry.origin)
     if (path === undefined) return Object.freeze({ ok: false, reason: 'project-unavailable' })
@@ -636,7 +811,8 @@ export function createRuntimeInspectorHost(options: RuntimeInspectorHostOptions)
     const currentSessionId = readCurrentSession(options, request.currentSessionId)
     // Re-scan before dispatch so a stale UI row cannot select a reused PID or
     // a managed owner that has already changed state.
-    const before = readInternalScan(options)
+    const workspace = resolveWorkspace(currentSessionId)
+    const before = readInternalScan(options, workspace)
     const entry = rowFor(before.entries, request.listenerId)
     if (entry === undefined) {
       return emptyActionResult(request, 'The listener is no longer present; refresh the inventory.', before, mode, currentSessionId, 'listener-not-found')
@@ -690,7 +866,7 @@ export function createRuntimeInspectorHost(options: RuntimeInspectorHostOptions)
       }
     }
 
-    const after = readInternalScan(options)
+    const after = readInternalScan(options, workspace)
     const released = releasedAfter(entry.row, after.scan)
     const freshScan = snapshotFrom(after, mode, currentSessionId)
     const message = actionMessage(publicRow.action.label, status, entry.row.localPort, released, status === 'failed' && detail !== undefined

@@ -1,8 +1,8 @@
 # Runtime Inspector MVP Loop State
 
-status: complete
-phase: accept
-current_ticket: 09
+status: mitigated
+phase: verify
+current_ticket: compose-03
 current_hypothesis: The Windows Host and same-repository Browser UI MVP have passed the declared dsh-0.1.0-rc.8 and dsh-0.1.1-rc.1 acceptance surfaces.
 attempts:
   - id: ticket-01-start
@@ -191,7 +191,32 @@ attempts:
     raw_evidence: "Bundle smoke passes. The G1-G6 release gate was attempted twice; each run observed valid foreground/background origins and a positive Terminal PID, but timed out waiting for fixture port 39104 to appear as listening. No lifecycle/action source changed in this feature."
     conclusion: The feature's Web and deterministic acceptance is complete; the native fixture readiness gap remains open and must not be solved by weakening Terminal attribution or action safety.
     next_action_rule: Re-run the unchanged G1-G6 fixture when the Stock DSH Terminal listener readiness environment is healthy.
+  - id: compose-project-association-implementation
+    action: Implement generic nested Compose discovery, Docker Compose runtime correlation, Host-owned workspace lookup, current-project presentation, and Browser evidence/logo projection.
+    failure_class: none
+    raw_evidence: "The feature commit adds a bounded Host-only Compose reader and serializable UI projection. Focused Compose/Host tests cover malformed and unknown publisher shapes, custom project-name recovery, bounded discovery, local-versus-remote Docker context gating, unknown-image fallback, and explicit Session workspace isolation. Host uses currentWorkspace(sessionId); Browser currentProject remains presentation-only."
+    conclusion: Compose-associated Docker Desktop proxy listeners can be displayed as current-project infrastructure while retaining startup-unconfirmed and read-only semantics; product logos and a Docker Compose context badge are independent visual evidence.
+    next_action_rule: Complete the real Docker Desktop acceptance ticket with four live ports, image/container evidence, restart/manual recovery, conservative custom-project behavior, and post-down release proof.
+  - id: compose-project-association-verification
+    action: Run type/build, full deterministic tests, package-boundary checks, and a real Docker Desktop Compose probe.
+    failure_class: none
+    raw_evidence: "Bundled TypeScript emit/no-emit and Compose/Host focused tests pass. Full Node suite reports 144 tests: 141 passed, 3 opt-in native/Web gates skipped, 0 failed; the design-preview CSS segment is synchronized with the production stylesheet. With Docker Desktop Engine 29.2.1 running outside the sandbox, the default Host inventory probe returned status=available and precisely joined 5432 to postgres:17-alpine/container b92f907a7071 and 6379 to redis:7-alpine/container 97a15da51a24 from the Demo compose.yaml. Both Windows listeners are owned by com.docker.backend.exe and remain unattributed/read-only. The infrastructure script correctly refused to duplicate already-running ports."
+    conclusion: The safe local implementation, Compose-evidence search projection, graceful Docker-unavailable degradation, and real Docker Desktop service/image/container/port correlation are verified; DSH Web screenshots, restart/manual recovery, and post-down release proof remain open.
+    next_action_rule: Complete the remaining real DSH Web and cleanup acceptance without changing the attribution or read-only boundary.
+  - id: compose-project-association-search-bounds
+    action: Close the Host Compose evidence search gap and enforce hard reader resource ceilings.
+    failure_class: none
+    raw_evidence: "Host search now includes Compose relative file, service, image, container, project and port evidence; reader option seams are clamped to the declared candidate, depth and output limits. Focused Compose/Host/Web tests pass 27/27, and the complete deterministic suite passes 141/141 with 3 opt-in gates skipped."
+    conclusion: Compose rows remain discoverable by their runtime evidence without allowing injected options to bypass the Host probe bounds.
+    next_action_rule: Keep real Docker Desktop acceptance separate from deterministic evidence; do not infer live container ownership while the engine is unavailable.
+  - id: compose-project-association-web-smoke
+    action: Run the existing real Stock DSH Browser-to-Host smoke after the Compose implementation.
+    failure_class: environment
+    raw_evidence: "With DSH_REPO=D:\\project\\deepseek-harness and DSH_WEB_E2E=1, tests/dsh-web-smoke.test.mjs timed out after 30 seconds waiting for the Stock DSH /dsh web announcement; the child produced no stdout or stderr. No Compose assertion ran and no source failure was observed."
+    conclusion: This attempt does not provide new Web UI evidence; previously recorded rc.1/rc.2 Web smoke results remain valid, while a fresh run must wait for the Stock DSH fixture startup environment.
+    next_action_rule: Retry the unchanged Web smoke when the Stock DSH server can publish its endpoint; do not weaken Compose or attribution boundaries to accommodate a fixture timeout.
 evidence_gaps:
   - "G1-G6 release fixture: Terminal origin is observed with a valid PID, but port 39104 never reaches LISTENING in two consecutive runs."
-blocked_reason: "Independent Stock DSH Terminal fixture readiness; no safe product change can infer a listener that the OS did not expose."
-next_action: "Keep the feature commit scoped and rerun the unchanged native G1-G6 gate when the fixture can publish port 39104; retain deterministic and Web smoke gates as mandatory."
+  - "Compose ticket 03: live Docker Desktop association is now verified by Host inventory, but DSH Web screenshots, DSH restart/manual recovery, non-standard project-name real acceptance, and post-down port-release proof are not yet accepted."
+blocked_reason: "Independent Stock DSH Terminal fixture readiness and remaining real DSH Web/cleanup evidence are external acceptance gates; no safe product change can infer listeners or container ownership that the OS/runtime did not expose."
+next_action: "Complete Compose ticket 03's remaining real DSH Web and cleanup acceptance; retain deterministic and Web smoke gates as mandatory."
