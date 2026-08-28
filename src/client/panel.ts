@@ -39,7 +39,7 @@ import {
 } from './icons.js'
 import { loadPinnedListenerKeys, savePinnedListenerKeys, togglePinnedListenerKey } from './pinned-listeners.js'
 import { ComposeContextLogo, ToolchainLogo, toolchainName } from './toolchain-logos.js'
-import runtimeInspectorLogo from '../../assets/logo-candidates/A1-v4-rounded.png'
+import runtimeInspectorLogo from '../../assets/runtime-inspector-logo.webp'
 
 interface SidebarEntryProps {
   readonly wide?: boolean

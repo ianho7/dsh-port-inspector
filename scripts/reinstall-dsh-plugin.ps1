@@ -157,12 +157,16 @@ Resolve-PnpmCommand
 
 $TypeScriptCli = Join-Path $ProjectRoot 'node_modules\typescript\bin\tsc'
 $TsdownCli = Join-Path $ProjectRoot 'node_modules\tsdown\dist\run.mjs'
+$BuildCleanupScript = Join-Path $ProjectRoot 'scripts\clean-build-output.mjs'
 if (-not (Test-Path -LiteralPath $TypeScriptCli -PathType Leaf) -or
-    -not (Test-Path -LiteralPath $TsdownCli -PathType Leaf)) {
+    -not (Test-Path -LiteralPath $TsdownCli -PathType Leaf) -or
+    -not (Test-Path -LiteralPath $BuildCleanupScript -PathType Leaf)) {
     throw '项目依赖尚未安装。请先在仓库目录执行 npm install。'
 }
 
 Write-Host "[1/5] 构建 Host 与 Browser artifact..." -ForegroundColor Cyan
+Invoke-External -Command $script:NodeCommand -Arguments @($BuildCleanupScript) `
+    -WorkingDirectory $ProjectRoot
 Invoke-External -Command $script:NodeCommand -Arguments @($TypeScriptCli, '-p', 'tsconfig.json') `
     -WorkingDirectory $ProjectRoot
 Invoke-External -Command $script:NodeCommand -Arguments @($TsdownCli, '--config', 'tsdown.config.ts') `

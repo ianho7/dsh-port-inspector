@@ -11,7 +11,8 @@ export default defineConfig({
   platform: 'browser',
   target: 'es2022',
   dts: false,
-  sourcemap: true,
+  sourcemap: false,
+  // Host tsc shares lib/; clean the shared output once before both build stages.
   clean: false,
   alias: {
     'toolchain-assets': toolchainAssetDirectory,
@@ -20,6 +21,7 @@ export default defineConfig({
     '.svg': 'dataurl',
     '.png': 'dataurl',
     '.ico': 'dataurl',
+    '.webp': 'dataurl',
   },
   deps: {
     neverBundle: ['react', 'react/jsx-runtime'],

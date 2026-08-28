@@ -369,6 +369,10 @@ foreach ($requiredPackedFile in @('package.json', 'cordis.patch.yml', 'lib/index
         throw "最终 npm 包缺少必需文件：$requiredPackedFile"
     }
 }
+$sourceMapFiles = @($packedFiles | Where-Object { $_ -match '\.map$' })
+if ($sourceMapFiles.Count -gt 0) {
+    throw "最终 npm 包不应包含 source map：$($sourceMapFiles -join ', ')"
+}
 
 $hash = (Get-FileHash -LiteralPath $artifactPath -Algorithm SHA256).Hash.ToLowerInvariant()
 $checksumPath = "$artifactPath.sha256"

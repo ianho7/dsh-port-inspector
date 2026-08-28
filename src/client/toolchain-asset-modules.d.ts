@@ -13,6 +13,11 @@ declare module '*.png' {
   export default source
 }
 
+declare module '*.webp' {
+  const source: string
+  export default source
+}
+
 declare module 'toolchain-assets/*.ico' {
   const source: string
   export default source

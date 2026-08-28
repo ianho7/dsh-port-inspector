@@ -29,11 +29,13 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "lib",
+    "lib/**/*.js",
+    "lib/**/*.d.ts",
     "cordis.patch.yml"
   ],
   "scripts": {
-    "build": "npm run build:host && npm run build:client",
+    "build": "npm run clean:build && npm run build:host && npm run build:client",
+    "clean:build": "node scripts/clean-build-output.mjs",
     "build:host": "tsc -p tsconfig.json",
     "build:client": "tsdown --config tsdown.config.ts",
     "update:toolchain-logos": "node scripts/update-toolchain-logos.mjs",

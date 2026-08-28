@@ -35,6 +35,7 @@ npm test
 - typecheck、Host build 和 Browser build 退出码为 `0`。
 - 确定性测试无失败。
 - 未设置真实环境变量时，Stock DSH native/Web gates 显示 skip 属于预期行为。
+- 构建完成后，`lib/` 中不应有 `.map` 文件或历史 `index-*.js` chunk；Browser `client.js` 应保持为单一 lazy-CJS artifact。
 
 ### 原生 Web UI 弹窗视觉验收
 
@@ -72,6 +73,8 @@ cd D:\project\dsh-runtime-inspector
 ```text
 dsh-runtime-inspector@0.1.0
 ```
+
+打包日志中的 `Tarball Contents` 应只包含 `lib/**/*.js`、`lib/**/*.d.ts`、`cordis.patch.yml` 以及 npm 自动保留的 `package.json`/`README.md` 等元文件，不应出现任何 `.map` 文件。
 
 如果插件尚未安装，脚本会提示 `remove` 的非零退出码，但仍会继续安装新包。
 完全退出旧 DSH Web 进程，然后按该 DSH checkout 的正常方式重新启动 `web` Profile。不要复用插件更新前创建的后台任务：Process origin 是当前运行周期内存数据，旧进程不会被追溯归因。

@@ -10,6 +10,10 @@
 .\scripts\publish-release.ps1 -DryRun
 ```
 
+构建会先清理生成目录 `lib/`，再依次生成 Host 和 Browser artifact。Host TypeScript declaration 保留，但不生成 `sourceMap` 或 `declarationMap`；Browser `tsdown` 也关闭 source map。`package.json.files` 只允许 `lib/**/*.js`、`lib/**/*.d.ts` 和 `cordis.patch.yml`，发布脚本还会拒绝最终 tarball 中出现 `.map` 文件。
+
+Browser 面板使用 256px WebP 运行时 Logo；原始设计候选图只用于仓库文档，不会被内联到 Bundle。这样既避免旧 hash chunk/source map 残留，也避免把设计原图带入用户安装包。
+
 ## 发布前检查
 
 正式发布前确认：
