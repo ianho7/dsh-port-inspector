@@ -145,6 +145,14 @@ test('Compose associations show independent evidence and product/context logos',
   assert.match(stylesSource, /\.dsh-ri-compose-pill/)
 })
 
+test('verified launch chain stays detail-only and marks missing command lines neutrally', () => {
+  assert.match(source, /data-runtime-inspector-launch-chain': 'verified'/)
+  assert.match(source, /row\.confidence !== 'verified'/)
+  assert.match(source, /launchChainCommandUnavailable/)
+  assert.match(source, /data-runtime-inspector-launch-chain-role/)
+  assert.match(stylesSource, /\.dsh-ri-launch-chain-node/)
+})
+
 test('pin controls stay dormant without removing the saved pin model', () => {
   assert.match(source, /data-runtime-inspector-pin/)
   assert.match(source, /row\.development\.stableKey/)

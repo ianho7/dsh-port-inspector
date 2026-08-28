@@ -1032,6 +1032,60 @@
   background: transparent;
 }
 
+.dsh-ri-launch-chain {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dsh-ri-launch-chain-node {
+  min-width: 0;
+  padding: 9px 11px 10px;
+  border: 1px solid var(--dsh-ri-border-soft);
+  border-radius: 8px;
+  background: var(--dsh-ri-bg);
+}
+
+.dsh-ri-launch-chain-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--dsh-ri-label-tertiary);
+  font-size: var(--dsh-ri-type-caption);
+}
+
+.dsh-ri-launch-chain-role {
+  color: var(--dsh-ri-label-secondary);
+  font-weight: 700;
+}
+
+.dsh-ri-launch-chain-executable,
+.dsh-ri-launch-chain-command {
+  overflow: hidden;
+  margin-top: 3px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dsh-ri-launch-chain-executable {
+  color: var(--dsh-ri-label-secondary);
+  font-size: var(--dsh-ri-type-label);
+}
+
+.dsh-ri-launch-chain-command {
+  color: var(--dsh-ri-label-tertiary);
+  font-family: var(--dsh-ri-font-mono);
+  font-size: var(--dsh-ri-type-caption);
+}
+
+.dsh-ri-launch-chain-command.is-unavailable {
+  font-family: inherit;
+  font-style: italic;
+}
+
 .dsh-ri-source-card,
 .dsh-ri-handling-card {
   padding: 10px 11px;

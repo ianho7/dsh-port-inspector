@@ -244,6 +244,68 @@ test('Host inventory projects current-project development presentation without c
   assert.equal(listener.lifecycleOwner.kind, 'job')
 })
 
+test('Host projects a verified launch chain without adding it to search or action authority', () => {
+  const { host } = harness({
+    origins: [origin({ id: 1, jobId: 'job-a', command: 'npm run dev' })],
+    rows: [{
+      ...row({ pid: 101, port: 5173, originId: 1 }),
+      launchChain: [
+        { pid: 100, executable: 'C:\\nodejs\\npm.exe', command: 'npm run dev', role: 'root' },
+        { pid: 101, executable: 'C:\\nodejs\\node.exe', command: 'node vite --token private', role: 'listener' },
+      ],
+    }],
+  })
+
+  const listener = host.inventory().listeners[0]
+  assert.deepEqual(listener.launchChain, [
+    { pid: 100, executable: 'C:\\nodejs\\npm.exe', command: 'npm run dev', role: 'root' },
+    { pid: 101, executable: 'C:\\nodejs\\node.exe', command: 'node vite --token [REDACTED]', role: 'listener' },
+  ])
+  assert.equal(listener.development.toolchain, 'vite')
+  assert.equal(host.inventory({ search: 'vite' }).listeners.length, 0)
+  assert.equal(listener.action.kind, 'managed-shutdown')
+})
+
+test('Host never exposes a launch chain for inferred or unattributed listeners', () => {
+  const { host } = harness({
+    origins: [origin({ id: 1 })],
+    rows: [{
+      ...row({ pid: 101, confidence: 'inferred', originId: 1 }),
+      launchChain: [{ pid: 101, executable: 'node.exe', command: 'node app.js', role: 'listener' }],
+    }],
+  })
+  assert.equal(host.inventory().listeners[0].launchChain, undefined)
+})
+
+test('Host uses a verified chain for the logo only and keeps unknown tooling generic', () => {
+  const { host } = harness({
+    origins: [origin({ id: 1, sessionId: 'session-b', command: 'custom-launcher --serve' })],
+    rows: [{
+      ...row({ pid: 101, port: 9000, originId: 1, executable: 'C:\\tools\\acme-listener.exe' }),
+      launchChain: [
+        { pid: 100, executable: 'C:\\tools\\custom-launcher.exe', command: 'custom-launcher --serve', role: 'root' },
+        { pid: 101, executable: 'C:\\tools\\python.exe', command: 'python -m http.server 9000', role: 'listener' },
+      ],
+    }],
+  })
+
+  const listener = host.inventory().listeners[0]
+  assert.equal(listener.development.toolchain, 'python')
+  assert.equal(listener.development.group, 'development-environment')
+  assert.deepEqual(listener.development.reasons, ['project'])
+  assert.match(listener.development.stableKey, /:acme-listener\.exe$/u)
+
+  const unknown = harness({
+    origins: [origin({ id: 2, sessionId: 'session-b', command: 'custom-launcher --serve' })],
+    rows: [{
+      ...row({ pid: 102, port: 9001, originId: 2, executable: 'C:\\tools\\acme-listener.exe' }),
+      launchChain: [{ pid: 102, executable: 'C:\\tools\\acme-listener.exe', command: 'acme-runner --label=fastapi', role: 'listener' }],
+    }],
+  }).host.inventory().listeners[0]
+  assert.equal(unknown.development.toolchain, undefined)
+  assert.match(unknown.development.stableKey, /:acme-listener\.exe$/u)
+})
+
 test('Host inventory separates known development runtimes from unrelated and port-only listeners', () => {
   const { host } = harness({
     origins: [],

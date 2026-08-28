@@ -15,6 +15,32 @@ export function redactCommand(value: unknown): string | undefined {
     .replace(SECRET_ASSIGNMENT_ANYWHERE, '$1[REDACTED]')
 }
 
+const URI_CREDENTIALS = /(\b[a-z][a-z0-9+.-]*:\/\/)([^@\s]+)@/giu
+const QUOTED_PRIVATE_WINDOWS_PATH = /(["'])(?:(?:[a-z]:[\\/]|\\\\)[^"']*)\1/giu
+const PRIVATE_WINDOWS_PATH = /(?:[a-z]:[\\/]|\\\\)(?:[^\\/\s"';&|]+[\\/])*[^\\/\s"';&|]+/giu
+
+/** Redact process command secrets and absolute Windows paths before UI projection. */
+export function redactProcessCommand(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  // Remove path and URI credentials before the general command bound so a
+  // truncated secret/path cannot survive at the public boundary.
+  const pathRedacted = value
+    .replace(URI_CREDENTIALS, '$1[REDACTED]@')
+    .replace(QUOTED_PRIVATE_WINDOWS_PATH, '$1[PATH]$1')
+    .replace(PRIVATE_WINDOWS_PATH, '[PATH]')
+  return redactCommand(pathRedacted)
+}
+
+/** Redact a process command and keep its public representation within a hard inclusive bound. */
+export function redactAndBoundProcessCommand(value: unknown, maxLength: number): string | undefined {
+  if (!Number.isSafeInteger(maxLength) || maxLength < 1) return undefined
+  const command = redactProcessCommand(value)
+  if (command === undefined) return undefined
+  return command.length > maxLength
+    ? `${command.slice(0, Math.max(1, maxLength - 1))}…`
+    : command
+}
+
 /** Bound a path before it crosses a runtime-inspector output boundary. */
 export function redactPath(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined

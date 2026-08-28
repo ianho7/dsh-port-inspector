@@ -46,6 +46,11 @@ export interface DevelopmentPresentationContext {
   readonly currentProject?: string
 }
 
+export interface DevelopmentLaunchChainNode {
+  readonly executable?: string
+  readonly command?: string
+}
+
 function normalizedPath(value: string | undefined): string | undefined {
   if (value === undefined || value.trim().length === 0) return undefined
   return value.replaceAll('/', '\\').replace(/\\+$/u, '').toLocaleLowerCase()
@@ -58,18 +63,30 @@ function basename(value: string | undefined): string | undefined {
   return parts[parts.length - 1] || undefined
 }
 
+function hasExactCommandToken(command: string, token: string): boolean {
+  const escaped = token.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+  return new RegExp(`(?:^|[\\s"'])${escaped}(?=$|[\\s"'])`, 'iu').test(command)
+}
+
+function hasCommandTokenPrefix(command: string, prefix: string): boolean {
+  const escaped = prefix.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+  return new RegExp(`(?:^|[\\s"'])${escaped}[^\\s"']*(?=$|[\\s"'])`, 'iu').test(command)
+}
+
 function commandToolchain(command: string | undefined): ToolchainId | undefined {
   if (command === undefined) return undefined
-  if (/(?:^|[\s"'])vite(?:[\s"']|$)/iu.test(command)) return 'vite'
-  if (/(?:^|[\s"'])next(?:[\s"']|$)/iu.test(command)) return 'nextjs'
-  if (/\b(?:django-admin|django)\b|\bmanage\.py\s+runserver\b/iu.test(command)) return 'django'
-  if (/\b(?:python(?:3|\.exe)?\s+-m\s+)?flask\s+run\b/iu.test(command)) return 'flask'
-  if (/\b(?:uvicorn|fastapi)\b/iu.test(command)) return 'fastapi'
-  if (/\b(?:spring-boot|org\.springframework)\b/iu.test(command)) return 'spring'
-  if (/\b(?:kestrel|microsoft\.aspnetcore)\b/iu.test(command)) return 'kestrel'
-  if (/\b(?:react-native\s+start|metro(?:-config)?\b)/iu.test(command)) return 'metro'
-  if (/\bfirebase\s+(?:emulators:start|serve)\b/iu.test(command)) return 'firebase'
-  if (/\bollama\s+serve\b/iu.test(command)) return 'ollama'
+  if (hasExactCommandToken(command, 'vite')) return 'vite'
+  if (hasExactCommandToken(command, 'next')) return 'nextjs'
+  if (hasExactCommandToken(command, 'django-admin') || hasExactCommandToken(command, 'django')) return 'django'
+  if (hasExactCommandToken(command, 'manage.py') && hasExactCommandToken(command, 'runserver')) return 'django'
+  if (hasExactCommandToken(command, 'flask') && hasExactCommandToken(command, 'run')) return 'flask'
+  if (hasExactCommandToken(command, 'uvicorn') || hasExactCommandToken(command, 'fastapi')) return 'fastapi'
+  if (hasCommandTokenPrefix(command, 'spring-boot') || hasCommandTokenPrefix(command, 'org.springframework')) return 'spring'
+  if (hasExactCommandToken(command, 'kestrel') || hasExactCommandToken(command, 'microsoft.aspnetcore')) return 'kestrel'
+  if (hasExactCommandToken(command, 'react-native') && hasExactCommandToken(command, 'start')) return 'metro'
+  if (hasExactCommandToken(command, 'metro') || hasExactCommandToken(command, 'metro-config')) return 'metro'
+  if (hasExactCommandToken(command, 'firebase') && (hasExactCommandToken(command, 'emulators:start') || hasExactCommandToken(command, 'serve'))) return 'firebase'
+  if (hasExactCommandToken(command, 'ollama') && hasExactCommandToken(command, 'serve')) return 'ollama'
   return undefined
 }
 
@@ -95,6 +112,19 @@ function executableToolchain(executable: string | undefined): ToolchainId | unde
   if (/^(?:wsl|wslhost)(?:\.exe)?$/iu.test(name)) return 'wsl'
   if (/^adb(?:\.exe)?$/iu.test(name)) return 'adb'
   if (/^ollama(?:\.exe)?$/iu.test(name)) return 'ollama'
+  return undefined
+}
+
+function launchChainToolchain(chain: readonly DevelopmentLaunchChainNode[] | undefined): ToolchainId | undefined {
+  if (chain === undefined) return undefined
+  for (const node of chain) {
+    const fromCommand = commandToolchain(node.command)
+    if (fromCommand !== undefined) return fromCommand
+  }
+  for (const node of chain) {
+    const fromExecutable = executableToolchain(node.executable)
+    if (fromExecutable !== undefined) return fromExecutable
+  }
   return undefined
 }
 
@@ -143,6 +173,7 @@ export function projectDevelopmentPresentation(
   origin: ProcessOrigin | undefined,
   context: DevelopmentPresentationContext,
   compose?: { readonly image?: string; readonly relativeComposeFile?: string; readonly service?: string },
+  launchChain?: readonly DevelopmentLaunchChainNode[],
 ): DevelopmentPresentation {
   const project = origin?.workdir ?? row.project
   const currentSession = origin !== undefined
@@ -150,21 +181,26 @@ export function projectDevelopmentPresentation(
     && origin.sessionId === context.currentSessionId
   const currentProject = normalizedPath(project) !== undefined
     && normalizedPath(project) === normalizedPath(context.currentProject)
-  const toolchain = imageToolchain(compose?.image)
-    ?? (compose === undefined ? commandToolchain(origin?.command) ?? executableToolchain(row.executable) : 'docker')
+  const classificationToolchain = imageToolchain(compose?.image)
+    ?? (compose === undefined
+      ? commandToolchain(origin?.command) ?? executableToolchain(row.executable)
+      : 'docker')
+  // A verified chain may improve the icon with a more specific command token,
+  // but it must not alter grouping, sorting, or stable identity.
+  const toolchain = launchChainToolchain(launchChain) ?? classificationToolchain
   const reasons: DevelopmentReason[] = []
   if (currentSession) reasons.push('current-session')
   if (currentProject) reasons.push('current-project')
   if (compose !== undefined) reasons.push('compose-project')
   if (!currentSession && !currentProject && compose === undefined && normalizedPath(project) !== undefined) reasons.push('project')
-  if (!currentSession && !currentProject && compose === undefined && toolchain !== undefined) {
-    reasons.push(runtimeToolchains.has(toolchain) ? 'runtime' : 'toolchain')
+  if (!currentSession && !currentProject && compose === undefined && classificationToolchain !== undefined) {
+    reasons.push(runtimeToolchains.has(classificationToolchain) ? 'runtime' : 'toolchain')
   }
 
   const group: DevelopmentGroup = currentSession || currentProject || compose !== undefined
     ? 'current-project'
-    : toolchain !== undefined || normalizedPath(project) !== undefined ? 'development-environment' : 'other'
-  const identity = toolchain ?? stablePart(row.executable)
+    : classificationToolchain !== undefined || normalizedPath(project) !== undefined ? 'development-environment' : 'other'
+  const identity = classificationToolchain ?? stablePart(row.executable)
   const stableKey = compose !== undefined
     ? `project:compose-${stableComposePart(compose.relativeComposeFile)}-${stablePart(compose.service)}:${identity}`
     : normalizedPath(project) === undefined

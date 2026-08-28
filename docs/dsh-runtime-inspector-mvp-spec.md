@@ -3,7 +3,7 @@
 > 状态：Implemented and accepted（Windows MVP）
 > 日期：2026-08-23
 > 回归基线：Stock DSH `dsh-0.1.0-rc.8`、`dsh-0.1.1-rc.1`、`dsh-0.1.1-rc.2`；其他版本按 Windows local runtime capability probe 启用
-> 来源：[MVP 文档](./dsh-runtime-inspector-mvp.md)、[决策记录](./dsh-runtime-inspector-mvp-decisions.md)、[ADR-0001](./adr/0001-stock-dsh-root-pid-observation.md)、[ADR-0002](./adr/0002-process-termination-policy.md)、[ADR-0003](./adr/0003-delayed-terminal-pid-compatibility.md)、[ADR-0004](./adr/0004-web-client-dual-face-bundle.md)、[ADR-0005](./adr/0005-capability-based-dsh-compatibility.md)
+> 来源：[MVP 文档](./dsh-runtime-inspector-mvp.md)、[决策记录](./dsh-runtime-inspector-mvp-decisions.md)、[ADR-0001](./adr/0001-stock-dsh-root-pid-observation.md)、[ADR-0002](./adr/0002-process-termination-policy.md)、[ADR-0003](./adr/0003-delayed-terminal-pid-compatibility.md)、[ADR-0004](./adr/0004-web-client-dual-face-bundle.md)、[ADR-0005](./adr/0005-capability-based-dsh-compatibility.md)、[ADR-0007](./adr/0007-verified-launch-chain.md)
 
 ## Problem Statement
 
@@ -32,6 +32,8 @@ Runtime Inspector 作为可安装的 DSH Bundle 运行于未经修改的官方 D
 5. Windows scanner 获取 TCP listeners、PID、ParentProcessId、creation time、executable 和最佳可用项目目录。沿父子进程链向上匹配 root PID 与 creation identity。
 6. 完整身份和 ancestry 匹配为 `verified`；非唯一线索为 `inferred`；证据不足为 `unattributed`。
 7. DSH managed target 优先通过 Job/Terminal lifecycle 关闭；外部同用户 target 只在重新身份复核和用户确认后直接结束选中的单个 PID。
+
+对于 `verified` listener，Host 还会按 [ADR-0007](./adr/0007-verified-launch-chain.md) 对已验证 ancestry 中的存活 PID 做一次有界的固定 PowerShell/CIM 读取，并在查询后再次校验 PID、parent PID 和 creation time。公开 DTO 可附带脱敏的 root-to-listener `launchChain`，帮助用户看到 launcher、运行时和最终 listener；读取失败只省略该附加证据，不改变来源状态、生命周期权限或 Compose 关联。该机制不读取 manifest、环境变量、端口约定，也不为新框架维护专用解析器。
 
 方案只保证当前 DSH 运行周期内、Windows local execution world 的 verified attribution。Persistent PowerShell 的首次 Terminal 创建可精确归因；同一个 persistent terminal 后续命令创建的 descendant 不承诺精确到后续 Call ID。
 

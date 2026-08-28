@@ -18,7 +18,7 @@ import {
   type ComposeRuntimeStatus,
   type ComposeRuntimeAssociationReader,
 } from './compose-association.js'
-import { redactCommand, redactPath } from './redaction.js'
+import { redactAndBoundProcessCommand, redactCommand, redactPath } from './redaction.js'
 import type {
   AttributionConfidence,
   ListenerRecord,
@@ -84,6 +84,15 @@ export interface HostLifecycleOwner {
   readonly id: string
 }
 
+export type HostLaunchChainRole = 'root' | 'intermediate' | 'listener'
+
+export interface HostLaunchChainNode {
+  readonly pid: number
+  readonly executable?: string
+  readonly command?: string
+  readonly role: HostLaunchChainRole
+}
+
 export interface HostActionState {
   readonly kind: HostActionKind
   readonly label: string
@@ -107,6 +116,8 @@ export interface HostListenerRow {
   readonly session?: HostListenerAttribution
   readonly lifecycleOwner?: HostLifecycleOwner
   readonly compose?: HostComposeAssociation
+  /** Read-only, redacted root-to-listener facts for verified attribution rows. */
+  readonly launchChain?: readonly HostLaunchChainNode[]
   readonly action: HostActionState
   readonly development: DevelopmentPresentation
 }
@@ -495,6 +506,21 @@ function projectPathForOpen(row: ListenerRecord, origin: ProcessOrigin | undefin
   return path
 }
 
+function publicLaunchChain(row: ListenerRecord, origin: ProcessOrigin | undefined): readonly HostLaunchChainNode[] | undefined {
+  if (row.confidence !== 'verified' || origin === undefined || row.launchChain === undefined || row.launchChain.length === 0) return undefined
+  const chain = row.launchChain.slice(0, 16).map(node => {
+    const executable = bounded(displayPath(node.executable), MAX_DISPLAY_LENGTH)
+    const command = redactAndBoundProcessCommand(node.command, MAX_DISPLAY_LENGTH)
+    return {
+      pid: node.pid,
+      ...executable === undefined ? {} : { executable },
+      ...command === undefined ? {} : { command },
+      role: node.role,
+    }
+  })
+  return Object.freeze(chain)
+}
+
 function openDirectoryAvailable(options: RuntimeInspectorHostOptions): boolean {
   if (options.openDirectory === undefined) return false
   try {
@@ -517,6 +543,7 @@ function toPublicEntry(
   const attribution = origin === undefined ? undefined : displayOrigin(origin)
   const project = projectFor(row, origin)
   const compose = publicCompose(composeOverride ?? entry.compose)
+  const launchChain = publicLaunchChain(row, origin)
   return Object.freeze({
     listenerId: entry.listenerId,
     protocol: row.protocol,
@@ -535,8 +562,9 @@ function toPublicEntry(
     ...attribution === undefined ? {} : { session: attribution },
     ...owner === undefined ? {} : { lifecycleOwner: owner },
     ...compose === undefined ? {} : { compose },
+    ...launchChain === undefined ? {} : { launchChain },
     action: actionState(mode, scanComplete, row, owner, compose),
-    development: projectDevelopmentPresentation(row, origin, { currentSessionId, currentProject }, compose),
+    development: projectDevelopmentPresentation(row, origin, { currentSessionId, currentProject }, compose, launchChain),
   })
 }
 

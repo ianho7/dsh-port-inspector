@@ -82,6 +82,8 @@ export {
   type HostInventoryQuery,
   type HostInventorySnapshot,
   type HostLifecycleOwner,
+  type HostLaunchChainNode,
+  type HostLaunchChainRole,
   type HostListenerAttribution,
   type HostListenerRequest,
   type HostListenerRow,

@@ -16,6 +16,7 @@ declare module 'node:child_process' {
     args?: readonly string[],
     options?: {
       readonly encoding?: string
+      readonly input?: string
       readonly windowsHide?: boolean
       readonly cwd?: string
       readonly timeout?: number

@@ -12,6 +12,7 @@
 | Process origin | Tool Call 与 root process 的关联记录 | 当前 DSH 运行期内存数据，不跨重启持久化 |
 | Listener process | 实际拥有 TCP listening socket 的进程 | 可能是 root 的多层后代，例如 PowerShell → npm → node |
 | Verified attribution | root 身份匹配，且监听 PID 可沿 Windows 父链追溯到该 root | 可以陈述为“由这次 Tool Call 启动” |
+| Verified launch chain | 已完成 Verified attribution 的 listener，其当前存活 ancestry 经过 PID、parent PID 和 creation time 复核后形成的 root-to-listener 只读投影 | 仅展示 Host 当前读取到的进程名和脱敏 command line；不是新的来源等级、Lifecycle owner 或操作权限；读取失败时保守省略 |
 | Inferred attribution | 只有非唯一线索支持，例如命令、目录或时间接近 | 只能辅助用户判断，不能冒充 verified 事实 |
 | Unattributed | 没有足够证据关联到 DSH Tool Call | 仍可展示端口和最佳可用系统信息 |
 | 启动方状态 | 面向用户的进程启动归因摘要 | 主标签使用“由 DSH 启动 / 启动方未确认”；inferred/unattributed 作为内部证据状态和详情层区别，不把“启动方未确认”表达成“非 DSH” |

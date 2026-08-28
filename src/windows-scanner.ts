@@ -2,8 +2,14 @@ import { spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { platform } from 'node:process'
 import type { ProcessOrigin } from './attribution.js'
-import { readWindowsProcessIdentity } from './process-identity.js'
-import { redactPath } from './redaction.js'
+import { readWindowsProcessIdentity, type ProcessCreationIdentity } from './process-identity.js'
+import { redactAndBoundProcessCommand, redactPath } from './redaction.js'
+import {
+  MAX_COMMAND_QUERY_PIDS,
+  MAX_PUBLIC_PROCESS_COMMAND_LENGTH,
+  readWindowsProcessCommandLines,
+  type WindowsProcessCommandLine,
+} from './windows-process-commandline.js'
 
 export type AttributionConfidence = 'verified' | 'inferred' | 'unattributed'
 
@@ -19,6 +25,15 @@ export interface WindowsProcessRecord {
   readonly parentPid: number
   readonly processCreatedAt?: string
   readonly executable?: string
+}
+
+export type LaunchChainRole = 'root' | 'intermediate' | 'listener'
+
+export interface LaunchChainNode {
+  readonly pid: number
+  readonly executable?: string
+  readonly command?: string
+  readonly role: LaunchChainRole
 }
 
 export type AncestryReason =
@@ -45,11 +60,17 @@ export interface ListenerRecord extends WindowsTcpListener, AncestryMatch {
   readonly project?: string
   readonly jobId?: string
   readonly terminalSessionId?: string
+  /** Redacted, identity-checked root-to-listener process facts for verified rows. */
+  readonly launchChain?: readonly LaunchChainNode[]
 }
 
 export interface WindowsScannerInternals {
   listListeners(): readonly WindowsTcpListener[]
   listProcesses(): readonly WindowsProcessRecord[]
+  /** Optional Host-only command-line reader; it receives only verified ancestry PIDs. */
+  readProcessCommandLines?: (pids: readonly number[]) => readonly WindowsProcessCommandLine[]
+  /** Optional identity reread seam used to fail closed on PID reuse. */
+  readProcessIdentity?: (pid: number) => ProcessCreationIdentity | undefined
 }
 
 export interface WindowsListenerScan {
@@ -61,6 +82,7 @@ export interface WindowsListenerScan {
 const DEFAULT_LISTENER_LIMIT = 4_096
 const MAX_ADDRESS_LENGTH = 128
 const MAX_EXECUTABLE_LENGTH = 512
+const MAX_LAUNCH_CHAIN_DEPTH = 16
 
 function validPid(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value > 0
@@ -72,7 +94,86 @@ function validPort(value: unknown): value is number {
 
 function boundedString(value: unknown, maxLength: number): string | undefined {
   if (typeof value !== 'string' || value.length === 0) return undefined
-  return value.length > maxLength ? `${value.slice(0, maxLength)}…` : value
+  return value.length > maxLength ? `${value.slice(0, Math.max(1, maxLength - 1))}…` : value
+}
+
+function launchChainPids(ancestry: readonly number[]): number[] {
+  const rootToListener = [...ancestry].reverse()
+  if (rootToListener.length <= MAX_LAUNCH_CHAIN_DEPTH) return rootToListener
+  // Preserve both evidence endpoints while keeping the hard depth bound.
+  return [
+    rootToListener[0],
+    ...rootToListener.slice(1, MAX_LAUNCH_CHAIN_DEPTH - 1),
+    rootToListener[rootToListener.length - 1],
+  ]
+}
+
+function launchChainRole(index: number, length: number): LaunchChainRole {
+  if (length === 1 || index === length - 1) return 'listener'
+  if (index === 0) return 'root'
+  return 'intermediate'
+}
+
+function attachLaunchChains(
+  rows: readonly ListenerRecord[],
+  processes: ReadonlyMap<number, WindowsProcessRecord>,
+  internals: WindowsScannerInternals,
+): ListenerRecord[] {
+  const verifiedRows = rows.filter(row => row.confidence === 'verified' && row.ancestry.length > 0)
+  if (verifiedRows.length === 0) return [...rows]
+
+  const pids: number[] = []
+  const seen = new Set<number>()
+  for (const row of verifiedRows) {
+    for (const pid of launchChainPids(row.ancestry)) {
+      if (!seen.has(pid) && pids.length < MAX_COMMAND_QUERY_PIDS) {
+        seen.add(pid)
+        pids.push(pid)
+      }
+    }
+  }
+
+  const commandByPid = new Map<number, WindowsProcessCommandLine>()
+  if (internals.readProcessCommandLines !== undefined && pids.length > 0) {
+    try {
+      const values = internals.readProcessCommandLines(pids)
+      if (Array.isArray(values)) {
+        for (const value of values) {
+          if (!Number.isSafeInteger(value?.pid) || value.pid <= 0 || commandByPid.has(value.pid)) continue
+          const snapshot = processes.get(value.pid)
+          if (snapshot === undefined || value.parentPid !== snapshot.parentPid) continue
+          const identity = internals.readProcessIdentity?.(value.pid)
+          if (identity === undefined || identity.pid !== value.pid || identity.createdAt !== snapshot.processCreatedAt) continue
+          commandByPid.set(value.pid, value)
+        }
+      }
+    } catch {
+      // The command-line query is optional evidence; the listener scan remains valid.
+    }
+  }
+
+  const chainByListener = new Map<number, readonly LaunchChainNode[]>()
+  for (const row of verifiedRows) {
+    const pidsForRow = launchChainPids(row.ancestry)
+    const chain: LaunchChainNode[] = pidsForRow.map((pid, index) => {
+      const snapshot = processes.get(pid)
+      const command = commandByPid.get(pid)
+      const executable = boundedString(snapshot?.executable ?? command?.executable, MAX_EXECUTABLE_LENGTH)
+      const publicCommand = redactAndBoundProcessCommand(command?.commandLine, MAX_PUBLIC_PROCESS_COMMAND_LENGTH)
+      return {
+        pid,
+        ...executable === undefined ? {} : { executable: redactPath(executable) },
+        ...publicCommand === undefined ? {} : { command: publicCommand },
+        role: launchChainRole(index, pidsForRow.length),
+      }
+    })
+    chainByListener.set(row.owningPid, Object.freeze(chain))
+  }
+
+  return rows.map(row => {
+    const launchChain = chainByListener.get(row.owningPid)
+    return launchChain === undefined ? row : Object.freeze({ ...row, launchChain })
+  })
 }
 
 function parseEndpoint(value: string): { address: string; port: number; protocol: 'tcp4' | 'tcp6' } | undefined {
@@ -257,7 +358,12 @@ export class WindowsListenerScanner {
         ...match,
       }))
     }
-    return Object.freeze({ rows: Object.freeze(rows), complete: true })
+    const processMap = new Map<number, WindowsProcessRecord>()
+    for (const process of processes) {
+      if (validPid(process.pid)) processMap.set(process.pid, process)
+    }
+    const enrichedRows = attachLaunchChains(rows, processMap, this.internals)
+    return Object.freeze({ rows: Object.freeze(enrichedRows), complete: true })
   }
 }
 
@@ -397,6 +503,8 @@ function defaultWindowsScannerInternals(): WindowsScannerInternals {
   return {
     listListeners: defaultWindowsListeners,
     listProcesses: defaultWindowsProcesses,
+    readProcessCommandLines: readWindowsProcessCommandLines,
+    readProcessIdentity: readWindowsProcessIdentity,
   }
 }
 

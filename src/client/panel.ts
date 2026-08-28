@@ -558,6 +558,43 @@ function Fact({
   )
 }
 
+function launchChainRoleLabel(role: NonNullable<HostListenerRow['launchChain']>[number]['role'], t: RuntimeInspectorTranslator['t']): string {
+  switch (role) {
+    case 'root': return t('launchChainRoot')
+    case 'intermediate': return t('launchChainIntermediate')
+    case 'listener': return t('launchChainListener')
+  }
+  return t('launchChainIntermediate')
+}
+
+function LaunchChainDetails({ row, t }: { readonly row: HostListenerRow; readonly t: RuntimeInspectorTranslator['t'] }): React.ReactNode {
+  if (row.confidence !== 'verified' || row.launchChain === undefined || row.launchChain.length === 0) return null
+  return React.createElement('section', {
+    className: 'dsh-ri-detail-section',
+    'data-runtime-inspector-launch-chain': 'verified',
+  },
+  React.createElement('h3', { className: 'dsh-ri-section-title' }, t('launchChain')),
+  React.createElement('ol', { className: 'dsh-ri-launch-chain' },
+    row.launchChain.map(node => React.createElement('li', {
+      className: 'dsh-ri-launch-chain-node',
+      key: `${node.role}:${String(node.pid)}`,
+      'data-runtime-inspector-launch-chain-role': node.role,
+    },
+    React.createElement('div', { className: 'dsh-ri-launch-chain-meta' },
+      React.createElement('span', { className: 'dsh-ri-launch-chain-role' }, launchChainRoleLabel(node.role, t)),
+      React.createElement('span', { className: 'dsh-ri-technical-value' }, `PID ${String(node.pid)}`),
+    ),
+    React.createElement('div', { className: 'dsh-ri-launch-chain-executable dsh-ri-technical-value', title: node.executable ?? t('unknownProcess') },
+      displayExecutable(node.executable, t),
+    ),
+    React.createElement('div', { className: `dsh-ri-launch-chain-command${node.command === undefined ? ' is-unavailable' : ''}`, title: node.command ?? t('launchChainCommandUnavailable') },
+      node.command ?? t('launchChainCommandUnavailable'),
+    ),
+    )),
+  ),
+  )
+}
+
 function DetailPanel({
   row,
   snapshot,
@@ -664,6 +701,7 @@ function DetailPanel({
         React.createElement(Fact, { label: t('launchCommand'), value: attributionValue(row, 'command'), wide: true, multiline: true, technical: true }),
       ),
     ),
+    React.createElement(LaunchChainDetails, { row, t }),
     row.compose === undefined ? null : React.createElement('section', { className: 'dsh-ri-detail-section', 'data-runtime-inspector-compose-details': 'associated' },
       React.createElement('h3', { className: 'dsh-ri-section-title' }, t('composeDetails')),
       React.createElement('dl', { className: 'dsh-ri-fact-grid' },

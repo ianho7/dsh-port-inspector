@@ -89,6 +89,11 @@ export type RuntimeInspectorMessageKey =
   | 'createdAt'
   | 'projectDirectory'
   | 'launchCommand'
+  | 'launchChain'
+  | 'launchChainRoot'
+  | 'launchChainIntermediate'
+  | 'launchChainListener'
+  | 'launchChainCommandUnavailable'
   | 'sectionSessionContext'
   | 'session'
   | 'sessionId'
@@ -242,6 +247,11 @@ const messages: Record<RuntimeInspectorLocale, Record<RuntimeInspectorMessageKey
     createdAt: '创建时间',
     projectDirectory: '项目目录',
     launchCommand: '启动命令',
+    launchChain: '启动链（已确认）',
+    launchChainRoot: 'Root',
+    launchChainIntermediate: '中间进程',
+    launchChainListener: '监听进程',
+    launchChainCommandUnavailable: '命令行不可读取',
     sectionSessionContext: '会话上下文',
     session: 'Session',
     sessionId: 'Session ID',
@@ -385,6 +395,11 @@ const messages: Record<RuntimeInspectorLocale, Record<RuntimeInspectorMessageKey
     createdAt: 'Created at',
     projectDirectory: 'Project directory',
     launchCommand: 'Launch command',
+    launchChain: 'Verified launch chain',
+    launchChainRoot: 'Root',
+    launchChainIntermediate: 'Intermediate',
+    launchChainListener: 'Listener',
+    launchChainCommandUnavailable: 'Command line unavailable',
     sectionSessionContext: 'Session context',
     session: 'Session',
     sessionId: 'Session ID',

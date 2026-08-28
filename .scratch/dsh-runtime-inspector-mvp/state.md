@@ -215,8 +215,16 @@ attempts:
     raw_evidence: "With DSH_REPO=D:\\project\\deepseek-harness and DSH_WEB_E2E=1, tests/dsh-web-smoke.test.mjs timed out after 30 seconds waiting for the Stock DSH /dsh web announcement; the child produced no stdout or stderr. No Compose assertion ran and no source failure was observed."
     conclusion: This attempt does not provide new Web UI evidence; previously recorded rc.1/rc.2 Web smoke results remain valid, while a fresh run must wait for the Stock DSH fixture startup environment.
     next_action_rule: Retry the unchanged Web smoke when the Stock DSH server can publish its endpoint; do not weaken Compose or attribution boundaries to accommodate a fixture timeout.
+  - id: verified-launch-chain-implementation
+    action: Implement the identity-bound Windows process command-line reader and verified root-to-listener launch-chain projection.
+    failure_class: none
+    raw_evidence: "Added fixed PowerShell/CIM Win32_Process projection with numeric PID stdin, 64-PID/2-second/256 KiB bounds, immediate redaction and 1,024-character public command bound, PID/parent/creation-time revalidation, and injectable deterministic seams. Host inventory now exposes optional launchChain only for verified Process origins; Browser detail renders root/intermediate/listener nodes without changing search, copy, action state, lifecycle ownership, or Compose boundaries. TypeScript emit/no-emit, Client build, and the full deterministic Node suite pass 154/154 with 3 existing opt-in gates skipped."
+    conclusion: "The MVP implementation uses one Windows OS fact path for Go, Vite, other runtimes, and unknown custom executables; no manifest, environment, port heuristic, or ecosystem-specific resolver was added."
+    next_action_rule: "Run the real Stock DSH launch-chain acceptance on Windows with Go, Vite, and one third-ecosystem/custom listener; if the environment blocks it, record the exact blocker without weakening the fail-closed chain."
 evidence_gaps:
   - "G1-G6 release fixture: Terminal origin is observed with a valid PID, but port 39104 never reaches LISTENING in two consecutive runs."
   - "Compose ticket 03: live Docker Desktop association is now verified by Host inventory, but DSH Web screenshots, DSH restart/manual recovery, non-standard project-name real acceptance, and post-down port-release proof are not yet accepted."
+  - "Verified launch-chain real Stock DSH/Browser screenshots and cross-ecosystem live acceptance are not yet captured."
+  - "The attempted Stock DSH Bundle smoke was blocked by a temporary Profile missing host plugin packages; this is an environment gate, not product evidence."
 blocked_reason: "Independent Stock DSH Terminal fixture readiness and remaining real DSH Web/cleanup evidence are external acceptance gates; no safe product change can infer listeners or container ownership that the OS/runtime did not expose."
-next_action: "Complete Compose ticket 03's remaining real DSH Web and cleanup acceptance; retain deterministic and Web smoke gates as mandatory."
+next_action: "Complete Compose ticket 03's remaining real DSH Web and cleanup acceptance plus Verified launch-chain Stock DSH/Browser acceptance; retain deterministic and Web smoke gates as mandatory."
