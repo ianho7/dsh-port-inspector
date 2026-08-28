@@ -66,7 +66,7 @@ test('Runtime Inspector panel exposes semantic stable controls and all required 
   assert.match(source, /attributionValue\(row, 'workdir'\)/)
   assert.match(source, /dsh-ri-source-facts/)
   assert.match(source, /currentSessionId: sessionContext\.sessionId/)
-  assert.match(source, /row\.confidence === 'verified' && row\.sessionVisibility === 'current-session'/)
+  assert.match(source, /row\.development\.group === 'current-project'/)
   assert.match(source, /result\.ok && result\.copied/)
 })
 
@@ -271,7 +271,7 @@ test('installed panel keeps the approved hi-fi density and semantic palette unde
   assert.doesNotMatch(stylesSource, /\.dsh-ri-row-button:focus-visible\s*\{[^}]*border-color:\s*var\(--dsh-ri-accent\)/su)
 })
 
-test('sidebar badge refreshes current-session verified listeners without overlapping scans', () => {
+test('sidebar badge refreshes current-project listeners, including Compose infrastructure, without overlapping scans', () => {
   assert.match(source, /const ENTRY_BADGE_REFRESH_MS = 5_000/)
   assert.match(source, /window\.setInterval\([^,]+, ENTRY_BADGE_REFRESH_MS\)/su)
   assert.match(source, /document\.visibilityState === 'visible'/)
@@ -279,6 +279,7 @@ test('sidebar badge refreshes current-session verified listeners without overlap
   assert.match(source, /window\.addEventListener\('focus'/)
   assert.match(source, /if \(badgeRefreshInFlight\.current\) return/)
   assert.match(source, /publishEntryBadgeSnapshot\(snapshot/)
+  assert.match(source, /snapshot\.listeners\.filter\(isCurrentProjectListener\)/)
   assert.match(source, /window\.clearInterval/)
   assert.match(source, /document\.removeEventListener\('visibilitychange'/)
   assert.match(source, /window\.removeEventListener\('focus'/)

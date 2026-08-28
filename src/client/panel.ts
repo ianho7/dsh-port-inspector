@@ -117,7 +117,7 @@ function publishEntryBadgeSnapshot(snapshot: HostInventorySnapshot, contextKey: 
     contextKey,
     ...snapshot.mode === 'read-only-degraded'
       ? {}
-      : { count: snapshot.listeners.filter(isCurrentSessionVerified).length },
+      : { count: snapshot.listeners.filter(isCurrentProjectListener).length },
   })
 }
 
@@ -263,8 +263,10 @@ function isActionable(row: HostListenerRow): boolean {
     && (row.action.kind === 'managed-shutdown' || row.action.kind === 'external-single-pid')
 }
 
-function isCurrentSessionVerified(row: HostListenerRow): boolean {
-  return row.confidence === 'verified' && row.sessionVisibility === 'current-session'
+function isCurrentProjectListener(row: HostListenerRow): boolean {
+  // The selected project scope includes both DSH-owned listeners and
+  // read-only Compose associations published by that project.
+  return row.development.group === 'current-project'
 }
 
 function sourceState(row: HostListenerRow, snapshot: HostInventorySnapshot): SourceState {
