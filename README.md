@@ -27,6 +27,33 @@ DSH 已经通过 Job、Terminal 和 subprocess 管理受管进程，但用户仍
 
 后台任务可以在 Turn 结束后继续运行，外部 PowerShell、第三方插件、daemonized 服务、强制退出或清理失败也可能留下用户可感知的端口占用。Runtime Inspector 填补的是 DSH 生命周期与 Windows 实际监听状态之间的观察和处理缺口，不替代 DSH 的资源管理。
 
+## 一个真实的全栈开发场景
+
+一名开发者让 DSH 为一个前后端分离项目增加订单状态功能。Agent 需要启动 Vite 前端、Go API，并通过 Docker Compose 启动 PostgreSQL 和 Redis。任务完成后，四个端口仍在监听，但用户无法仅凭端口判断它们来自哪个项目、哪个 Session，或者哪些服务可以安全停止。
+
+Runtime Inspector 将这次运行拆成两类事实：Go 和 Vite 通过真实的 DSH Session、Tool Call、进程身份和父进程链建立 `verified` 来源；PostgreSQL 和 Redis 通过 Compose 文件、服务、镜像、容器和 published port 关联到当前项目，但仍保持“启动方未确认”和只读处理。这样，当前项目可以诚实地显示四个运行中的服务，同时不会把 Docker Desktop 的进程伪装成由 DSH 启动。
+
+### DSH 任务上下文
+
+下面的画面记录了在 DeepSeek Harness 中选择 `runtime-story` 工作区并打开 Runtime Inspector 入口的任务上下文。图中的徽标是截图时刻的已有监听数量，不作为四服务验收数字；完整运行结果见下一张图。
+
+![DeepSeek Harness 中的 runtime-story 工作区与 Runtime Inspector 入口](<./assets/DeepSeek Harness (28.08.2026 22_33) (1).png>)
+
+### Runtime Inspector 运行结果
+
+在完整演示中，当前项目分组包含 Vite、PostgreSQL、Redis 和 Go 四条记录，侧边栏徽标显示 `4`。其中 Docker 服务的 Compose 项目关联已确认，但启动方仍显示为未确认；这两个状态分别表达“属于哪个项目”和“由谁启动”。
+
+![Runtime Inspector 展示四个全栈演示服务及其来源边界](<./assets/DSH Runtime Inspector 全栈演示 — DeepSeek Harness (28.08.2026 22_33) (1).png>)
+
+| 服务 | 启动方式 | 端口 | Runtime Inspector 中的含义 |
+| --- | --- | ---: | --- |
+| Vite | DSH 后台 Job 执行 `npm run dev` | 5173 | 当前项目、当前 Session、verified 来源，可停止 DSH 任务 |
+| Go API | DSH 后台 Job 执行 `go run .` | 8080 | 当前项目、当前 Session、verified 来源，可停止 DSH 任务 |
+| PostgreSQL | Docker Compose | 5432 | 当前项目 Compose 关联、镜像/容器证据，启动方未确认、仅可查看 |
+| Redis | Docker Compose | 6379 | 当前项目 Compose 关联、镜像/容器证据，启动方未确认、仅可查看 |
+
+完整的启动 Prompt、直接命令、脚本包装模式、取材顺序和清理步骤见 [`demo/runtime-story/DSH-DEMO-GUIDE.md`](./demo/runtime-story/DSH-DEMO-GUIDE.md)。
+
 ## 和已有方案的区别
 
 | 方案 | 能看到或做到什么 | 缺少什么 |
