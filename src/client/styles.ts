@@ -14,26 +14,33 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   --dsh-ri-type-detail-port: 32px;
   --dsh-ri-leading-body: 1.55;
   --dsh-ri-leading-prose: 1.7;
-  --dsh-ri-bg: var(--dsw-alias-bg-layer-2, #ffffff);
-  --dsh-ri-bg-muted: var(--dsw-alias-bg-layer-1, #f6f7f9);
-  --dsh-ri-bg-raised: var(--dsw-alias-bg-layer-3, #ffffff);
-  --dsh-ri-label: var(--dsw-alias-label-primary, #17191d);
-  --dsh-ri-label-secondary: var(--dsw-alias-label-secondary, #555b63);
-  --dsh-ri-label-tertiary: var(--dsw-alias-label-tertiary, #7c838c);
-  --dsh-ri-label-caption: var(--dsw-alias-label-caption, #9198a1);
-  --dsh-ri-border: #e2e5e9;
-  --dsh-ri-border-soft: #eef0f2;
-  --dsh-ri-accent: #3066c7;
-  --dsh-ri-accent-soft: #edf3ff;
-  --dsh-ri-success: #2f704f;
-  --dsh-ri-warning: #b34a45;
-  --dsh-ri-danger: #b34743;
-  --dsh-ri-shadow: var(--dsw-shadow-lv3, 0 18px 46px rgba(20, 26, 36, 0.16), 0 3px 12px rgba(20, 26, 36, 0.08));
-  --dsh-ri-mask: var(--dsw-alias-bg-mask-1, rgba(0, 0, 0, 0.24));
-  --dsh-ri-mask-blur: var(--dsw-mask-blur, blur(8px));
-  --dsh-ri-border-subtle: #eef0f2;
-  --dsh-ri-border-strong: #d9dde3;
-  --dsh-ri-bg-panel: var(--dsw-alias-bg-layer-2, #ffffff);
+  --dsh-ri-bg: var(--dsw-alias-bg-layer-2);
+  --dsh-ri-bg-muted: var(--dsw-alias-bg-layer-1);
+  --dsh-ri-bg-raised: var(--dsw-alias-bg-layer-3);
+  --dsh-ri-label: var(--dsw-alias-label-primary);
+  --dsh-ri-label-secondary: var(--dsw-alias-label-secondary);
+  --dsh-ri-label-tertiary: var(--dsw-alias-label-tertiary);
+  --dsh-ri-label-caption: var(--dsw-alias-label-caption);
+  --dsh-ri-border: var(--dsw-alias-border-l2);
+  --dsh-ri-border-soft: var(--dsw-alias-border-l1);
+  --dsh-ri-accent: var(--dsw-alias-state-business-primary);
+  --dsh-ri-accent-soft: var(--dsw-alias-state-business-tertiary);
+  --dsh-ri-accent-hover: var(--dsw-alias-button-info-hover);
+  --dsh-ri-success: var(--dsw-alias-state-success-primary);
+  --dsh-ri-success-border: var(--dsw-alias-state-success-secondary);
+  --dsh-ri-success-bg: var(--dsw-alias-state-success-tertiary);
+  --dsh-ri-warning: var(--dsw-alias-state-warn-label);
+  --dsh-ri-warning-border: var(--dsw-alias-state-warn-secondary);
+  --dsh-ri-warning-bg: var(--dsw-alias-state-warn-tertiary);
+  --dsh-ri-danger: var(--dsw-alias-state-error-primary);
+  --dsh-ri-danger-hover: var(--dsw-alias-state-error-secondary);
+  --dsh-ri-danger-bg: var(--dsw-alias-interactive-bg-hover-danger);
+  --dsh-ri-shadow: var(--dsw-shadow-lv3);
+  --dsh-ri-mask: var(--dsw-alias-bg-mask-1);
+  --dsh-ri-mask-blur: var(--dsw-mask-blur);
+  --dsh-ri-border-subtle: var(--dsw-alias-border-l1);
+  --dsh-ri-border-strong: var(--dsw-alias-border-l3);
+  --dsh-ri-bg-panel: var(--dsw-alias-bg-layer-2);
   color: var(--dsh-ri-label);
   font-family: var(--dsh-ri-font-sans);
   font-size: var(--dsh-ri-type-body);
@@ -133,8 +140,8 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   border-radius: 24px;
   background: var(--dsh-ri-bg);
   box-shadow: var(--dsh-ri-shadow);
-  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2, #d8dce2);
-  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2, #c7ccd4);
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
   pointer-events: auto;
 }
 
@@ -464,17 +471,22 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   line-height: var(--dsh-ri-leading-prose);
 }
 
-.dsh-ri-banner.is-limited,
-.dsh-ri-error {
-  border-color: color-mix(in srgb, var(--dsh-ri-warning) 35%, var(--dsh-ri-border));
+.dsh-ri-banner.is-limited {
+  border-color: var(--dsh-ri-warning-border);
   color: var(--dsh-ri-warning);
-  background: color-mix(in srgb, var(--dsh-ri-warning) 6%, var(--dsh-ri-bg));
+  background: var(--dsh-ri-warning-bg);
+}
+
+.dsh-ri-error {
+  border-color: var(--dsh-ri-danger);
+  color: var(--dsh-ri-danger);
+  background: var(--dsh-ri-danger-bg);
 }
 
 .dsh-ri-result {
-  border-color: color-mix(in srgb, var(--dsh-ri-success) 28%, var(--dsh-ri-border));
+  border-color: var(--dsh-ri-success-border);
   color: var(--dsh-ri-success);
-  background: color-mix(in srgb, var(--dsh-ri-success) 6%, var(--dsh-ri-bg));
+  background: var(--dsh-ri-success-bg);
 }
 
 .dsh-ri-body {
@@ -635,9 +647,9 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 
 .dsh-ri-pin-button:hover,
 .dsh-ri-pin-button.is-pinned {
-  border-color: color-mix(in srgb, var(--dsh-ri-accent) 20%, var(--dsh-ri-border));
+  border-color: var(--dsh-ri-accent);
   color: var(--dsh-ri-accent);
-  background: color-mix(in srgb, var(--dsh-ri-accent) 6%, var(--dsh-ri-bg));
+  background: var(--dsh-ri-accent-soft);
 }
 
 .dsh-ri-pin-button:focus-visible {
@@ -853,15 +865,15 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 
 .dsh-ri-source-pill.is-verified,
 .dsh-ri-action-pill.is-managed {
-  border-color: color-mix(in srgb, var(--dsh-ri-success) 28%, var(--dsh-ri-border));
+  border-color: var(--dsh-ri-success-border);
   color: var(--dsh-ri-success);
-  background: color-mix(in srgb, var(--dsh-ri-success) 6%, var(--dsh-ri-bg));
+  background: var(--dsh-ri-success-bg);
 }
 
 .dsh-ri-source-pill.is-degraded {
-  border-color: color-mix(in srgb, var(--dsh-ri-warning) 26%, var(--dsh-ri-border));
+  border-color: var(--dsh-ri-warning-border);
   color: var(--dsh-ri-warning);
-  background: color-mix(in srgb, var(--dsh-ri-warning) 5%, var(--dsh-ri-bg));
+  background: var(--dsh-ri-warning-bg);
 }
 
 .dsh-ri-action-pill.is-disabled {
@@ -871,9 +883,9 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 }
 
 .dsh-ri-action-pill.is-external {
-  border-color: color-mix(in srgb, var(--dsh-ri-danger) 28%, var(--dsh-ri-border));
+  border-color: var(--dsh-ri-danger);
   color: var(--dsh-ri-danger);
-  background: color-mix(in srgb, var(--dsh-ri-danger) 6%, var(--dsh-ri-bg));
+  background: var(--dsh-ri-danger-bg);
 }
 
 .dsh-ri-source-signal {
@@ -1071,8 +1083,8 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 }
 
 .dsh-ri-source-card.is-degraded {
-  border-color: color-mix(in srgb, var(--dsh-ri-warning) 26%, var(--dsh-ri-border));
-  background: color-mix(in srgb, var(--dsh-ri-warning) 4%, var(--dsh-ri-bg));
+  border-color: var(--dsh-ri-warning-border);
+  background: var(--dsh-ri-warning-bg);
 }
 
 .dsh-ri-source-copy,
@@ -1103,7 +1115,7 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   padding: 3px 7px;
   border-radius: 5px;
   color: var(--dsh-ri-success);
-  background: var(--dsh-ri-bg);
+  background: var(--dsh-ri-success-bg);
   font-size: var(--dsh-ri-type-meta);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1141,19 +1153,22 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 
 .dsh-ri-primary-action {
   border: 1px solid var(--dsh-ri-accent);
-  color: var(--dsh-ri-bg);
+  color: var(--dsw-alias-label-primary-foreground);
   background: var(--dsh-ri-accent);
 }
 
 .dsh-ri-danger-action {
   border: 1px solid var(--dsh-ri-danger);
-  color: var(--dsh-ri-bg);
+  color: var(--dsw-alias-label-primary-foreground);
   background: var(--dsh-ri-danger);
 }
 
-.dsh-ri-primary-action:hover,
+.dsh-ri-primary-action:hover {
+  background: var(--dsh-ri-accent-hover);
+}
+
 .dsh-ri-danger-action:hover {
-  filter: brightness(0.94);
+  background: var(--dsh-ri-danger-hover);
 }
 
 .dsh-ri-secondary-action {
@@ -1256,10 +1271,10 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   gap: 8px;
   margin-top: 13px;
   padding: 9px 10px;
-  border: 1px solid color-mix(in srgb, var(--dsh-ri-warning) 25%, var(--dsh-ri-border));
+  border: 1px solid var(--dsh-ri-warning-border);
   border-radius: 8px;
   color: var(--dsh-ri-warning);
-  background: color-mix(in srgb, var(--dsh-ri-warning) 5%, var(--dsh-ri-bg));
+  background: var(--dsh-ri-warning-bg);
   font-size: var(--dsh-ri-type-label);
   line-height: var(--dsh-ri-leading-prose);
 }
