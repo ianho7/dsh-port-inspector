@@ -2,6 +2,7 @@
   <img src="./assets/logo-candidates/A1-v4-rounded.png" alt="DSH Runtime Inspector logo" width="128" height="128">
   <h1>DSH Runtime Inspector</h1>
   <p>DSH Web 内面向 Windows 本地开发的端口来源追踪与安全处理工具。</p>
+  <p><strong>中文</strong> | <a href="./README_EN.md">English</a></p>
 </div>
 
 ## 为什么要做
@@ -103,33 +104,50 @@ Windows MVP 不面向 macOS/Linux、UDP、远程主机、跨重启历史、批�
 
 - Windows；
 - Node.js `>=22.19.0`；
-- 可用的 `pnpm`（在 `PATH` 中，或通过 `-PnpmCliPath` 指定 `pnpm.cjs`）；
-- 可运行的 Stock DeepSeek Harness checkout；
-- 目标 DeepSeek Harness Profile，默认使用 `web`。
+- 可运行的 DeepSeek Harness（DSH）；
+- `PATH` 中可用的 `pnpm`，供 `dsh plugin` 管理 Profile 依赖；
+- 目标 DSH Profile 为 `web`。
 
 ### 安装并启动
 
-在仓库目录安装依赖，然后使用仓库脚本构建、打包并安装 Bundle：
+安装或更新前，请先完全退出正在运行的 DSH Web。以下三种方式任选一种。
+
+1. **通过 npm 安装**
 
 ```powershell
-cd D:\project\DeepSeek Harness-runtime-inspector
+dsh plugin --profile web add dsh-runtime-inspector@latest
+```
+
+2. **通过 GitHub Release 下载并安装**
+
+使用 GitHub CLI 从[最新 GitHub Release](https://github.com/ianho7/dsh-runtime-inspector/releases/latest) 下载压缩包，然后安装：
+
+```powershell
+gh release download `
+  --repo ianho7/dsh-runtime-inspector `
+  --pattern 'dsh-runtime-inspector-*.tgz' `
+  --output 'dsh-runtime-inspector-latest.tgz'
+dsh plugin --profile web add '.\dsh-runtime-inspector-latest.tgz'
+```
+
+3. **从源码编译并安装**
+
+```powershell
+git clone https://github.com/ianho7/dsh-runtime-inspector.git
+cd dsh-runtime-inspector
 npm install
-.\scripts\reinstall-DeepSeek Harness-plugin.ps1 `
-  -DeepSeek HarnessRepo 'D:\project\deepseek-harness' `
-  -Profile web
+npm run build
+$PackageFile = npm pack --ignore-scripts
+dsh plugin --profile web add ".\$PackageFile"
 ```
 
-脚本会安装当前版本的 `DeepSeek Harness-runtime-inspector`。完成后，完全退出并重新启动目标 DeepSeek Harness Web Profile。
-
-正式发布到 npm 后，普通用户无需克隆源码，直接在目标 DeepSeek Harness Profile 中安装：
+安装完成后启动 DSH Web：
 
 ```powershell
-DeepSeek Harness plugin --profile web add DeepSeek Harness-runtime-inspector@latest
-# 或固定到某个版本
-DeepSeek Harness plugin --profile web add DeepSeek Harness-runtime-inspector@0.1.0
+dsh web
 ```
 
-安装后完全退出并重新启动目标 DeepSeek Harness Web Profile；卸载时使用 `DeepSeek Harness plugin --profile web remove DeepSeek Harness-runtime-inspector`。
+浏览器打开后，创建一个新任务，然后从侧边栏打开 **Runtime Inspector**。
 
 ### 调查端口
 

@@ -4,6 +4,7 @@ lib/
 *.tsbuildinfo
 coverage/
 .volta-temp
+.baoyu-skills
 demo
 
 # Local package artifacts
