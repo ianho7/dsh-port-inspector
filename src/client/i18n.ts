@@ -53,7 +53,6 @@ export type RuntimeInspectorMessageKey =
   | 'composeImage'
   | 'composeContainer'
   | 'composeMapping'
-  | 'composeUnavailableBanner'
   | 'handlingScanIncomplete'
   | 'handlingDegraded'
   | 'handlingManaged'
@@ -121,7 +120,9 @@ export type RuntimeInspectorMessageKey =
   | 'statusScanIncomplete'
   | 'loadingListeners'
   | 'panelUnavailable'
-  | 'refreshIncomplete'
+  | 'refreshFailedStale'
+  | 'retry'
+  | 'technicalDetails'
   | 'searchLabel'
   | 'sortLabel'
   | 'sortPort'
@@ -141,8 +142,6 @@ export type RuntimeInspectorMessageKey =
   | 'sourceDsh'
   | 'actionableOnly'
   | 'updatingPortStatus'
-  | 'sourceDegradedBanner'
-  | 'scanIncompleteBanner'
   | 'truncatedBanner'
   | 'listenerList'
   | 'displayCount'
@@ -159,6 +158,7 @@ export type RuntimeInspectorMessageKey =
   | 'detailColumn'
   | 'detailsCopied'
   | 'detailsGeneratedClipboardUnavailable'
+  | 'copyListenerNotFound'
   | 'copyFailed'
   | 'actionCompletedReleased'
   | 'actionCompletedStillListening'
@@ -167,6 +167,9 @@ export type RuntimeInspectorMessageKey =
   | 'actionNotAllowed'
   | 'actionConfirmationRequired'
   | 'actionOwnerUnavailable'
+  | 'actionDenied'
+  | 'actionFailed'
+  | 'actionRequestFailed'
 
 export type RuntimeInspectorMessageValues = Readonly<Record<string, string | number>>
 
@@ -211,7 +214,6 @@ const messages: Record<RuntimeInspectorLocale, Record<RuntimeInspectorMessageKey
     composeImage: '镜像',
     composeContainer: '容器 ID',
     composeMapping: '端口映射',
-    composeUnavailableBanner: 'Compose 运行时暂不可用；监听扫描仍可继续，关联信息将在下次刷新重试。',
     handlingScanIncomplete: '本次监听扫描未完成，当前结果仅用于查看。',
     handlingDegraded: '来源追踪暂不可用，此监听端口当前仅用于查看。',
     handlingManaged: '通过 DSH 生命周期执行停止；Host 会在执行前重新校验当前身份。',
@@ -278,8 +280,10 @@ const messages: Record<RuntimeInspectorLocale, Record<RuntimeInspectorMessageKey
     statusSourceLimited: '来源追踪受限',
     statusScanIncomplete: '扫描未完成',
     loadingListeners: '正在读取监听端口',
-    panelUnavailable: '面板暂不可用，只读：{error}',
-    refreshIncomplete: '刷新未完成：{error}',
+    panelUnavailable: '无法读取监听端口。',
+    refreshFailedStale: '刷新失败，当前显示上次成功结果。',
+    retry: '重试',
+    technicalDetails: '技术详情',
     searchLabel: '搜索占用端口',
     sortLabel: '排序占用端口',
     sortPort: '按端口',
@@ -299,8 +303,6 @@ const messages: Record<RuntimeInspectorLocale, Record<RuntimeInspectorMessageKey
     sourceDsh: '由 DSH 启动',
     actionableOnly: '仅显示可处理',
     updatingPortStatus: '正在更新端口状态…',
-    sourceDegradedBanner: '来源追踪暂不可用；可处理项仍会基于进程身份独立校验。',
-    scanIncompleteBanner: '本次监听扫描未完成，当前结果仅可查看。',
     truncatedBanner: '结果数量已达到上限，列表显示当前可见部分。',
     listenerList: '监听端口列表',
     displayCount: ({ count }) => `显示 ${String(count)} 项`,
@@ -317,6 +319,7 @@ const messages: Record<RuntimeInspectorLocale, Record<RuntimeInspectorMessageKey
     detailColumn: '监听端口详情',
     detailsCopied: '详情已复制。',
     detailsGeneratedClipboardUnavailable: '详情已生成，但剪贴板不可用。',
+    copyListenerNotFound: '监听器已不存在，无法复制详情。',
     copyFailed: '复制失败。',
     actionCompletedReleased: ({ action, port }) => `${String(action)} 已完成；端口 ${String(port)} 已不再监听。`,
     actionCompletedStillListening: ({ action, port }) => `${String(action)} 已完成，但端口 ${String(port)} 仍在监听。`,
@@ -325,6 +328,9 @@ const messages: Record<RuntimeInspectorLocale, Record<RuntimeInspectorMessageKey
     actionNotAllowed: '当前监听端口不允许执行请求的操作。',
     actionConfirmationRequired: '执行此操作前需要明确确认。',
     actionOwnerUnavailable: 'DSH 生命周期所有者已不可用。',
+    actionDenied: '当前操作未执行。',
+    actionFailed: ({ action, port }) => `${String(action)}失败；端口 ${String(port)} 的状态已重新读取。`,
+    actionRequestFailed: ({ action, port }) => `${String(action)}失败；无法确认端口 ${String(port)} 的最新状态。`,
   },
   en: {
     entryLabel: 'Listening ports',
@@ -359,7 +365,6 @@ const messages: Record<RuntimeInspectorLocale, Record<RuntimeInspectorMessageKey
     composeImage: 'Image',
     composeContainer: 'Container ID',
     composeMapping: 'Port mapping',
-    composeUnavailableBanner: 'Compose runtime is unavailable; listener scanning continues and association will retry on refresh.',
     handlingScanIncomplete: 'This listener scan is incomplete, so the current result is view-only.',
     handlingDegraded: 'Attribution is unavailable; this listener is currently view-only.',
     handlingManaged: 'Stop through the DSH lifecycle; Host revalidates the current identity before execution.',
@@ -426,8 +431,10 @@ const messages: Record<RuntimeInspectorLocale, Record<RuntimeInspectorMessageKey
     statusSourceLimited: 'Attribution limited',
     statusScanIncomplete: 'Scan incomplete',
     loadingListeners: 'Reading listening ports',
-    panelUnavailable: 'Panel unavailable; view-only: {error}',
-    refreshIncomplete: 'Refresh incomplete: {error}',
+    panelUnavailable: 'Could not read listening ports.',
+    refreshFailedStale: 'Refresh failed; showing the last successful result.',
+    retry: 'Retry',
+    technicalDetails: 'Technical details',
     searchLabel: 'Search occupied ports',
     sortLabel: 'Sort occupied ports',
     sortPort: 'Port',
@@ -447,8 +454,6 @@ const messages: Record<RuntimeInspectorLocale, Record<RuntimeInspectorMessageKey
     sourceDsh: 'DSH',
     actionableOnly: 'Actionable',
     updatingPortStatus: 'Updating port status…',
-    sourceDegradedBanner: 'Attribution is unavailable; actionable items are still independently checked by process identity.',
-    scanIncompleteBanner: 'This listener scan is incomplete; the current result is view-only.',
     truncatedBanner: 'The result limit was reached; the list shows the currently visible portion.',
     listenerList: 'Listening port list',
     displayCount: ({ count }) => `Showing ${String(count)} listener${Number(count) === 1 ? '' : 's'}`,
@@ -465,6 +470,7 @@ const messages: Record<RuntimeInspectorLocale, Record<RuntimeInspectorMessageKey
     detailColumn: 'Listening port details',
     detailsCopied: 'Details copied.',
     detailsGeneratedClipboardUnavailable: 'Details generated, but the clipboard is unavailable.',
+    copyListenerNotFound: 'The listener no longer exists, so its details could not be copied.',
     copyFailed: 'Copy failed.',
     actionCompletedReleased: ({ action, port }) => `${String(action)} completed; port ${String(port)} is no longer listening.`,
     actionCompletedStillListening: ({ action, port }) => `${String(action)} completed, but port ${String(port)} is still listening.`,
@@ -473,6 +479,9 @@ const messages: Record<RuntimeInspectorLocale, Record<RuntimeInspectorMessageKey
     actionNotAllowed: 'The requested action is not allowed for this listener.',
     actionConfirmationRequired: 'Explicit confirmation is required before this action.',
     actionOwnerUnavailable: 'The DSH lifecycle owner is no longer available.',
+    actionDenied: 'The requested action was not performed.',
+    actionFailed: ({ action, port }) => `${String(action)} failed; the state of port ${String(port)} was refreshed.`,
+    actionRequestFailed: ({ action, port }) => `${String(action)} failed; the latest state of port ${String(port)} could not be confirmed.`,
   },
 }
 

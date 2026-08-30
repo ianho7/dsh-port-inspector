@@ -1,6 +1,6 @@
 # DSH Runtime Inspector：测试与手工验收指南
 
-> 适用范围：Windows 本地开发环境、Stock DSH Web、Runtime Inspector `0.1.0` MVP。
+> 适用范围：Windows 本地开发环境、Stock DSH Web、Runtime Inspector `0.1.1` MVP。
 
 ## 验收目标
 
@@ -46,6 +46,10 @@ Runtime Inspector 应使用与 DSH `ui-settings-general` 一致的 Modal Chrome�
 - 桌面尺寸下，面板约为 `1040px` 宽、最高 `800px`，圆角为 `24px`，使用 DSH `lv3` 阴影，以容纳完整工具栏和双栏详情。
 - 面板不使用只有一个菜单项的左侧导航栏；54px Header 直接显示 `Runtime Inspector`，下方为可滚动内容区。
 - 正常状态不显示“观察模式”；仅在来源追踪降级或扫描未完成时显示对应的状态提示。
+- 来源追踪降级和扫描未完成只显示在 Header 状态胶囊及相关行说明中，不重复显示全局警告；Workspace 中存在 Compose 文件但 Docker Engine 未运行时保持静默。
+- 复制、打开目录和停止操作的反馈显示在对应详情区域；成功、警告和失败分别使用对应语义样式。复制和打开目录成功反馈在 4 秒后自动消失；停止、警告和错误结果保持可见。停止后目标行消失时结果显示在详情列顶部而不附着到新选中行。
+- 首次 inventory 失败显示可重试错误；已有快照的刷新失败继续显示上次成功结果。技术错误默认折叠，展开内容不包含 stack。
+- Sidebar 已显示确定监听数量时，首次打开面板应立即复用相同 Session ID 与 cwd 的完整快照，不显示整页“正在读取监听端口”；Host 复查在后台继续，并以中性更新状态呈现。上下文不同的快照不得复用。
 - 端口列表列保持在面板可视高度内，由列表列自身垂直滚动；详情列保持可见并独立滚动，不随整个 Options 区域滚走。
 - 关闭按钮为 28×28px 圆形按钮；按 `Escape` 关闭弹窗，确认弹窗打开时先取消确认层。
 - 打开弹窗后焦点进入关闭按钮，关闭后焦点回到触发 Runtime Inspector 的侧边栏入口。
@@ -71,7 +75,7 @@ cd D:\project\dsh-runtime-inspector
 脚本最后的列表应包含：
 
 ```text
-dsh-runtime-inspector@0.1.0
+dsh-runtime-inspector@0.1.1
 ```
 
 打包日志中的 `Tarball Contents` 应只包含 `lib/**/*.js`、`lib/**/*.d.ts`、`cordis.patch.yml` 以及 npm 自动保留的 `package.json`/`README.md` 等元文件，不应出现任何 `.map` 文件。

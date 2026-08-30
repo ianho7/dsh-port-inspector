@@ -2,10 +2,8 @@ import * as React from 'react'
 import type {
   HostActionKind,
   HostActionRequest,
-  HostActionResult,
   HostInventorySnapshot,
   HostListenerRow,
-  HostOpenDirectoryResult,
 } from '../host-ui.js'
 import type { RuntimeInspectorBrowserRpc } from './bridge.js'
 import {
@@ -38,6 +36,18 @@ import {
   IconSearch,
 } from './icons.js'
 import { loadPinnedListenerKeys, savePinnedListenerKeys, togglePinnedListenerKey } from './pinned-listeners.js'
+import {
+  actionRequestFailureNotice,
+  actionResultNotice,
+  copyRequestFailureNotice,
+  copyResultNotice,
+  inventoryFailureNotice,
+  openDirectoryRequestFailureNotice,
+  openDirectoryResultNotice,
+  noticeAutoDismissMs,
+  operationNoticePlacement,
+  type PanelNotice,
+} from './notices.js'
 import { ComposeContextLogo, ToolchainLogo, toolchainName } from './toolchain-logos.js'
 import runtimeInspectorLogo from '../../assets/runtime-inspector-logo.webp'
 
@@ -57,9 +67,9 @@ interface PanelProps {
 
 interface PanelState {
   readonly snapshot?: HostInventorySnapshot
-  readonly error?: string
-  readonly actionResult?: string
-  readonly postAction?: boolean
+  readonly snapshotContextKey?: string
+  readonly inventoryNotice?: PanelNotice
+  readonly operationNotice?: PanelNotice
   readonly loading?: boolean
 }
 
@@ -88,6 +98,7 @@ function shortContainerId(value: string | undefined): string {
 interface EntryBadgeSnapshot {
   readonly contextKey: string
   readonly count?: number
+  readonly inventory?: HostInventorySnapshot
 }
 
 let entryBadgeSnapshot: EntryBadgeSnapshot = Object.freeze({ contextKey: '' })
@@ -107,7 +118,9 @@ function subscribeEntryBadge(listener: () => void): () => void {
 }
 
 function setEntryBadgeSnapshot(next: EntryBadgeSnapshot): void {
-  if (next.contextKey === entryBadgeSnapshot.contextKey && next.count === entryBadgeSnapshot.count) return
+  if (next.contextKey === entryBadgeSnapshot.contextKey
+    && next.count === entryBadgeSnapshot.count
+    && next.inventory === entryBadgeSnapshot.inventory) return
   entryBadgeSnapshot = Object.freeze(next)
   for (const listener of [...entryBadgeListeners]) listener()
 }
@@ -115,9 +128,20 @@ function setEntryBadgeSnapshot(next: EntryBadgeSnapshot): void {
 function publishEntryBadgeSnapshot(snapshot: HostInventorySnapshot, contextKey: string): void {
   setEntryBadgeSnapshot({
     contextKey,
+    inventory: snapshot,
     ...snapshot.mode === 'read-only-degraded'
       ? {}
       : { count: snapshot.listeners.filter(isCurrentProjectListener).length },
+  })
+}
+
+function publishEntryBadgeFailure(contextKey: string): void {
+  const previous = readEntryBadgeSnapshot()
+  setEntryBadgeSnapshot({
+    contextKey,
+    ...previous.contextKey === contextKey && previous.inventory !== undefined
+      ? { inventory: previous.inventory }
+      : {},
   })
 }
 
@@ -184,6 +208,33 @@ function actionLabel(kind: HostActionKind, t: RuntimeInspectorTranslator['t']): 
     case 'degraded':
       return t('actionReadOnly')
   }
+}
+
+function NoticeView({
+  notice,
+  t,
+  className = '',
+}: {
+  readonly notice: PanelNotice
+  readonly t: RuntimeInspectorTranslator['t']
+  readonly className?: string
+}): React.ReactNode {
+  return React.createElement('div', {
+    className: `dsh-ri-notice is-${notice.tone}${className.length === 0 ? '' : ` ${className}`}`,
+    role: notice.tone === 'error' ? 'alert' : 'status',
+    'data-runtime-inspector-notice': notice.source,
+    'data-runtime-inspector-notice-tone': notice.tone,
+    ...notice.source === 'action' ? { 'data-runtime-inspector-action-result': 'result' } : {},
+  },
+  notice.tone === 'success' ? IconCheck({ size: 14 }) : IconInfo({ size: 14 }),
+  React.createElement('div', { className: 'dsh-ri-notice-content' },
+    React.createElement('span', { className: 'dsh-ri-notice-message' }, notice.message),
+    notice.detail === undefined ? null : React.createElement('details', { className: 'dsh-ri-notice-details' },
+      React.createElement('summary', null, t('technicalDetails')),
+      React.createElement('div', { className: 'dsh-ri-notice-detail-value' }, notice.detail),
+    ),
+  ),
+  )
 }
 
 function actionPillLabel(kind: HostActionKind, compact: boolean, t: RuntimeInspectorTranslator['t']): string {
@@ -440,34 +491,6 @@ function collapseDuplicateRows(rows: readonly HostListenerRow[]): {
   return { rows: uniqueRows, occurrenceCounts }
 }
 
-function openDirectoryResultMessage(result: HostOpenDirectoryResult, t: RuntimeInspectorTranslator['t']): string {
-  if (result.ok) return t('openDirectorySuccess')
-  switch (result.reason) {
-    case 'listener-not-found': return t('openDirectoryListenerNotFound')
-    case 'project-unavailable': return t('openDirectoryProjectUnavailable')
-    case 'opener-unavailable': return t('openDirectoryOpenerUnavailable')
-    case 'open-failed': return result.error ?? t('openDirectoryFailed')
-    default: return result.error ?? t('openDirectoryFailed')
-  }
-}
-
-function actionResultMessage(result: HostActionResult, t: RuntimeInspectorTranslator['t']): string {
-  const action = actionLabel(result.action, t)
-  const port = result.port === undefined ? '—' : String(result.port)
-  if (result.status === 'completed') {
-    if (result.portReleased === true) return t('actionCompletedReleased', { action, port })
-    if (result.portReleased === false) return t('actionCompletedStillListening', { action, port })
-    return t('actionCompletedUnconfirmed', { action, port })
-  }
-  switch (result.reason) {
-    case 'listener-not-found': return t('actionListenerNotFound')
-    case 'action-not-allowed': return t('actionNotAllowed')
-    case 'confirmation-required': return t('actionConfirmationRequired')
-    case 'managed-owner-unavailable': return t('actionOwnerUnavailable')
-    default: return result.message
-  }
-}
-
 function ListenerRow({
   row,
   snapshot,
@@ -602,6 +625,7 @@ function DetailPanel({
   snapshot,
   occurrenceCount,
   pending,
+  operationNotice,
   onCopy,
   onOpenDirectory,
   onRequest,
@@ -613,6 +637,7 @@ function DetailPanel({
   readonly snapshot: HostInventorySnapshot
   readonly occurrenceCount: number
   readonly pending: HostActionRequest | undefined
+  readonly operationNotice?: PanelNotice
   readonly onCopy: (row: HostListenerRow) => void
   readonly onOpenDirectory: (row: HostListenerRow) => void
   readonly onRequest: (request: HostActionRequest) => void
@@ -638,6 +663,11 @@ function DetailPanel({
   const projectAvailable = row.project !== undefined && row.project.length > 0
   const toolchain = row.development.toolchain
   const name = toolchainName(toolchain)
+  const inlineNotice = operationNotice?.listenerId === row.listenerId ? operationNotice : undefined
+  const headerNotice = inlineNotice?.source === 'copy' || inlineNotice?.source === 'open-directory'
+    ? inlineNotice
+    : undefined
+  const actionNotice = inlineNotice?.source === 'action' ? inlineNotice : undefined
   const detailAction = actionAvailable
     ? React.createElement('button', {
       type: 'button',
@@ -691,6 +721,11 @@ function DetailPanel({
         }, IconFolder({ size: 15 })),
       ),
     ),
+    headerNotice === undefined ? null : React.createElement(NoticeView, {
+      notice: headerNotice,
+      t,
+      className: 'dsh-ri-detail-notice',
+    }),
     React.createElement('section', { className: 'dsh-ri-detail-section' },
       React.createElement('h3', { className: 'dsh-ri-section-title' }, t('sectionRuntimeInfo')),
       React.createElement('dl', { className: 'dsh-ri-fact-grid' },
@@ -756,6 +791,11 @@ function DetailPanel({
         ),
         detailAction,
       ),
+      actionNotice === undefined ? null : React.createElement(NoticeView, {
+        notice: actionNotice,
+        t,
+        className: 'dsh-ri-detail-notice',
+      }),
     ),
   )
 }
@@ -840,7 +880,7 @@ function SidebarEntry({ wide = true, onOpen, rpc, sessions, locale }: SidebarEnt
       ...sessionContext.cwd === undefined ? {} : { currentProject: sessionContext.cwd },
     }).then(
       snapshot => { publishEntryBadgeSnapshot(snapshot, badgeContextKey) },
-      () => { setEntryBadgeSnapshot({ contextKey: badgeContextKey }) },
+      () => { publishEntryBadgeFailure(badgeContextKey) },
     ).finally(() => { badgeRefreshInFlight.current = false })
   }, [badgeContextKey, rpc, sessionContext.cwd, sessionContext.sessionId])
 
@@ -886,8 +926,15 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
   const { t } = translator
   const sessionContext = useRuntimeInspectorSessionContext(sessions)
   const badgeContextKey = entryBadgeContextKey(sessionContext.sessionId, sessionContext.cwd)
+  const sharedInventory = readEntryBadgeSnapshot()
+  const cachedSnapshot = sharedInventory.contextKey === badgeContextKey
+    ? sharedInventory.inventory
+    : undefined
   const open = usePanelOpen()
   const [state, setState] = React.useState<PanelState>({})
+  const snapshot = state.snapshotContextKey === badgeContextKey
+    ? state.snapshot ?? cachedSnapshot
+    : cachedSnapshot
   const [search, setSearch] = React.useState('')
   const [sourceFilter, setSourceFilter] = React.useState<SourceFilterKey>('all')
   const [actionableOnly, setActionableOnly] = React.useState(false)
@@ -902,6 +949,15 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
   const closeButtonRef = React.useRef<HTMLButtonElement>(null)
   const pendingRef = React.useRef<HostActionRequest>()
   pendingRef.current = pending
+  const closePanel = React.useCallback((): void => {
+    setPending(undefined)
+    setState(previous => ({
+      ...previous,
+      inventoryNotice: undefined,
+      operationNotice: undefined,
+    }))
+    setPanelOpen(false)
+  }, [])
 
   React.useEffect(() => {
     if (!open) return undefined
@@ -910,7 +966,7 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
       if (event.key === 'Escape') {
         event.preventDefault()
         if (pendingRef.current !== undefined) setPending(undefined)
-        else setPanelOpen(false)
+        else closePanel()
         return
       }
       if (event.key !== 'Tab') return
@@ -937,43 +993,68 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
       if (returnFocus?.isConnected === true) returnFocus.focus()
       if (panelState.returnFocus === returnFocus) panelState.returnFocus = undefined
     }
-  }, [open])
+  }, [closePanel, open])
 
   const refresh = React.useCallback((): void => {
-    setState(previous => ({ ...previous, error: undefined, actionResult: undefined, loading: true }))
+    setState(previous => ({
+      ...(previous.snapshotContextKey === badgeContextKey ? previous : {}),
+      inventoryNotice: undefined,
+      operationNotice: undefined,
+      loading: true,
+    }))
     void rpc.inventory({
       ...sessionContext.sessionId === undefined ? {} : { currentSessionId: sessionContext.sessionId },
       ...sessionContext.cwd === undefined ? {} : { currentProject: sessionContext.cwd },
     }).then(
       snapshot => {
         publishEntryBadgeSnapshot(snapshot, badgeContextKey)
-        setState({ snapshot, loading: false })
+        setState({ snapshot, snapshotContextKey: badgeContextKey, loading: false })
       },
       error => {
+        const latestShared = readEntryBadgeSnapshot()
+        const hasCachedSnapshot = latestShared.contextKey === badgeContextKey
+          && latestShared.inventory !== undefined
         setState(previous => ({
           ...previous,
           loading: false,
-          error: error instanceof Error ? error.message : String(error),
+          inventoryNotice: inventoryFailureNotice(
+            previous.snapshotContextKey === badgeContextKey && previous.snapshot !== undefined
+              || hasCachedSnapshot,
+            error,
+            t,
+          ),
+          operationNotice: undefined,
         }))
       },
     )
-  }, [badgeContextKey, rpc, sessionContext.cwd, sessionContext.sessionId])
+  }, [badgeContextKey, rpc, sessionContext.cwd, sessionContext.sessionId, t])
 
   React.useEffect(() => {
     if (open) refresh()
   }, [open, refresh])
 
   React.useEffect(() => {
-    const rows = state.snapshot?.listeners ?? []
+    const rows = snapshot?.listeners ?? []
     setSelectedListenerId(previous => previous !== undefined && rows.some(row => row.listenerId === previous)
       ? previous
       : rows.find(row => row.development.group === 'current-project')?.listenerId ?? rows[0]?.listenerId)
     if (pending !== undefined && !rows.some(row => row.listenerId === pending.listenerId)) setPending(undefined)
-  }, [state.snapshot, pending])
+  }, [snapshot, pending])
+
+  React.useEffect(() => {
+    const notice = state.operationNotice
+    const delay = noticeAutoDismissMs(notice)
+    if (notice === undefined || delay === undefined) return undefined
+    const timer = window.setTimeout(() => {
+      setState(previous => previous.operationNotice === notice
+        ? { ...previous, operationNotice: undefined }
+        : previous)
+    }, delay)
+    return () => { window.clearTimeout(timer) }
+  }, [state.operationNotice])
 
   if (!open) return null
 
-  const snapshot = state.snapshot
   const allRows = snapshot?.listeners ?? []
   const collapsedRows = collapseDuplicateRows(snapshot === undefined
     ? []
@@ -992,6 +1073,13 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
     ...(showOtherRows ? otherRows : []),
   ]
   const selectedRow = visibleRows.find(row => row.listenerId === selectedListenerId) ?? visibleRows[0]
+  const noticePlacement = operationNoticePlacement(state.operationNotice, selectedRow?.listenerId)
+  const selectedOperationNotice = noticePlacement === 'inline'
+    ? state.operationNotice
+    : undefined
+  const detachedOperationNotice = noticePlacement === 'detached'
+    ? state.operationNotice
+    : undefined
 
   const togglePin = (row: HostListenerRow): void => {
     setPinnedKeys(previous => {
@@ -1017,29 +1105,38 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
   })))
 
   const copyDetails = (row: HostListenerRow): void => {
+    setState(previous => ({ ...previous, operationNotice: undefined }))
     void rpc.copyDetails({
       listenerId: row.listenerId,
       ...sessionContext.sessionId === undefined ? {} : { currentSessionId: sessionContext.sessionId },
     }).then(result => {
       setState(previous => ({
         ...previous,
-        actionResult: result.ok && result.copied
-          ? t('detailsCopied')
-          : result.ok ? t('detailsGeneratedClipboardUnavailable') : result.error ?? t('copyFailed'),
+        operationNotice: copyResultNotice(result, row.listenerId, row.port, t),
       }))
     }, error => {
-      setState(previous => ({ ...previous, error: error instanceof Error ? error.message : String(error) }))
+      setState(previous => ({
+        ...previous,
+        operationNotice: copyRequestFailureNotice(row.listenerId, row.port, error, t),
+      }))
     })
   }
 
   const openDirectory = (row: HostListenerRow): void => {
+    setState(previous => ({ ...previous, operationNotice: undefined }))
     void rpc.openProjectDirectory({
       listenerId: row.listenerId,
       ...sessionContext.sessionId === undefined ? {} : { currentSessionId: sessionContext.sessionId },
     }).then(result => {
-      setState(previous => ({ ...previous, actionResult: openDirectoryResultMessage(result, t) }))
+      setState(previous => ({
+        ...previous,
+        operationNotice: openDirectoryResultNotice(result, row.listenerId, row.port, t),
+      }))
     }, error => {
-      setState(previous => ({ ...previous, error: error instanceof Error ? error.message : String(error) }))
+      setState(previous => ({
+        ...previous,
+        operationNotice: openDirectoryRequestFailureNotice(row.listenerId, row.port, error, t),
+      }))
     })
   }
 
@@ -1050,18 +1147,31 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
       confirmed: true,
       ...sessionContext.sessionId === undefined ? {} : { currentSessionId: sessionContext.sessionId },
     }
+    const targetRow = allRows.find(row => row.listenerId === pending.listenerId)
+    const label = actionLabel(pending.kind, t)
     setPending(undefined)
-    setState(previous => ({ ...previous, loading: true, error: undefined }))
+    setState(previous => ({ ...previous, loading: true, operationNotice: undefined }))
     void rpc.performAction(request).then(
       result => {
         publishEntryBadgeSnapshot(result.freshScan, badgeContextKey)
-        setState({ snapshot: result.freshScan, actionResult: actionResultMessage(result, t), postAction: true, loading: false })
+        setState({
+          snapshot: result.freshScan,
+          snapshotContextKey: badgeContextKey,
+          operationNotice: actionResultNotice(result, actionLabel(result.action, t), t),
+          loading: false,
+        })
       },
       error => {
         setState(previous => ({
           ...previous,
           loading: false,
-          error: error instanceof Error ? error.message : String(error),
+          operationNotice: actionRequestFailureNotice(
+            pending.listenerId,
+            targetRow?.port,
+            label,
+            error,
+            t,
+          ),
         }))
       },
     )
@@ -1078,10 +1188,7 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
     className: 'dsh-ri-mask',
     'aria-hidden': true,
     onMouseDown: (event: React.MouseEvent<HTMLDivElement>) => {
-      if (event.target === event.currentTarget) {
-        setPending(undefined)
-        setPanelOpen(false)
-      }
+      if (event.target === event.currentTarget) closePanel()
     },
   }),
   React.createElement('section', {
@@ -1132,12 +1239,12 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
         'aria-label': t('closePanel'),
         title: t('closePanel'),
         'data-runtime-inspector-close': 'close',
-        onClick: () => { setPending(undefined); setPanelOpen(false) },
+        onClick: closePanel,
       }, IconClose({ size: 14 })),
     ),
   ),
   React.createElement('div', { className: 'dsh-ri-options' },
-  snapshot === undefined && state.error === undefined
+  snapshot === undefined && state.inventoryNotice === undefined
     ? React.createElement('div', { className: 'dsh-ri-state', 'data-runtime-inspector-state': 'loading' },
       React.createElement('div', null,
         React.createElement('span', { className: 'dsh-ri-state-icon' }, IconRefresh({ size: 23 })),
@@ -1145,12 +1252,16 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
       ),
     )
     : null,
-  state.error !== undefined
-    ? React.createElement('div', { className: 'dsh-ri-error', role: 'alert', 'data-runtime-inspector-state': 'failure' },
-      IconInfo({ size: 15 }),
-      React.createElement('span', null, snapshot === undefined
-        ? t('panelUnavailable', { error: state.error })
-        : t('refreshIncomplete', { error: state.error })),
+  snapshot === undefined && state.inventoryNotice !== undefined
+    ? React.createElement('div', { className: 'dsh-ri-state dsh-ri-inventory-failure', 'data-runtime-inspector-state': 'failure' },
+      React.createElement(NoticeView, { notice: state.inventoryNotice, t }),
+      React.createElement('button', {
+        type: 'button',
+        className: 'dsh-ri-primary-action',
+        'data-runtime-inspector-retry': 'inventory',
+        disabled: state.loading === true,
+        onClick: refresh,
+      }, IconRefresh({ size: 14 }), t('retry')),
     )
     : null,
   snapshot === undefined ? null : React.createElement(React.Fragment, null,
@@ -1243,16 +1354,8 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
       ),
     ),
     state.loading === true ? React.createElement('div', { className: 'dsh-ri-banner', role: 'status' }, IconRefresh({ size: 14 }), t('updatingPortStatus')) : null,
-    snapshot.mode === 'read-only-degraded' ? React.createElement('div', { className: 'dsh-ri-banner is-limited', role: 'status' }, IconInfo({ size: 14 }), t('sourceDegradedBanner')) : null,
-    snapshot.composeStatus === 'unavailable' ? React.createElement('div', { className: 'dsh-ri-banner is-limited', role: 'status', 'data-runtime-inspector-compose-state': 'unavailable' }, IconInfo({ size: 14 }), t('composeUnavailableBanner')) : null,
-    !snapshot.scanComplete && snapshot.mode !== 'read-only-degraded' ? React.createElement('div', { className: 'dsh-ri-banner is-limited', role: 'status', 'data-runtime-inspector-state': 'incomplete' }, IconInfo({ size: 14 }), t('scanIncompleteBanner')) : null,
+    state.inventoryNotice === undefined ? null : React.createElement(NoticeView, { notice: state.inventoryNotice, t }),
     snapshot.truncated ? React.createElement('div', { className: 'dsh-ri-banner', role: 'status' }, IconInfo({ size: 14 }), t('truncatedBanner')) : null,
-    state.actionResult === undefined ? null : React.createElement('div', {
-      className: 'dsh-ri-result',
-      role: 'status',
-      'data-runtime-inspector-state': state.postAction === true ? 'post-action' : 'result',
-      'data-runtime-inspector-action-result': 'result',
-    }, IconCheck({ size: 14 }), state.actionResult),
     React.createElement('div', { className: 'dsh-ri-body' },
       React.createElement('section', { className: 'dsh-ri-list-column', 'aria-label': t('listenerList') },
         React.createElement('div', { className: 'dsh-ri-column-heading' },
@@ -1326,11 +1429,17 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
           ),
       ),
       React.createElement('section', { className: 'dsh-ri-detail-column', 'aria-label': t('detailColumn') },
+        detachedOperationNotice === undefined ? null : React.createElement(NoticeView, {
+          notice: detachedOperationNotice,
+          t,
+          className: 'dsh-ri-detail-notice is-detached',
+        }),
         React.createElement(DetailPanel, {
           row: selectedRow,
           snapshot,
           occurrenceCount: selectedRow === undefined ? 1 : collapsedRows.occurrenceCounts.get(selectedRow.listenerId) ?? 1,
           pending,
+          operationNotice: selectedOperationNotice,
           onCopy: copyDetails,
           onOpenDirectory: openDirectory,
           onRequest: setPending,

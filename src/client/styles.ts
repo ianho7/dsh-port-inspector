@@ -456,10 +456,9 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
 }
 
 .dsh-ri-banner,
-.dsh-ri-result,
-.dsh-ri-error {
+.dsh-ri-notice {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
   margin: 0 0 12px;
   padding: 9px 11px;
@@ -471,22 +470,58 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   line-height: var(--dsh-ri-leading-prose);
 }
 
-.dsh-ri-banner.is-limited {
+.dsh-ri-banner.is-limited,
+.dsh-ri-notice.is-warning {
   border-color: var(--dsh-ri-warning-border);
   color: var(--dsh-ri-warning);
   background: var(--dsh-ri-warning-bg);
 }
 
-.dsh-ri-error {
+.dsh-ri-notice.is-error {
   border-color: var(--dsh-ri-danger);
   color: var(--dsh-ri-danger);
   background: var(--dsh-ri-danger-bg);
 }
 
-.dsh-ri-result {
+.dsh-ri-notice.is-success {
   border-color: var(--dsh-ri-success-border);
   color: var(--dsh-ri-success);
   background: var(--dsh-ri-success-bg);
+}
+
+.dsh-ri-notice-content {
+  min-width: 0;
+}
+
+.dsh-ri-notice-message {
+  display: block;
+}
+
+.dsh-ri-notice-details {
+  margin-top: 5px;
+  color: inherit;
+}
+
+.dsh-ri-notice-details summary {
+  width: fit-content;
+  cursor: pointer;
+  font-size: var(--dsh-ri-type-caption);
+}
+
+.dsh-ri-notice-detail-value {
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+  color: var(--dsh-ri-label-secondary);
+  font-family: var(--dsh-ri-font-mono);
+  font-size: var(--dsh-ri-type-caption);
+}
+
+.dsh-ri-detail-notice {
+  margin: 12px 0 0;
+}
+
+.dsh-ri-detail-notice.is-detached {
+  margin: 0 0 14px;
 }
 
 .dsh-ri-body {
@@ -1207,6 +1242,17 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
   padding: 24px;
   color: var(--dsh-ri-label-tertiary);
   text-align: center;
+}
+
+.dsh-ri-inventory-failure {
+  align-content: center;
+  gap: 10px;
+}
+
+.dsh-ri-inventory-failure .dsh-ri-notice {
+  max-width: 520px;
+  margin: 0;
+  text-align: left;
 }
 
 .dsh-ri-state-icon {

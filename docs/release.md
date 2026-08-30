@@ -28,7 +28,7 @@ Browser 面板使用 256px WebP 运行时 Logo；原始设计候选图只用于�
 
 ```powershell
 .\scripts\publish-release.ps1 `
-  -Version 0.1.0 `
+  -Version 0.1.1 `
   -DshRepo 'D:\project\deepseek-harness' `
   -RequireStockDshGates `
   -DryRun
@@ -40,7 +40,7 @@ Browser 面板使用 256px WebP 运行时 Logo；原始设计候选图只用于�
 
 ```powershell
 .\scripts\publish-release.ps1 `
-  -Version 0.1.0 `
+  -Version 0.1.1 `
   -DshRepo 'D:\project\deepseek-harness' `
   -RequireStockDshGates `
   -Publish `
@@ -48,6 +48,6 @@ Browser 面板使用 256px WebP 运行时 Logo；原始设计候选图只用于�
   -PushTag
 ```
 
-脚本会把同一份 tarball 发布到 npm，并作为附件上传到 `v0.1.0` GitHub Release；已有 npm 版本不会被覆盖，已有 Release 会以 `--clobber` 更新附件。需要自定义 Release 文案时传入 `-ReleaseNotesPath`。
+脚本会把同一份 tarball 发布到 npm，并作为附件上传到 `v0.1.1` GitHub Release；已有 npm 版本不会被覆盖，已有 Release 会以 `--clobber` 更新附件。需要自定义 Release 文案时传入 `-ReleaseNotesPath`。
 
 脚本不会自动修改版本号、创建提交，也不替代 GitHub Actions 的 npm Trusted Publishing 配置。

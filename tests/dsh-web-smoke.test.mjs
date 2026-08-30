@@ -213,19 +213,29 @@ async function dismissInitialOnboarding(page) {
   // after the shell/Client modules have already mounted. Dismiss only those
   // product-owned first-run steps; the inspector test must not bypass its own
   // panel or action confirmation with force clicks.
-  await page.waitForTimeout(500)
-  for (let attempt = 0; attempt < 4; attempt += 1) {
+  const onboardingMask = page.locator('[class*="onboardingMask"]').first()
+  const deadline = Date.now() + 10_000
+  let quietSince
+  while (Date.now() < deadline) {
     let dismissed = false
     for (const name of ['继续', 'Continue', '稍后配置', 'Configure later']) {
       const button = page.getByRole('button', { name, exact: true }).first()
       if (await button.count() > 0 && await button.isVisible()) {
         await button.click()
         dismissed = true
+        quietSince = undefined
         await page.waitForTimeout(250)
         break
       }
     }
-    if (!dismissed) return
+    if (dismissed) continue
+    if (await onboardingMask.count() > 0 && await onboardingMask.isVisible()) {
+      quietSince = undefined
+    } else {
+      quietSince ??= Date.now()
+      if (Date.now() - quietSince >= 2_000) return
+    }
+    await page.waitForTimeout(100)
   }
 }
 
@@ -278,8 +288,9 @@ test('real Stock DSH Web loads the Bundle, opens the panel, and rechecks an exte
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     })
-    const { match: urlMatch } = await waitForOutput(dsh, /dsh web: (http:\/\/127\.0\.0\.1:\d+)/)
-    const baseUrl = urlMatch[1]
+    const { match: urlMatch } = await waitForOutput(dsh, /dsh web: (http:\/\/127\.0\.0\.1:\d+[^\s)]*)/)
+    const authenticatedUrl = urlMatch[1]
+    const baseUrl = new URL(authenticatedUrl).origin
     const fixture = await waitForJson(fixtureResultFile)
     assert.equal(fixture.error, undefined, fixture.error)
     const attributedResponse = await fetch(`${baseUrl}/api/dsh-runtime-inspector/inventory`, {
@@ -303,7 +314,7 @@ test('real Stock DSH Web loads the Bundle, opens the panel, and rechecks an exte
     const pageErrors = []
     page.on('pageerror', error => pageErrors.push(String(error)))
 
-    const response = await page.goto(baseUrl, { waitUntil: 'domcontentloaded' })
+    const response = await page.goto(authenticatedUrl, { waitUntil: 'domcontentloaded' })
     assert.equal(response?.status(), 200)
     await page.locator('[data-runtime-inspector-entry="open"]').waitFor({ timeout: 30_000 })
     await dismissInitialOnboarding(page)
@@ -311,7 +322,7 @@ test('real Stock DSH Web loads the Bundle, opens the panel, and rechecks an exte
     const boot = await page.evaluate(() => window.__DSH_BOOT__)
     const pluginEntry = boot?.entries?.find(entry => entry.id === 'dsh-runtime-inspector')
     assert.ok(pluginEntry, 'the Stock DSH boot graph must contain the inspector Browser module')
-    assert.match(pluginEntry.url, /\/plugins\/dsh-runtime-inspector\/client\.js\?rev=/)
+    assert.match(pluginEntry.url, /\/plugins\/(?:\?\?)?dsh-runtime-inspector\/client\.js(?:\?|&)rev=/)
     const artifact = await page.request.get(new URL(pluginEntry.url, baseUrl).href)
     assert.equal(artifact.status(), 200)
     const artifactText = await artifact.text()
@@ -319,9 +330,18 @@ test('real Stock DSH Web loads the Bundle, opens the panel, and rechecks an exte
     assert.doesNotMatch(artifactText, /https:\/\/(?:vite\.dev|nextjs\.org|nodejs\.org)/)
 
     const panelEntry = page.locator('[data-runtime-inspector-entry="open"]')
+    await page.waitForFunction(() => {
+      const badge = document.querySelector('[data-runtime-inspector-entry="open"] .dsh-ri-entry-badge')
+      return badge?.textContent?.trim() !== '—'
+    })
     await panelEntry.click()
     const panel = page.locator('[data-runtime-inspector-surface="panel"]')
     await panel.waitFor()
+    assert.equal(
+      await panel.locator('[data-runtime-inspector-state="loading"]').count(),
+      0,
+      'a known Sidebar count should warm the first Panel render instead of showing a full loading state',
+    )
     await page.locator('[data-runtime-inspector-state="ready"], [data-runtime-inspector-state="incomplete"], [data-runtime-inspector-state="failure"]').first().waitFor()
     assert.equal(await panel.locator('[data-runtime-inspector-search="input"]').count(), 1)
     assert.equal(await panel.locator('[data-runtime-inspector-source-filter="select"]').count(), 1)
@@ -518,7 +538,7 @@ test('real Stock DSH Web loads the Bundle, opens the panel, and rechecks an exte
     assert.equal(await reloadedPanel.locator('[data-runtime-inspector-row]').filter({ hasText: String(listener.port) }).count(), 1)
     await row.locator('[data-runtime-inspector-select]').click()
     await reloadedPanel.locator('[data-runtime-inspector-copy]').click()
-    await reloadedPanel.locator('[data-runtime-inspector-state="result"]').waitFor()
+    await reloadedPanel.locator('[data-runtime-inspector-notice="copy"][data-runtime-inspector-notice-tone="success"]').waitFor()
     assert.match(await page.evaluate(() => navigator.clipboard.readText()), new RegExp(`Port: ${String(listener.port)}`))
 
     await row.locator('[data-runtime-inspector-pin]').evaluate(element => element.click())
@@ -542,9 +562,9 @@ test('real Stock DSH Web loads the Bundle, opens the panel, and rechecks an exte
     assert.equal(actionBody.port, listener.port)
     assert.equal(actionBody.portReleased, true)
     await waitForExit(listener.child)
-    await page.locator('[data-runtime-inspector-state="post-action"]').waitFor()
-    const webAfterAction = await fetch(baseUrl)
-    assert.equal(webAfterAction.status, 200, 'the unaffected Stock DSH Web listener must remain alive')
+    await page.locator('[data-runtime-inspector-notice="action"][data-runtime-inspector-notice-tone="success"]').waitFor()
+    const webAfterAction = await page.request.get(baseUrl)
+    assert.equal(webAfterAction.status(), 200, 'the unaffected Stock DSH Web listener must remain alive')
     assert.deepEqual(pageErrors, [])
   } finally {
     await browser?.close().catch(() => {})
