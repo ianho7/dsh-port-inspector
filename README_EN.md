@@ -141,6 +141,15 @@ $PackageFile = npm pack --ignore-scripts
 dsh plugin --profile web add ".\$PackageFile"
 ```
 
+On the first installation, pnpm may report `ERR_PNPM_IGNORED_BUILDS` because `koffi` uses a native install script. Open the Profile's `pnpm-workspace.yaml` at the path printed by DSH and confirm:
+
+```yaml
+allowBuilds:
+  koffi: true
+```
+
+Save the file, then rerun the original install command. This approval is required only once for that Profile.
+
 After installation, start DSH Web:
 
 ```powershell

@@ -45,6 +45,10 @@ node --test tests/dsh-web-smoke.test.mjs
 
 Before committing any code or documentation change, run `git diff --check`.
 
+## Release Publishing
+
+The release version comes from `package.json`; this repository does not use `package-lock.json`. After updating and committing the version, run `scripts/publish-release.ps1` with no arguments to pack and publish the npm package and create the matching GitHub Release. The script performs a real publication, not a dry run.
+
 ## Coding Style & Naming Conventions
 
 Use Markdown headings and direct paragraphs. Preserve DSH symbol names exactly (`Process origin`, `Verified attribution`, `Lifecycle owner`, `Managed shutdown`). Name documents in lowercase kebab-case; name ADRs with a zero-padded number and descriptive slug, such as `0001-stock-dsh-root-pid-observation.md`. Keep commands, paths, and API symbols in backticks. Keep Browser code in the same package as the Host half; do not introduce a companion Web repository or standalone Port Inspector server.

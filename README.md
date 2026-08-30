@@ -141,6 +141,15 @@ $PackageFile = npm pack --ignore-scripts
 dsh plugin --profile web add ".\$PackageFile"
 ```
 
+首次安装时，pnpm 可能会因 `koffi` 的原生安装脚本而报告 `ERR_PNPM_IGNORED_BUILDS`。按照 DSH 输出的路径打开该 Profile 的 `pnpm-workspace.yaml`，确认：
+
+```yaml
+allowBuilds:
+  koffi: true
+```
+
+保存后重新运行原安装命令即可。这项授权只需为对应 Profile 设置一次。
+
 安装完成后启动 DSH Web：
 
 ```powershell
