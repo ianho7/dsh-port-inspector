@@ -1,0 +1,109 @@
+---
+import '../styles/global.css';
+import type { Locale } from '../content/site';
+
+interface Props {
+  locale: Locale;
+  title: string;
+  description: string;
+  canonicalPath: string;
+  noindex?: boolean;
+}
+
+const { locale, title, description, canonicalPath, noindex = false } = Astro.props;
+const siteUrl = Astro.site ?? new URL('https://dsh-runtime-inspector.pages.dev');
+const normalizedPath = canonicalPath.endsWith('/') ? canonicalPath : `${canonicalPath}/`;
+const canonicalUrl = new URL(normalizedPath, siteUrl);
+const zhUrl = new URL('/zh/', siteUrl);
+const enUrl = new URL('/en/', siteUrl);
+const logoUrl = new URL('/images/runtime-inspector-logo.png', siteUrl);
+const socialImageUrl = new URL('/images/runtime-inspector-evidence.png', siteUrl);
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      name: 'DSH Runtime Inspector',
+      applicationCategory: 'DeveloperApplication',
+      operatingSystem: 'Windows',
+      description,
+      url: canonicalUrl.href,
+      image: logoUrl.href,
+      isAccessibleForFree: true,
+      license: 'https://opensource.org/license/mit/',
+      codeRepository: 'https://github.com/ianho7/dsh-runtime-inspector',
+    },
+    {
+      '@type': 'WebSite',
+      name: 'DSH Runtime Inspector',
+      url: siteUrl.href,
+      inLanguage: locale === 'zh' ? 'zh-CN' : 'en',
+    },
+  ],
+};
+---
+
+<!doctype html>
+<html lang={locale === 'zh' ? 'zh-CN' : 'en'}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content={description} />
+    <meta name="robots" content={noindex ? 'noindex,nofollow' : 'index,follow'} />
+    <meta name="theme-color" content="#3567d6" />
+    <link rel="icon" type="image/png" href="/images/runtime-inspector-logo.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="canonical" href={canonicalUrl.href} />
+    <link rel="alternate" hreflang="zh-CN" href={zhUrl.href} />
+    <link rel="alternate" hreflang="en" href={enUrl.href} />
+    <link rel="alternate" hreflang="x-default" href={zhUrl.href} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="DSH Runtime Inspector" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl.href} />
+    <meta property="og:image" content={socialImageUrl.href} />
+    <meta property="og:image:alt" content="DSH Runtime Inspector product interface" />
+    <meta property="og:locale" content={locale === 'zh' ? 'zh_CN' : 'en_US'} />
+    <meta property="og:locale:alternate" content={locale === 'zh' ? 'en_US' : 'zh_CN'} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={socialImageUrl.href} />
+    <title>{title}</title>
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">{locale === 'zh' ? '跳到主要内容' : 'Skip to main content'}</a>
+    <slot />
+    <script>
+      const copyButtons = document.querySelectorAll('[data-copy-command]');
+
+      copyButtons.forEach((button) => {
+        button.addEventListener('click', async () => {
+          const command = button.getAttribute('data-copy-command');
+          const status = button.closest('.command-block')?.querySelector('[data-copy-status]');
+          const copyLabel = button.getAttribute('data-copy-label') ?? 'Copy command';
+          const copiedLabel = button.getAttribute('data-copied-label') ?? 'Command copied';
+          const failedLabel = button.getAttribute('data-copy-failed-label') ?? 'Copy failed';
+
+          if (!command) return;
+
+          try {
+            await navigator.clipboard.writeText(command);
+            button.textContent = copiedLabel;
+            if (status) status.textContent = copiedLabel;
+          } catch {
+            button.textContent = copyLabel;
+            if (status) status.textContent = failedLabel;
+          }
+
+          window.setTimeout(() => {
+            button.textContent = copyLabel;
+          }, 2400);
+        });
+      });
+    </script>
+  </body>
+</html>

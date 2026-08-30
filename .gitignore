@@ -6,6 +6,8 @@ coverage/
 .volta-temp
 .baoyu-skills
 demo
+/website/dist/
+/website/.astro/
 
 # Local package artifacts
 /dsh-runtime-inspector-*.tgz

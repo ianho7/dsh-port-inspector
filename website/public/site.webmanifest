@@ -1,0 +1,17 @@
+{
+  "name": "DSH Runtime Inspector",
+  "short_name": "Runtime Inspector",
+  "description": "Trace local development ports back to their DSH origin and handle them safely.",
+  "start_url": "/zh/",
+  "display": "standalone",
+  "background_color": "#f7fbff",
+  "theme_color": "#3567d6",
+  "icons": [
+    {
+      "src": "/images/runtime-inspector-logo.png",
+      "sizes": "1280x1280",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

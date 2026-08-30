@@ -1,0 +1,329 @@
+---
+import SiteLayout from '../../layouts/SiteLayout.astro';
+import { locales, siteCopy, type Locale } from '../../content/site';
+
+interface Props {
+  locale: Locale;
+}
+
+export function getStaticPaths() {
+  return locales.map((locale) => ({
+    params: { lang: locale },
+    props: { locale },
+  }));
+}
+
+const { locale } = Astro.props as Props;
+const copy = siteCopy[locale];
+const isZh = locale === 'zh';
+const switchLocale: Locale = isZh ? 'en' : 'zh';
+const switchHref = `/${switchLocale}/`;
+const repoUrl = 'https://github.com/ianho7/dsh-runtime-inspector';
+const releaseUrl = `${repoUrl}/releases/latest`;
+const docsUrl = `${repoUrl}#readme`;
+const issuesUrl = `${repoUrl}/issues`;
+const pageTitle = isZh
+  ? 'DSH Runtime Inspector｜让每一个开发端口都能找到来源'
+  : 'DSH Runtime Inspector | Every local port has a story';
+const pageDescription = isZh
+  ? 'DSH Runtime Inspector 是面向 DSH Web 的 Windows 本地运行时工具，用于追踪开发端口来源并安全确认处理结果。'
+  : 'DSH Runtime Inspector traces local development ports back to their DSH origin and confirms safe handling on Windows.';
+---
+
+<SiteLayout
+  locale={locale}
+  title={pageTitle}
+  description={pageDescription}
+  canonicalPath={`/${locale}/`}
+>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href={`/${locale}/`} aria-label="DSH Runtime Inspector home">
+        <img src="/images/runtime-inspector-logo.png" alt="" width="42" height="42" />
+        <span class="brand-copy">
+          <strong>DSH Runtime Inspector</strong>
+          <span>{copy.brandDescriptor}</span>
+        </span>
+      </a>
+
+      <nav class="site-nav" aria-label={isZh ? '主导航' : 'Primary navigation'}>
+        <a href="#features">{copy.nav.features}</a>
+        <a href="#workflow">{copy.nav.workflow}</a>
+        <a href="#safety">{copy.nav.safety}</a>
+        <a href="#install">{copy.nav.install}</a>
+        <a class="nav-source" href={repoUrl} target="_blank" rel="noreferrer">{copy.nav.source}</a>
+      </nav>
+
+      <a class="locale-switch" href={switchHref} aria-label={`${copy.languageLabel}: ${siteCopy[switchLocale].localeLabel}`}>
+        {siteCopy[switchLocale].localeLabel}
+      </a>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section class="hero section-pad" aria-labelledby="hero-title">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <p class="section-kicker">{copy.hero.eyebrow}</p>
+          <h1 id="hero-title">
+            {copy.hero.title}<br />
+            <span>{copy.hero.titleAccent}</span>
+          </h1>
+          <p class="hero-description">{copy.hero.description}</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#install" data-ai-action="website.install.open">{copy.hero.primaryCta}</a>
+            <a class="button button-secondary" href={repoUrl} target="_blank" rel="noreferrer" data-ai-action="website.source.open">{copy.hero.secondaryCta}</a>
+          </div>
+          <p class="hero-context">{copy.hero.context}</p>
+        </div>
+
+        <figure class="hero-figure reveal-delay">
+          <div class="image-frame image-frame-hero">
+            <div class="image-frame-bar" aria-hidden="true">
+              <span></span><span></span><span></span>
+              <span class="image-frame-path">runtime-inspector</span>
+            </div>
+            <img
+              src="/images/runtime-inspector-evidence.png"
+              alt={copy.hero.imageAlt}
+              width="2048"
+              height="990"
+              loading="eager"
+              decoding="async"
+            />
+          </div>
+          <figcaption>{copy.hero.imageCaption}</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="problem section-pad section-line" aria-labelledby="problem-title">
+      <div class="container problem-grid">
+        <div>
+          <p class="section-kicker">{copy.problem.eyebrow}</p>
+          <h2 id="problem-title">{copy.problem.title}</h2>
+        </div>
+        <div class="problem-copy">
+          <p class="lead-copy">{copy.problem.lead}</p>
+          <ul class="question-list">
+            {copy.problem.questions.map((question) => (
+              <li>
+                <span class="question-marker" aria-hidden="true">?</span>
+                <span>{question}</span>
+              </li>
+            ))}
+          </ul>
+          <p class="answer-copy">{copy.problem.answer}</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="features section-pad" aria-labelledby="features-title">
+      <div class="container">
+        <div class="section-heading section-heading-wide">
+          <div>
+            <p class="section-kicker">{copy.features.eyebrow}</p>
+            <h2 id="features-title">{copy.features.title}</h2>
+          </div>
+          <p>{copy.features.intro}</p>
+        </div>
+
+        <div class="feature-grid">
+          {copy.features.items.map((feature, index) => (
+            <article class={index === 0 ? 'feature-card feature-card-wide' : 'feature-card'}>
+              <div class="feature-topline">
+                <span class="feature-mark" aria-hidden="true">{index === 0 ? '01' : index === 1 ? '02' : index === 2 ? '03' : '04'}</span>
+                <span class="feature-proof">{feature.proof}</span>
+              </div>
+              <h3>{feature.title}</h3>
+              <p>{feature.description}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section id="workflow" class="workflow section-pad section-line" aria-labelledby="workflow-title">
+      <div class="container workflow-layout">
+        <div class="workflow-heading">
+          <p class="section-kicker">{copy.workflow.eyebrow}</p>
+          <h2 id="workflow-title">{copy.workflow.title}</h2>
+          <p>{copy.workflow.intro}</p>
+        </div>
+        <ol class="workflow-list">
+          {copy.workflow.steps.map((step, index) => (
+            <li class="workflow-step">
+              <span class="workflow-index" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+              <div>
+                <h3>{step.title}</h3>
+                <p>{step.description}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+
+    <section class="evidence section-pad" aria-labelledby="evidence-title">
+      <div class="container">
+        <div class="section-heading evidence-heading">
+          <div>
+            <p class="section-kicker">{copy.evidence.eyebrow}</p>
+            <h2 id="evidence-title">{copy.evidence.title}</h2>
+          </div>
+          <p>{copy.evidence.description}</p>
+        </div>
+
+        <div class="evidence-grid">
+          <figure class="evidence-figure">
+            <img
+              src="/images/runtime-inspector-evidence.png"
+              alt={copy.evidence.imageAlt}
+              width="2048"
+              height="990"
+              loading="lazy"
+              decoding="async"
+            />
+            <figcaption>{copy.evidence.caption}</figcaption>
+          </figure>
+          <div class="evidence-notes">
+            {copy.evidence.notes.map((note) => (
+              <article class="evidence-note">
+                <h3>{note.title}</h3>
+                <p>{note.description}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        <figure class="context-figure">
+          <img
+            src="/images/dsh-harness-context.png"
+            alt={copy.evidence.contextImageAlt}
+            width="2560"
+            height="1237"
+            loading="lazy"
+            decoding="async"
+          />
+          <figcaption>{copy.evidence.contextCaption}</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="safety" class="safety section-pad section-line" aria-labelledby="safety-title">
+      <div class="container safety-layout">
+        <div class="safety-heading">
+          <p class="section-kicker">{copy.safety.eyebrow}</p>
+          <h2 id="safety-title">{copy.safety.title}</h2>
+          <p>{copy.safety.intro}</p>
+        </div>
+        <div class="safety-list">
+          {copy.safety.rows.map((row) => (
+            <article class="safety-row">
+              <h3>{row.title}</h3>
+              <p>{row.description}</p>
+            </article>
+          ))}
+          <p class="safety-note">{copy.safety.note}</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="support section-pad" aria-labelledby="support-title">
+      <div class="container support-layout">
+        <div>
+          <p class="section-kicker">{copy.support.eyebrow}</p>
+          <h2 id="support-title">{copy.support.title}</h2>
+        </div>
+        <div class="support-content">
+          <p class="lead-copy">{copy.support.intro}</p>
+          <div class="support-grid">
+            {copy.support.items.map((item) => (
+              <article class="support-item">
+                <h3>{item.title}</h3>
+                <p>{item.description}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="install" class="install section-pad" aria-labelledby="install-title">
+      <div class="container install-panel">
+        <div class="install-copy">
+          <p class="section-kicker">{copy.install.eyebrow}</p>
+          <h2 id="install-title">{copy.install.title}</h2>
+          <p>{copy.install.description}</p>
+          <p class="install-note">{copy.install.restartNote}</p>
+        </div>
+        <div class="install-actions">
+          <div class="command-block">
+            <div class="command-header">
+              <span>{copy.install.commandLabel}</span>
+              <span class="command-platform">PowerShell</span>
+            </div>
+            <div class="command-row">
+              <code>{copy.install.command}</code>
+              <button
+                type="button"
+                data-copy-command={copy.install.command}
+                data-copy-label={copy.install.copyLabel}
+                data-copied-label={copy.install.copiedLabel}
+                data-copy-failed-label={copy.install.copyFailedLabel}
+                data-ai-action="website.install.copy-command"
+              >{copy.install.copyLabel}</button>
+            </div>
+            <p class="copy-status" data-copy-status aria-live="polite"></p>
+          </div>
+          <p class="requirements"><strong>{copy.install.requirementsLabel}</strong>{copy.install.requirements}</p>
+          <div class="install-links">
+            <a class="text-link" href={repoUrl} target="_blank" rel="noreferrer">{copy.install.sourceCta}<span aria-hidden="true">↗</span></a>
+            <a class="text-link" href={releaseUrl} target="_blank" rel="noreferrer">{copy.install.releaseCta}<span aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="faq section-pad section-line" aria-labelledby="faq-title">
+      <div class="container faq-layout">
+        <div>
+          <p class="section-kicker">{copy.faq.eyebrow}</p>
+          <h2 id="faq-title">{copy.faq.title}</h2>
+        </div>
+        <div class="faq-list">
+          {copy.faq.items.map((item) => (
+            <details>
+              <summary>{item.title}<span aria-hidden="true">+</span></summary>
+              <p>{item.description}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-top">
+      <div class="footer-brand">
+        <img src="/images/runtime-inspector-logo.png" alt="" width="52" height="52" loading="lazy" />
+        <div>
+          <strong>DSH Runtime Inspector</strong>
+          <p>{copy.footer.tagline}</p>
+        </div>
+      </div>
+      <div class="footer-links" aria-label={isZh ? '项目链接' : 'Project links'}>
+        <a href={repoUrl} target="_blank" rel="noreferrer">{copy.footer.openSource}</a>
+        <a href={docsUrl} target="_blank" rel="noreferrer">{copy.footer.docs}</a>
+        <a href={issuesUrl} target="_blank" rel="noreferrer">{copy.footer.issues}</a>
+        <span>{copy.footer.license}</span>
+      </div>
+    </div>
+    <div class="container footer-bottom">
+      <p>{copy.footer.copyright}</p>
+      <a class="locale-switch footer-locale" href={switchHref} aria-label={`${copy.languageLabel}: ${siteCopy[switchLocale].localeLabel}`}>
+        {siteCopy[switchLocale].localeLabel}
+      </a>
+    </div>
+  </footer>
+</SiteLayout>
