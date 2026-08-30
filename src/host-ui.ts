@@ -848,7 +848,7 @@ export function createRuntimeInspectorHost(options: RuntimeInspectorHostOptions)
     const publicRow = toPublicEntry(entry, mode, before.scan.complete, currentSessionId)
     if (!publicRow.action.available || publicRow.action.kind !== request.kind) {
       return emptyActionResult(request, publicRow.action.reason === 'compatibility-degraded'
-        ? 'Runtime Inspector is in read-only degraded mode; no process action is available.'
+        ? 'Port Inspector is in read-only degraded mode; no process action is available.'
         : 'The requested action is not allowed for this listener.', before, mode, currentSessionId, 'action-not-allowed')
     }
     if (request.confirmed !== true) {
@@ -865,7 +865,7 @@ export function createRuntimeInspectorHost(options: RuntimeInspectorHostOptions)
         return emptyActionResult(request, 'The managed lifecycle owner is no longer available.', before, mode, currentSessionId, 'managed-owner-unavailable')
       }
       try {
-        const result = await options.shutdown(entry.row.originId, { reason: 'Runtime Inspector UI request' })
+        const result = await options.shutdown(entry.row.originId, { reason: 'Port Inspector UI request' })
         managed = safeManagedOutcome(result)
         ok = result.ok
         status = result.ok ? 'completed' : 'failed'

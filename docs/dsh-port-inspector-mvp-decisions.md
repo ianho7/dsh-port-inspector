@@ -1,8 +1,8 @@
-# DSH Runtime Inspector Windows MVP：决策记录
+# DSH Port Inspector Windows MVP：决策记录
 
 > 状态：已收敛，可进入 `/to-spec`
 > 更新日期：2026-08-24
-> 依据：`dsh-runtime-inspector-mvp.md`、`dsh-runtime-inspector-root-pid-research.md`
+> 依据：`dsh-port-inspector-mvp.md`、`dsh-port-inspector-root-pid-research.md`
 
 本文只记录会改变 MVP 实现、兼容性、安全边界或验收标准的决定。尚未完成的决定明确标为“开放”，不作为实现依据。
 
@@ -10,7 +10,7 @@
 
 ### D1：必须运行于未经修改的官方 DSH
 
-**决定：** Runtime Inspector 不得要求用户安装私有 DSH fork 或等待 upstream core change；普通用户安装插件后即可使用。
+**决定：** Port Inspector 不得要求用户安装私有 DSH fork 或等待 upstream core change；普通用户安装插件后即可使用。
 
 **后果：**
 
@@ -93,9 +93,9 @@ root 退出时不立即删除 origin，以保留对仍存活后代 listener 的�
 
 ### D19：Web UI 与 Host 运行时采用单仓库双半 Bundle
 
-Runtime Inspector 的 Browser UI 与 Node Host 代码放在同一个仓库，并随同一个 DSH Bundle 发布。现有 Host 继续负责 scanner、归因、lifecycle、Host RPC 和所有进程安全决策；Browser 通过 `dsh.client` 与 `exports["./client"]` 加载，只消费可序列化的 Host RPC。
+Port Inspector 的 Browser UI 与 Node Host 代码放在同一个仓库，并随同一个 DSH Bundle 发布。现有 Host 继续负责 scanner、归因、lifecycle、Host RPC 和所有进程安全决策；Browser 通过 `dsh.client` 与 `exports["./client"]` 加载，只消费可序列化的 Host RPC。
 
-Web 主界面在 `sidebar.footer.action` 提供全局入口，在 `shell.overlay` 打开端口面板。不得启动独立 Web 服务、维护第二个 Runtime Inspector 仓库、替换 DSH Web 主应用布局或把进程操作能力暴露给 Browser。目标 DSH 版本若没有 typed Remote seam，可以使用受同源保护的 WebServer API route 作为 transport 适配器。
+Web 主界面在 `sidebar.footer.action` 提供全局入口，在 `shell.overlay` 打开端口面板。不得启动独立 Web 服务、维护第二个 Port Inspector 仓库、替换 DSH Web 主应用布局或把进程操作能力暴露给 Browser。目标 DSH 版本若没有 typed Remote seam，可以使用受同源保护的 WebServer API route 作为 transport 适配器。
 
 Browser 源码使用 TypeScript 和 DSH-compatible client bundler 构建；`window.__ModuleLoader__.load` 只作为构建产物格式。未知 DSH 版本不产生 UI 提示；Client artifact、Slot 或 Host bridge 实际不可用时，UI 只呈现对应能力失败且不获得额外进程权限。完整决定见 [ADR-0004](./adr/0004-web-client-dual-face-bundle.md)。
 
@@ -105,15 +105,15 @@ DSH 版本号不再作为安装或运行时总开关，也不向用户展示“�
 
 ### D21：开发相关性和工具链视觉是独立展示维度
 
-Runtime Inspector Web 默认优先展示当前项目和明确识别的开发环境监听器，其他系统服务与桌面应用保持可搜索、可展开。Host 输出有界的开发分组、识别依据和工具链标识；常见端口号不能独立建立分类，证据不足时归入其他监听。
+Port Inspector Web 默认优先展示当前项目和明确识别的开发环境监听器，其他系统服务与桌面应用保持可搜索、可展开。Host 输出有界的开发分组、识别依据和工具链标识；常见端口号不能独立建立分类，证据不足时归入其他监听。
 
 工具链 Logo 帮助用户扫读，但不代表 Process origin、Verified attribution、Lifecycle owner 或处理方式，也不能改变 action kind。素材经维护者审核后随 Browser Client artifact 本地发布，面板运行时不得向工具链官网发送请求。
 
-### D22：Runtime Inspector 使用 DSH 原生 Modal Chrome
+### D22：Port Inspector 使用 DSH 原生 Modal Chrome
 
-Runtime Inspector 的业务内容保持端口列表、详情和安全操作模型，但弹窗外壳完全采用 DSH 原生 Web UI 的 Modal 语言：全屏遮罩与模糊、居中面板、原生尺寸与圆角、`lv3` 阴影、54px Header、Options 滚动区以及原生关闭和焦点行为。面板不保留只有一个菜单项的左侧导航栏，Header 直接显示 `Runtime Inspector`；只有来源追踪降级或扫描未完成时才显示对应状态提示。这样可以让用户把 Runtime Inspector 识别为 DSH Web 的一部分，而不是外部工具窗口。
+Port Inspector 的业务内容保持端口列表、详情和安全操作模型，但弹窗外壳完全采用 DSH 原生 Web UI 的 Modal 语言：全屏遮罩与模糊、居中面板、原生尺寸与圆角、`lv3` 阴影、54px Header、Options 滚动区以及原生关闭和焦点行为。面板不保留只有一个菜单项的左侧导航栏，Header 直接显示 `Port Inspector`；只有来源追踪降级或扫描未完成时才显示对应状态提示。这样可以让用户把 Port Inspector 识别为 DSH Web 的一部分，而不是外部工具窗口。
 
-该决定不引入 DSH UI 包的运行时远程依赖，也不改变 Host/Browser 边界；当 Browser Bundle 无法直接复用原生 CSS Module 或 primitive 时，Runtime Inspector 在命名空间内复刻相同 Token 和几何约束。由于端口工具栏和双栏详情的信息密度高，Runtime Inspector 的桌面 Modal 宽度采用 `1040px`；视口低于 `960px` 时工具栏转为可控换行，避免牺牲控件完整性。
+该决定不引入 DSH UI 包的运行时远程依赖，也不改变 Host/Browser 边界；当 Browser Bundle 无法直接复用原生 CSS Module 或 primitive 时，Port Inspector 在命名空间内复刻相同 Token 和几何约束。由于端口工具栏和双栏详情的信息密度高，Port Inspector 的桌面 Modal 宽度采用 `1040px`；视口低于 `960px` 时工具栏转为可控换行，避免牺牲控件完整性。
 
 工具栏不再显示与范围、筛选重复的四格摘要；改为用“查看范围”“启动方”和“仅显示可处理”三个控件表达不同的下一步动作，列表标题只显示当前筛选结果数量。
 

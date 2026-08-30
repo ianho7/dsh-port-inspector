@@ -1,4 +1,4 @@
-# DSH Runtime Inspector：Windows 第一版 MVP
+# DSH Port Inspector：Windows 第一版 MVP
 
 > 状态：Windows MVP 已实现，并于 2026-08-23 完成确定性测试、Stock DSH 原生/Web 验收和用户手工验收。
 
@@ -6,7 +6,7 @@
 
 在 DSH Web 中找出占用开发端口的进程，并回答它是否由 DSH 启动、由哪个会话、哪一轮、哪次工具调用启动，最后允许用户安全关闭一个明确选中的进程。
 
-建议产品名为 **DSH Runtime Inspector**，中文可称“DSH 服务坞”或“Agent 服务管家”。它不是通用任务管理器，而是面向 Coding Agent 开发场景的运行时检查和来源追踪工具。
+建议产品名为 **DSH Port Inspector**，中文可称“DSH 服务坞”或“Agent 服务管家”。它不是通用任务管理器，而是面向 Coding Agent 开发场景的运行时检查和来源追踪工具。
 
 ## 要解决的问题
 

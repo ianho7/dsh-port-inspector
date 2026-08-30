@@ -41,7 +41,7 @@ export function redactAndBoundProcessCommand(value: unknown, maxLength: number):
     : command
 }
 
-/** Bound a path before it crosses a runtime-inspector output boundary. */
+/** Bound a path before it crosses a port-inspector output boundary. */
 export function redactPath(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined
   const withoutNulls = value.replace(/\0/gu, '')

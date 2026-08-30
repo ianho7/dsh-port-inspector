@@ -116,7 +116,7 @@ export {
   type ComposeRuntimeStatus,
 } from './compose-association.js'
 
-export const name = 'dsh-runtime-inspector'
+export const name = 'dsh-port-inspector'
 export const inject = ['tools'] as const
 
 export interface RuntimeInspectorHealth extends CompatibilitySnapshot {

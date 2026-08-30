@@ -1,4 +1,4 @@
-# DSH Runtime Inspector Windows MVP：Tool Call → root PID 源码调研
+# DSH Port Inspector Windows MVP：Tool Call → root PID 源码调研
 
 > 调研日期：2026-08-21
 > 权威源码：本地 `D:\project\deepseek-harness`，commit `141eb6fef83422698aef7a981029e843e8161534`（`dsh-0.1.0-rc.8` 合并提交，2026-08-19）
@@ -11,7 +11,7 @@
 
 ### 最佳方案
 
-**推荐方案 A，但应把扩展点放在 `ctx.subprocess` seam，而不是只给 `ShellProcess` 加 `pid`：新增一个“真实 PID 已可用”的只读 `subprocess/started` 通知；Runtime Inspector 用 `tools/execute` waterfall 建立调用级 `AsyncLocalStorage<ToolExecution>`，在通知到达时写入 `ProcessOriginRegistry`。**
+**推荐方案 A，但应把扩展点放在 `ctx.subprocess` seam，而不是只给 `ShellProcess` 加 `pid`：新增一个“真实 PID 已可用”的只读 `subprocess/started` 通知；Port Inspector 用 `tools/execute` waterfall 建立调用级 `AsyncLocalStorage<ToolExecution>`，在通知到达时写入 `ProcessOriginRegistry`。**
 
 - **Verified：PID 的真正公共产生点是 subprocess handle。** `SubprocessHandle.pid` 明确定义为进程树 root PID；本地 provider 在 `child_process.spawn()` 后取得 `child.pid` 并把它返回在 handle 上。参见 [`SubprocessHandle`](https://github.com/deepseek-ai/deepseek-harness/blob/141eb6fef83422698aef7a981029e843e8161534/packages/subprocess/subprocess/src/types.ts#L158-L193)、[`spawnSubprocess`](https://github.com/deepseek-ai/deepseek-harness/blob/141eb6fef83422698aef7a981029e843e8161534/packages/subprocess/subprocess-local/src/spawn.ts#L349-L361) 和 [handle 构造](https://github.com/deepseek-ai/deepseek-harness/blob/141eb6fef83422698aef7a981029e843e8161534/packages/subprocess/subprocess-local/src/spawn.ts#L377-L378)。
 - **Verified：标准 `pwsh` provider 取得了 handle，却没有向上暴露 PID。** foreground 把 handle 保存在局部变量并仅返回 `ShellRunResult`；background 把它包装为没有 `pid` 的 `ShellProcess`。参见 [`PwshLocalExecutor.runArgv/startArgv`](https://github.com/deepseek-ai/deepseek-harness/blob/141eb6fef83422698aef7a981029e843e8161534/packages/shell/pwsh-local/src/index.ts#L255-L346) 与 [`ShellProcess`](https://github.com/deepseek-ai/deepseek-harness/blob/141eb6fef83422698aef7a981029e843e8161534/packages/shell/shell/src/types.ts#L161-L182)。
@@ -22,7 +22,7 @@
 
 **生产推荐需要一个很小的 DSH upstream change。** Windows MVP 的最小变更是：在 subprocess 公共包定义事件 payload/事件类型，并在 `subprocess-local` 的 `spawn`、`spawnTerminal` 获得有效 PID 后发布；再加契约测试。`ShellProcess.pid` 单独不充分。
 
-若暂时完全不能改 DSH，存在一个源码可行的 **方案 C**：插件用自定义 provider 继承公开的 `LocalSubprocessRuntime`，override `spawn`/`spawnTerminal`，调用 `super` 后读取 `handle.pid`；composition patch 先 disable base bundle 的 `id: subprocess` 行，再 insert 一个不同 id 的 tracked provider 行。它比重写 PowerShell provider 小得多，但会成为整个 `ctx.subprocess` 的资源所有者；provider 卸载会终止并等待所有受管进程，这与 Runtime Inspector “卸载只撤销观察能力、不杀用户进程”的产品边界冲突。因此它适合无 core 改动的临时 fallback，不是长期最佳方案。[`LocalSubprocessRuntime` 生命周期](https://github.com/deepseek-ai/deepseek-harness/blob/141eb6fef83422698aef7a981029e843e8161534/packages/subprocess/subprocess-local/src/index.ts#L37-L101)
+若暂时完全不能改 DSH，存在一个源码可行的 **方案 C**：插件用自定义 provider 继承公开的 `LocalSubprocessRuntime`，override `spawn`/`spawnTerminal`，调用 `super` 后读取 `handle.pid`；composition patch 先 disable base bundle 的 `id: subprocess` 行，再 insert 一个不同 id 的 tracked provider 行。它比重写 PowerShell provider 小得多，但会成为整个 `ctx.subprocess` 的资源所有者；provider 卸载会终止并等待所有受管进程，这与 Port Inspector “卸载只撤销观察能力、不杀用户进程”的产品边界冲突。因此它适合无 core 改动的临时 fallback，不是长期最佳方案。[`LocalSubprocessRuntime` 生命周期](https://github.com/deepseek-ai/deepseek-harness/blob/141eb6fef83422698aef7a981029e843e8161534/packages/subprocess/subprocess-local/src/index.ts#L37-L101)
 
 ### 约束补充：必须运行于未经修改的官方 DSH
 
@@ -195,7 +195,7 @@ interface ProcessAttributionFrame {
 }
 ```
 
-**Verified：DSH 自身已经用 `AsyncLocalStorage` 做 Agent causal attribution，并有跨 await、并发隔离、嵌套恢复、异常恢复测试。** [`AgentRegistry` ALS](https://github.com/deepseek-ai/deepseek-harness/blob/141eb6fef83422698aef7a981029e843e8161534/packages/core/agent/src/index.ts#L250-L322)、[进入 boundary](https://github.com/deepseek-ai/deepseek-harness/blob/141eb6fef83422698aef7a981029e843e8161534/packages/core/agent/src/index.ts#L639-L650)、[并发隔离测试](https://github.com/deepseek-ai/deepseek-harness/blob/141eb6fef83422698aef7a981029e843e8161534/packages/core/agent/tests/agent-initiator.spec.ts#L104-L124)。这不是 Runtime Inspector ALS 的现成 API，但直接验证了同一 runtime 中该关联模型。
+**Verified：DSH 自身已经用 `AsyncLocalStorage` 做 Agent causal attribution，并有跨 await、并发隔离、嵌套恢复、异常恢复测试。** [`AgentRegistry` ALS](https://github.com/deepseek-ai/deepseek-harness/blob/141eb6fef83422698aef7a981029e843e8161534/packages/core/agent/src/index.ts#L250-L322)、[进入 boundary](https://github.com/deepseek-ai/deepseek-harness/blob/141eb6fef83422698aef7a981029e843e8161534/packages/core/agent/src/index.ts#L639-L650)、[并发隔离测试](https://github.com/deepseek-ai/deepseek-harness/blob/141eb6fef83422698aef7a981029e843e8161534/packages/core/agent/tests/agent-initiator.spec.ts#L104-L124)。这不是 Port Inspector ALS 的现成 API，但直接验证了同一 runtime 中该关联模型。
 
 ## 5. Option Comparison
 
@@ -257,7 +257,7 @@ C 的优点：调用 `super`，foreground/background/sandbox/stdio/timeout/cance
 
 C 的阻塞性缺点：
 
-- **Verified：provider 自己拥有所有 live handles；其 fiber 卸载会 terminate 并 await 全部 process trees/terminals。** 这意味着卸载/热替换 Runtime Inspector provider 会杀掉整个 DSH 的受管进程，不只是撤销观察器。[teardown](https://github.com/deepseek-ai/deepseek-harness/blob/141eb6fef83422698aef7a981029e843e8161534/packages/subprocess/subprocess-local/src/index.ts#L47-L101)
+- **Verified：provider 自己拥有所有 live handles；其 fiber 卸载会 terminate 并 await 全部 process trees/terminals。** 这意味着卸载/热替换 Port Inspector provider 会杀掉整个 DSH 的受管进程，不只是撤销观察器。[teardown](https://github.com/deepseek-ai/deepseek-harness/blob/141eb6fef83422698aef7a981029e843e8161534/packages/subprocess/subprocess-local/src/index.ts#L47-L101)
 - **Inferred：它与产品现有“插件卸载不自动终止用户进程”要求冲突。** 除非把 tracked provider 视为部署基础设施、禁止独立热卸载，否则不能作为默认生产设计。
 - **Verified：它绑定 `subprocess-local` concrete provider，不适用于 E2B 等其他 execution world。** 对 Windows MVP 可接受，但长期耦合高于事件消费方。
 
@@ -297,7 +297,7 @@ tools/execute(exec, next)
 subprocess provider obtains a valid real PID
   → subprocess/started { kind, pid, argv, cwd }
                         ▼
-Runtime Inspector listener reads ALS frame
+Port Inspector listener reads ALS frame
   → immediately query Windows creation identity (GetProcessTimes)
                         ▼
 ProcessOriginRegistry.add({
@@ -399,7 +399,7 @@ Windows PID + ParentProcessId + creation-time ancestry matching
 1. **Persistent PowerShell 后续命令精确归因 — Unknown / scope blocker only if required。** 后续 send 不经过 subprocess seam，不能把 descendant 精确归到后续 Call ID。MVP 应明确只承诺 one-shot `pwsh`/直接受观察 spawn，或为 persistent shell 单列“不精确”。
 2. **事件 failure containment — design requirement。** Cordis `emit` 会同步调用 listener 并传播同步异常；`parallel` 会 `allSettled` 后拒绝一个 `AggregateError`。新增 started 通知应采用 `void ctx.parallel(...).catch(log)` 或等价 helper，并分别测试同步 throw 与 async reject，不能让监控插件把已成功的 spawn 变成 tool failure。
 3. **Remote PID timing — verified cross-provider trap。** E2B 的 `spawn()` 返回时 PID 仍可能是 `-1`；若事件进入公共 subprocess contract，必须由每个 provider 在真实 PID 可用时发布，而不能由抽象 base 在 return point 猜测。
-4. **C 的 provider ownership — verified lifecycle risk。** 采用 C 时 Runtime Inspector 的卸载/热替换将触发全部受管 subprocess teardown；这是真正阻止 C 成为长期默认的因素。
+4. **C 的 provider ownership — verified lifecycle risk。** 采用 C 时 Port Inspector 的卸载/热替换将触发全部受管 subprocess teardown；这是真正阻止 C 成为长期默认的因素。
 5. **PID reuse / unreadable process — expected degraded path。** 获取 root PID 后应立即查询 Windows creation identity；读不到时不能标 verified。权限不足是降级，不是错误关联。
 
 ### Windows ancestry 可行性检查
@@ -413,7 +413,7 @@ Windows PID + ParentProcessId + creation-time ancestry matching
 
 证据：[`windowsProcessTree` 与 identity fencing](https://github.com/deepseek-ai/deepseek-harness/blob/141eb6fef83422698aef7a981029e843e8161534/packages/subprocess/subprocess-local/src/windows-inspector.ts#L17-L119)、[Toolhelp32/GetProcessTimes bindings](https://github.com/deepseek-ai/deepseek-harness/blob/141eb6fef83422698aef7a981029e843e8161534/packages/subprocess/subprocess-local/src/windows-inspector.ts#L264-L323)。Windows 官方契约也明确：`PROCESSENTRY32.th32ParentProcessID` 提供创建者 PID，而 `Win32_Process.ParentProcessId` 警告 PID 会被复用，应再用 `CreationDate` 等信息确认身份；`GetProcessTimes` 返回进程创建时间。[`PROCESSENTRY32`](https://learn.microsoft.com/en-us/windows/win32/api/tlhelp32/ns-tlhelp32-processentry32)、[`Win32_Process`](https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/win32-process)、[`GetProcessTimes`](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getprocesstimes)
 
-**Inferred：** 在 root 仍可观察、未 daemonize/escape、权限允许的 MVP 范围内，`root PID + root creation identity + ParentProcessId chain` 足以做 verified ancestry。root 已退出、PPID 被复用或中间祖先不可读时应降级；不能只凭数值 PID。另需注意这些 inspector helpers 当前是 `subprocess-local/src` 内部实现，不应把内部源码路径当作 Runtime Inspector 的稳定包根 API；插件应拥有自己的窄 Windows identity/scanner boundary，或另提公共化变更。
+**Inferred：** 在 root 仍可观察、未 daemonize/escape、权限允许的 MVP 范围内，`root PID + root creation identity + ParentProcessId chain` 足以做 verified ancestry。root 已退出、PPID 被复用或中间祖先不可读时应降级；不能只凭数值 PID。另需注意这些 inspector helpers 当前是 `subprocess-local/src` 内部实现，不应把内部源码路径当作 Port Inspector 的稳定包根 API；插件应拥有自己的窄 Windows identity/scanner boundary，或另提公共化变更。
 
 ## 9. Prototype Recommendation
 
@@ -434,4 +434,4 @@ Windows PID + ParentProcessId + creation-time ancestry matching
 
 最终决策一句话：
 
-> **给 DSH subprocess seam 增加一个很小、非侵入、真实 PID-ready 的 started 通知；Runtime Inspector 用 ToolExecution ALS 与 session event 完成归因。不要只暴露 `ShellProcess.pid`，也不要重写 PowerShell provider。完全不能改 core 时，tracked `LocalSubprocessRuntime` 可作为受生命周期限制的 fallback。**
+> **给 DSH subprocess seam 增加一个很小、非侵入、真实 PID-ready 的 started 通知；Port Inspector 用 ToolExecution ALS 与 session event 完成归因。不要只暴露 `ShellProcess.pid`，也不要重写 PowerShell provider。完全不能改 core 时，tracked `LocalSubprocessRuntime` 可作为受生命周期限制的 fallback。**

@@ -1,6 +1,6 @@
 import { defineConfig } from 'astro/config';
 
-const siteUrl = process.env.PUBLIC_SITE_URL ?? 'https://dsh-runtime-inspector.pages.dev';
+const siteUrl = process.env.PUBLIC_SITE_URL ?? 'https://dsh-port-inspector.pages.dev';
 
 export default defineConfig({
   site: siteUrl,

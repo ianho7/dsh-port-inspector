@@ -1,8 +1,8 @@
-# DSH Runtime Inspector：DeepSeek Harness 集成机制与类图
+# DSH Port Inspector：DeepSeek Harness 集成机制与类图
 
 > 状态：代码核对版
 > 日期：2026-08-25
-> 范围：说明 Runtime Inspector 作为 DeepSeek Harness 插件时实际使用的 DSH/Cordis 机制、服务契约和 Host/Browser 边界。
+> 范围：说明 Port Inspector 作为 DeepSeek Harness 插件时实际使用的 DSH/Cordis 机制、服务契约和 Host/Browser 边界。
 
 ## 说明
 
@@ -19,7 +19,7 @@
 
 | DSH 机制或组件 | 插件的实际用法 | 关系性质 |
 | --- | --- | --- |
-| Bundle composition | `package.json` 声明 `dsh.bundle.patch`，由 `cordis.patch.yml` 插入 `dsh-runtime-inspector` Bundle | 直接 |
+| Bundle composition | `package.json` 声明 `dsh.bundle.patch`，由 `cordis.patch.yml` 插入 `dsh-port-inspector` Bundle | 直接 |
 | Cordis Context | Host 入口使用 `ctx.provide`、`ctx.get`、`ctx.on` 和 `ctx.effect` | 直接 |
 | `internal/get` waterfall | 在读取 `subprocess` 时创建 non-mutating Proxy，只包装 `spawn` 和 `spawnTerminal` | 直接，内部 seam |
 | `internal/service` | 监听 `subprocess`、`tools`、`webServer` 的延迟发布 | 直接，内部 seam |
@@ -358,7 +358,7 @@ flowchart LR
         Sessions["sessions"]
     end
 
-    subgraph Host["Runtime Inspector Host 半"]
+    subgraph Host["Port Inspector Host 半"]
         Entry["src/index.ts<br/>apply(ctx)"]
         Gate["Capability gate<br/>compatibility.ts"]
         Attribution["RuntimeAttribution"]
@@ -372,7 +372,7 @@ flowchart LR
         Adapters["DSH Host adapters"]
     end
 
-    subgraph Browser["Runtime Inspector Browser 半"]
+    subgraph Browser["Port Inspector Browser 半"]
         ClientEntry["src/client/index.ts"]
         BrowserRpc["RuntimeInspectorBrowserRpc"]
         Ui["Sidebar entry + shell overlay"]
@@ -537,9 +537,9 @@ RuntimeInspectorHost → owns ExternalProcessTerminator
 
 ## 9. 代码与文档依据
 
-- [MVP 文档](dsh-runtime-inspector-mvp.md)
-- [Implementation Spec](dsh-runtime-inspector-mvp-spec.md)
-- [Root PID research](dsh-runtime-inspector-root-pid-research.md)
+- [MVP 文档](dsh-port-inspector-mvp.md)
+- [Implementation Spec](dsh-port-inspector-mvp-spec.md)
+- [Root PID research](dsh-port-inspector-root-pid-research.md)
 - [ADR-0001：Stock DSH root PID observation](adr/0001-stock-dsh-root-pid-observation.md)
 - [ADR-0004：单仓库 DSH Web 双半 Bundle](adr/0004-web-client-dual-face-bundle.md)
 - [ADR-0005：Capability-based DSH compatibility](adr/0005-capability-based-dsh-compatibility.md)

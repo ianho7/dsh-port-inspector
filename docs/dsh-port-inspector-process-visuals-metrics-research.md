@@ -1,4 +1,4 @@
-# Runtime Inspector 进程图标与资源指标可行性研究
+# Port Inspector 进程图标与资源指标可行性研究
 
 > 状态：建议进入实现设计
 > 日期：2026-08-24
@@ -108,12 +108,12 @@ cpuPercent        = 100 * processDelta100ns
 不要在每一行内重复携带 base64 图片。推荐：
 
 - inventory 只返回 `iconKey?: string`；
-- 增加同源只读图片端点，例如 `GET /api/dsh-runtime-inspector/icon/<opaque-key>`；
+- 增加同源只读图片端点，例如 `GET /api/dsh-port-inspector/icon/<opaque-key>`；
 - 端点只能读取 Host 已生成的有界缓存，不能接受路径或任意 PID；
 - 固定返回 `image/png` 或 `image/x-icon`，设置私有缓存头；
 - 以内部规范化 executable 路径和文件版本/mtime 生成 key，但原始路径不跨 Host/Browser 边界；
 - 设定条目数、单图字节数、总字节数和 TTL 上限，Bundle dispose 时清空缓存；
-- 失败时显示 Runtime Inspector 自带的通用进程图标。
+- 失败时显示 Port Inspector 自带的通用进程图标。
 
 同一 executable 的多个监听 PID 应共享一个图标缓存项；同一 PID 的多个端口也只生成一次。
 

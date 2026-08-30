@@ -18,16 +18,16 @@ const copy = siteCopy[locale];
 const isZh = locale === 'zh';
 const switchLocale: Locale = isZh ? 'en' : 'zh';
 const switchHref = `/${switchLocale}/`;
-const repoUrl = 'https://github.com/ianho7/dsh-runtime-inspector';
+const repoUrl = 'https://github.com/ianho7/dsh-port-inspector';
 const releaseUrl = `${repoUrl}/releases/latest`;
 const docsUrl = `${repoUrl}#readme`;
 const issuesUrl = `${repoUrl}/issues`;
 const pageTitle = isZh
-  ? 'DSH Runtime Inspector｜让每一个开发端口都能找到来源'
-  : 'DSH Runtime Inspector | Every local port has a story';
+  ? 'DSH Port Inspector｜让每一个开发端口都能找到来源'
+  : 'DSH Port Inspector | Every local port has a story';
 const pageDescription = isZh
-  ? 'DSH Runtime Inspector 是面向 DSH Web 的 Windows 本地运行时工具，用于追踪开发端口来源并安全确认处理结果。'
-  : 'DSH Runtime Inspector traces local development ports back to their DSH origin and confirms safe handling on Windows.';
+  ? 'DSH Port Inspector 是面向 DSH Web 的 Windows 本地运行时工具，用于追踪开发端口来源并安全确认处理结果。'
+  : 'DSH Port Inspector traces local development ports back to their DSH origin and confirms safe handling on Windows.';
 ---
 
 <SiteLayout
@@ -38,10 +38,10 @@ const pageDescription = isZh
 >
   <header class="site-header">
     <div class="container header-inner">
-      <a class="brand" href={`/${locale}/`} aria-label="DSH Runtime Inspector home">
-        <img src="/images/runtime-inspector-logo.png" alt="" width="42" height="42" />
+      <a class="brand" href={`/${locale}/`} aria-label="DSH Port Inspector home">
+        <img src="/images/port-inspector-logo.png" alt="" width="42" height="42" />
         <span class="brand-copy">
-          <strong>DSH Runtime Inspector</strong>
+          <strong>DSH Port Inspector</strong>
           <span>{copy.brandDescriptor}</span>
         </span>
       </a>
@@ -81,10 +81,10 @@ const pageDescription = isZh
           <div class="image-frame image-frame-hero">
             <div class="image-frame-bar" aria-hidden="true">
               <span></span><span></span><span></span>
-              <span class="image-frame-path">runtime-inspector</span>
+              <span class="image-frame-path">port-inspector</span>
             </div>
             <img
-              src="/images/runtime-inspector-evidence.png"
+              src="/images/port-inspector-evidence.png"
               alt={copy.hero.imageAlt}
               width="2048"
               height="990"
@@ -177,7 +177,7 @@ const pageDescription = isZh
         <div class="evidence-grid">
           <figure class="evidence-figure">
             <img
-              src="/images/runtime-inspector-evidence.png"
+              src="/images/port-inspector-evidence.png"
               alt={copy.evidence.imageAlt}
               width="2048"
               height="990"
@@ -306,9 +306,9 @@ const pageDescription = isZh
   <footer class="site-footer">
     <div class="container footer-top">
       <div class="footer-brand">
-        <img src="/images/runtime-inspector-logo.png" alt="" width="52" height="52" loading="lazy" />
+        <img src="/images/port-inspector-logo.png" alt="" width="52" height="52" loading="lazy" />
         <div>
-          <strong>DSH Runtime Inspector</strong>
+          <strong>DSH Port Inspector</strong>
           <p>{copy.footer.tagline}</p>
         </div>
       </div>

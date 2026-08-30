@@ -2,11 +2,11 @@
 
 - 状态：Accepted
 - 日期：2026-08-30
-- 适用范围：DSH Runtime Inspector 官方产品官网
+- 适用范围：DSH Port Inspector 官方产品官网
 
 ## Context
 
-DSH Runtime Inspector 的运行时代码和 Browser Client 已经按单仓库 Bundle 维护。项目现在需要一个面向用户的官方介绍页，包含中英文国际化、安装入口、产品特性、安全边界和 SEO。官网不应改变插件 Bundle 的运行时边界，也不应被打包进 npm 插件。
+DSH Port Inspector 的运行时代码和 Browser Client 已经按单仓库 Bundle 维护。项目现在需要一个面向用户的官方介绍页，包含中英文国际化、安装入口、产品特性、安全边界和 SEO。官网不应改变插件 Bundle 的运行时边界，也不应被打包进 npm 插件。
 
 ## Decision
 

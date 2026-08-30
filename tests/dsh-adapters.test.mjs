@@ -14,9 +14,9 @@ test('DSH directory adapter forwards the trusted path to host.openPath', async (
   }))
 
   assert.equal(adapters.openDirectoryAvailable(), true)
-  await adapters.openDirectory('C:\\projects\\runtime-inspector')
+  await adapters.openDirectory('C:\\projects\\port-inspector')
   assert.equal(calls.length, 1)
-  assert.equal(calls[0].request.payload.path, 'C:\\projects\\runtime-inspector')
+  assert.equal(calls[0].request.payload.path, 'C:\\projects\\port-inspector')
   assert.equal(calls[0].signal instanceof AbortSignal, true)
 })
 
@@ -25,7 +25,7 @@ test('DSH directory adapter reports unavailable host capability', async () => {
 
   assert.equal(adapters.openDirectoryAvailable(), false)
   await assert.rejects(
-    adapters.openDirectory('C:\\projects\\runtime-inspector'),
+    adapters.openDirectory('C:\\projects\\port-inspector'),
     /Host path opener unavailable/,
   )
 })

@@ -24,10 +24,10 @@ test('Browser RPC uses same-origin POST endpoints and only serializable payloads
   await rpc.performAction({ listenerId: 'listener-1', kind: 'read-only', confirmed: true })
 
   assert.deepEqual(calls.map(call => call.input), [
-    '/api/dsh-runtime-inspector/inventory',
-    '/api/dsh-runtime-inspector/copy',
-    '/api/dsh-runtime-inspector/open-project-directory',
-    '/api/dsh-runtime-inspector/action',
+    '/api/dsh-port-inspector/inventory',
+    '/api/dsh-port-inspector/copy',
+    '/api/dsh-port-inspector/open-project-directory',
+    '/api/dsh-port-inspector/action',
   ])
   assert.equal(calls.every(call => call.init.method === 'POST' && call.init.credentials === 'same-origin'), true)
   assert.deepEqual(JSON.parse(calls[0].init.body), { search: '3000', sort: { key: 'port', direction: 'asc' } })

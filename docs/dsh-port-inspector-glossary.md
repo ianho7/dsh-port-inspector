@@ -1,11 +1,11 @@
-# DSH Runtime Inspector：MVP 术语表
+# DSH Port Inspector：MVP 术语表
 
 > 状态：随设计讨论更新
 > 更新日期：2026-08-24
 
 | 术语 | 通俗定义 | MVP 中的身份/边界 |
 | --- | --- | --- |
-| Stock DSH | 用户从官方渠道获得、没有私有源码补丁的 DSH | Runtime Inspector MVP 必须直接运行于此环境 |
+| Stock DSH | 用户从官方渠道获得、没有私有源码补丁的 DSH | Port Inspector MVP 必须直接运行于此环境 |
 | Tool Call | Agent 发起的一次工具调用 | 由 Session、Turn、Step、Call ID 和 Tool name 描述 |
 | Root process / root PID | DSH 为一次受观察调用直接创建的第一个 OS 进程及其 PID | 进程归因链的起点；PID 必须与创建时间共同使用 |
 | Process identity | 防止把复用 PID 当成原进程的身份 | 至少包含 PID + creation time；危险操作再校验 executable |

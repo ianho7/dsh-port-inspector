@@ -27,7 +27,7 @@ import assert from 'node:assert/strict'
 import { existsSync, writeFileSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 
-export const name = 'runtime-inspector-release-gate'
+export const name = 'port-inspector-release-gate'
 export const inject = ['runtimeInspector', 'sessions', 'tools', 'shell', 'terminals']
 
 let ctx
@@ -443,10 +443,10 @@ async function waitForResult(path, child, timeoutMs = 90_000) {
 }
 
 async function runStockDshReleaseGate() {
-  const home = await mkdtemp(join(tmpdir(), 'dsh-runtime-inspector-gate-'))
-  const gateDir = await mkdtemp(join(tmpdir(), 'dsh-runtime-inspector-gate-work-'))
+  const home = await mkdtemp(join(tmpdir(), 'dsh-port-inspector-gate-'))
+  const gateDir = await mkdtemp(join(tmpdir(), 'dsh-port-inspector-gate-work-'))
   const profile = join(home, 'profiles', 'inspector')
-  const installed = join(profile, 'node_modules', 'dsh-runtime-inspector')
+  const installed = join(profile, 'node_modules', 'dsh-port-inspector')
   const resultFile = join(gateDir, 'release-gate-result.json')
   const stopFile = join(gateDir, 'release-gate-stop')
   const listenerFile = join(gateDir, 'listener.mjs')
@@ -468,10 +468,10 @@ async function runStockDshReleaseGate() {
   await cp(join(repoRoot, 'cordis.patch.yml'), join(installed, 'cordis.patch.yml'))
   await cp(join(repoRoot, 'lib'), join(installed, 'lib'), { recursive: true })
   await writeFile(join(profile, 'package.json'), JSON.stringify({
-    name: 'dsh-runtime-inspector-release-gate-profile',
+    name: 'dsh-port-inspector-release-gate-profile',
     private: true,
     dependencies: {},
-    dsh: { profile: { bundles: ['@deepseek-ai/dsh-base', 'dsh-runtime-inspector'] } },
+    dsh: { profile: { bundles: ['@deepseek-ai/dsh-base', 'dsh-port-inspector'] } },
   }, null, 2))
   await writeFile(join(profile, 'cordis.patch.yml'), [
     '- insert:',
@@ -482,7 +482,7 @@ async function runStockDshReleaseGate() {
     '      config:',
     '        shellDialect: pwsh',
     '        timeoutMs: 5000',
-    '    - id: runtime-inspector-release-gate',
+    '    - id: port-inspector-release-gate',
     `      name: ${pathToFileURL(probeFile).href}`,
     '      inject: [runtimeInspector, sessions, tools, shell, terminals]',
     '',

@@ -1,6 +1,6 @@
-# DSH Runtime Inspector 官网
+# DSH Port Inspector 官网
 
-这是 DSH Runtime Inspector 的独立 Astro 静态官网，和插件运行时代码位于同一仓库，但拥有自己的依赖和部署流程。
+这是 DSH Port Inspector 的独立 Astro 静态官网，和插件运行时代码位于同一仓库，但拥有自己的依赖和部署流程。
 
 ## 本地开发
 
@@ -26,7 +26,7 @@ npm run website:preview
 - Node.js：`22.19.0` 或更高版本
 - Environment variable：`PUBLIC_SITE_URL=https://你的正式域名`
 
-没有设置 `PUBLIC_SITE_URL` 时，官网会使用预设的 Cloudflare Pages URL `https://dsh-runtime-inspector.pages.dev`。域名变更后只需要更新该变量，canonical、Open Graph、hreflang 和 sitemap 会同步使用新地址。
+没有设置 `PUBLIC_SITE_URL` 时，官网会使用预设的 Cloudflare Pages URL `https://dsh-port-inspector.pages.dev`。域名变更后只需要更新该变量，canonical、Open Graph、hreflang 和 sitemap 会同步使用新地址。
 
 ## 页面结构
 

@@ -1,14 +1,14 @@
 {
-  "name": "dsh-runtime-inspector",
+  "name": "dsh-port-inspector",
   "version": "0.1.1",
-  "description": "Windows Runtime Inspector Bundle for DeepSeek Harness",
+  "description": "Windows Port Inspector Bundle for DeepSeek Harness",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ianho7/dsh-runtime-inspector.git"
+    "url": "https://github.com/ianho7/dsh-port-inspector.git"
   },
-  "homepage": "https://github.com/ianho7/dsh-runtime-inspector#readme",
+  "homepage": "https://github.com/ianho7/dsh-port-inspector#readme",
   "bugs": {
-    "url": "https://github.com/ianho7/dsh-runtime-inspector/issues"
+    "url": "https://github.com/ianho7/dsh-port-inspector/issues"
   },
   "type": "module",
   "main": "lib/index.js",

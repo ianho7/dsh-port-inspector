@@ -5,7 +5,7 @@ import test from 'node:test'
 const source = await readFile(new URL('../src/client/panel.ts', import.meta.url), 'utf8')
 const slotsSource = await readFile(new URL('../src/client/slots.ts', import.meta.url), 'utf8')
 const stylesSource = await readFile(new URL('../src/client/styles.ts', import.meta.url), 'utf8')
-const previewStylesSource = await readFile(new URL('../designs/dsh-runtime-inspector/runtime-inspector-production.css', import.meta.url), 'utf8')
+const previewStylesSource = await readFile(new URL('../designs/dsh-port-inspector/port-inspector-production.css', import.meta.url), 'utf8')
 const logoSource = await readFile(new URL('../src/client/toolchain-logos.ts', import.meta.url), 'utf8').catch(() => '')
 
 function normalizedCss(value) {
@@ -35,35 +35,35 @@ function productionCssFromPreview(value) {
   return value.slice(start, end)
 }
 
-test('Runtime Inspector panel exposes semantic stable controls and all required state labels', () => {
+test('Port Inspector panel exposes semantic stable controls and all required state labels', () => {
   for (const locator of [
-    'data-runtime-inspector-entry',
-    'data-runtime-inspector-panel',
-    'data-runtime-inspector-refresh',
-    'data-runtime-inspector-select',
-    'data-runtime-inspector-copy',
-    'data-runtime-inspector-open-directory',
-    'data-runtime-inspector-confirm',
-    'data-runtime-inspector-action-result',
+    'data-port-inspector-entry',
+    'data-port-inspector-panel',
+    'data-port-inspector-refresh',
+    'data-port-inspector-select',
+    'data-port-inspector-copy',
+    'data-port-inspector-open-directory',
+    'data-port-inspector-confirm',
+    'data-port-inspector-action-result',
   ]) {
     assert.match(source, new RegExp(locator))
   }
-  assert.match(source, /data-runtime-inspector-state': 'loading'/)
-  assert.match(source, /data-runtime-inspector-state': 'empty'/)
-  assert.match(source, /data-runtime-inspector-state': 'failure'/)
+  assert.match(source, /data-port-inspector-state': 'loading'/)
+  assert.match(source, /data-port-inspector-state': 'empty'/)
+  assert.match(source, /data-port-inspector-state': 'failure'/)
   assert.match(source, /snapshot\.scanComplete/)
-  assert.match(source, /data-runtime-inspector-notice-tone/)
+  assert.match(source, /data-port-inspector-notice-tone/)
   assert.match(source, /notice\.tone === 'error' \? 'alert' : 'status'/)
-  assert.match(source, /data-runtime-inspector-retry/)
+  assert.match(source, /data-port-inspector-retry/)
   assert.match(source, /detachedOperationNotice/)
   assert.doesNotMatch(source, /state\.(error|actionResult|postAction)/)
-  assert.match(source, /data-runtime-inspector-confirmation/)
+  assert.match(source, /data-port-inspector-confirmation/)
   assert.match(slotsSource, /sidebar\.footer\.action/)
   assert.match(slotsSource, /shell\.overlay/)
-  assert.match(source, /Runtime Inspector/)
+  assert.match(source, /Port Inspector/)
   assert.doesNotMatch(source, /观察模式/)
-  assert.match(source, /data-runtime-inspector-source-filter/)
-  assert.match(source, /data-runtime-inspector-actionable-only/)
+  assert.match(source, /data-port-inspector-source-filter/)
+  assert.match(source, /data-port-inspector-actionable-only/)
   assert.match(source, /attributionValue\(row, 'agentId'\)/)
   assert.match(source, /attributionValue\(row, 'rootCallId'\)/)
   assert.match(source, /attributionValue\(row, 'command'\)/)
@@ -78,7 +78,7 @@ test('development surface prioritizes current-project listeners with a calm sele
   assert.match(source, /t\('scopeDevelopment'\)/)
   assert.match(source, /t\('groupCurrentProject'\)/)
   assert.match(source, /row\.development\.group === 'current-project'/)
-  assert.match(source, /data-runtime-inspector-group/)
+  assert.match(source, /data-port-inspector-group/)
   assert.match(stylesSource, /\.dsh-ri-row-button\.is-selected\s*\{[^}]*background:\s*var\(--dsh-ri-accent-soft\)/su)
   assert.doesNotMatch(stylesSource, /box-shadow:\s*inset 3px 0 0 var\(--dsh-ri-accent\)/)
   assert.match(stylesSource, /\.dsh-ri-row-button\.is-selected \.dsh-ri-port/)
@@ -90,8 +90,8 @@ test('development surface groups environments and keeps other listeners searchab
   assert.match(source, /t\('groupOther'\)/)
   assert.match(source, /t\('scopeAll'\)/)
   assert.match(source, /t\('collapsedOther'/)
-  assert.match(source, /data-runtime-inspector-scope/)
-  assert.match(source, /data-runtime-inspector-other-toggle/)
+  assert.match(source, /data-port-inspector-scope/)
+  assert.match(source, /data-port-inspector-other-toggle/)
   assert.match(source, /row\.development\.group === 'development-environment'/)
   assert.match(source, /row\.development\.group === 'other'/)
   assert.match(source, /search\.trim\(\)\.length > 0/)
@@ -111,7 +111,7 @@ test('approved semantic refinement keeps unknown and read-only states neutral wh
   assert.match(source, /row\.action\.kind === 'external-single-pid' \? 'dsh-ri-danger-action' : 'dsh-ri-primary-action'/)
   assert.match(source, /className: external \? 'dsh-ri-danger-action' : 'dsh-ri-primary-action'/)
   assert.doesNotMatch(stylesSource, /\.dsh-ri-handling-card\.is-disabled\s*\{/)
-  assert.doesNotMatch(source, /data-runtime-inspector-action': 'unavailable'/)
+  assert.doesNotMatch(source, /data-port-inspector-action': 'unavailable'/)
 })
 
 test('approved detail refinement collapses identical listeners and uses compact truthful fallbacks', () => {
@@ -139,7 +139,7 @@ test('toolchain logos are bundled locally for compact rows and details', () => {
 
 test('Compose associations show independent evidence and product/context logos', () => {
   assert.match(source, /row\.compose === undefined \? null : React\.createElement\(ComposePill/)
-  assert.match(source, /data-runtime-inspector-compose-details/)
+  assert.match(source, /data-port-inspector-compose-details/)
   assert.match(source, /row\.compose\.relativeComposeFile/)
   assert.match(source, /row\.compose\.containerId/)
   assert.match(source, /handlingComposeReadOnly/)
@@ -151,15 +151,15 @@ test('Compose associations show independent evidence and product/context logos',
 })
 
 test('verified launch chain stays detail-only and marks missing command lines neutrally', () => {
-  assert.match(source, /data-runtime-inspector-launch-chain': 'verified'/)
+  assert.match(source, /data-port-inspector-launch-chain': 'verified'/)
   assert.match(source, /row\.confidence !== 'verified'/)
   assert.match(source, /launchChainCommandUnavailable/)
-  assert.match(source, /data-runtime-inspector-launch-chain-role/)
+  assert.match(source, /data-port-inspector-launch-chain-role/)
   assert.match(stylesSource, /\.dsh-ri-launch-chain-node/)
 })
 
 test('pin controls stay dormant without removing the saved pin model', () => {
-  assert.match(source, /data-runtime-inspector-pin/)
+  assert.match(source, /data-port-inspector-pin/)
   assert.match(source, /row\.development\.stableKey/)
   assert.match(source, /loadPinnedListenerKeys/)
   assert.match(source, /savePinnedListenerKeys/)
@@ -168,13 +168,13 @@ test('pin controls stay dormant without removing the saved pin model', () => {
   assert.match(stylesSource, /\.dsh-ri-row-button\.has-pin\s*\{[^}]*padding-right:\s*10px/su)
 })
 
-test('Runtime Inspector modal follows the native DSH centered dialog chrome without a single-item nav', () => {
+test('Port Inspector modal follows the native DSH centered dialog chrome without a single-item nav', () => {
   for (const locator of [
     'dsh-ri-mask',
     'dsh-ri-header-title',
     'dsh-ri-content',
     'dsh-ri-options',
-    'data-runtime-inspector-state',
+    'data-port-inspector-state',
     'panelRef',
     'closeButtonRef',
     "document.addEventListener('keydown'",
@@ -246,9 +246,9 @@ test('code-faithful design preview stays aligned with the production typography 
   )
 })
 
-test('Runtime Inspector confirmation keeps native dialog semantics and safe focus targets', () => {
+test('Port Inspector confirmation keeps native dialog semantics and safe focus targets', () => {
   assert.match(source, /role: 'alertdialog'/)
-  assert.match(source, /aria-describedby': 'dsh-runtime-inspector-confirm-copy'/)
+  assert.match(source, /aria-describedby': 'dsh-port-inspector-confirm-copy'/)
   assert.match(source, /cancelButton = React\.useRef/)
   assert.match(source, /cancelButton\.current\?\.focus\(\)/)
   assert.match(stylesSource, /\.dsh-ri-confirm-backdrop\s*\{[\s\S]*?background:\s*var\(--dsh-ri-mask\)/su)

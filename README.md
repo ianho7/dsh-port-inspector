@@ -1,6 +1,6 @@
 <div align="center">
-  <img src="./assets/logo-candidates/A1-v4-rounded.png" alt="DSH Runtime Inspector logo" width="128" height="128">
-  <h1>DSH Runtime Inspector</h1>
+  <img src="./assets/logo-candidates/A1-v4-rounded.png" alt="DSH Port Inspector logo" width="128" height="128">
+  <h1>DSH Port Inspector</h1>
   <p>DSH Web 内面向 Windows 本地开发的端口来源追踪与安全处理工具。</p>
   <p><strong>中文</strong> | <a href="./README_EN.md">English</a></p>
 </div>
@@ -33,11 +33,11 @@
 
    即使执行了停止操作，我仍需要确认目标端口是否真的释放，以及其他项目的服务是否继续运行。例如，停止前端服务的 5173 后，5174 上的后端服务不应受到影响。
 
-问题在于：DeepSeek Harness 不知道 Agent 到底启动了什么服务，Windows 也不知道某个监听端口属于哪个 DeepSeek Harness Session，两边对不上。打开 Runtime Inspector，能看到每个监听端口对应的应用、项目、启动方和 Session/Tool Call，每次操作后还会重新扫描确认结果。
+问题在于：DeepSeek Harness 不知道 Agent 到底启动了什么服务，Windows 也不知道某个监听端口属于哪个 DeepSeek Harness Session，两边对不上。打开 Port Inspector，能看到每个监听端口对应的应用、项目、启动方和 Session/Tool Call，每次操作后还会重新扫描确认结果。
 
 后台服务不会被当成泄漏自动清理；只有证据充分时才建议关闭，并区分哪些服务由 DeepSeek Harness 管理、哪些服务不是。
 
-在来源 observer、Windows 进程身份和父进程链均可用时，Runtime Inspector 把这条关系连接起来：
+在来源 observer、Windows 进程身份和父进程链均可用时，Port Inspector 把这条关系连接起来：
 
 ```text
 TCP 监听端口 → 监听 PID → Windows 父进程链 → DeepSeek Harness 根进程
@@ -48,24 +48,24 @@ TCP 监听端口 → 监听 PID → Windows 父进程链 → DeepSeek Harness �
 
 ### DeepSeek Harness 任务上下文
 
-下面的画面记录了在 DeepSeek Harness 中选择某项目 `runtime-story` 工作区并打开 Runtime Inspector 入口的任务上下文。图中的徽标是截图时刻的已有监听数量。
+下面的画面记录了在 DeepSeek Harness 中选择某项目 `runtime-story` 工作区并打开 Port Inspector 入口的任务上下文。图中的徽标是截图时刻的已有监听数量。
 
-![DeepSeek Harness 中的 runtime-story 工作区与 Runtime Inspector 入口](./assets/dsh-harness-runtime-story-context.png)
+![DeepSeek Harness 中的 runtime-story 工作区与 Port Inspector 入口](./assets/dsh-harness-runtime-story-context.png)
 
-### Runtime Inspector 运行结果
+### Port Inspector 运行结果
 
 当前项目分组包含 Vite、PostgreSQL、Redis 和 Go 4 条记录，侧边栏徽标显示 `4`。其中 Docker 服务的 Compose 项目关联已确认，但启动方仍显示为未确认，这两个状态分别表达“属于哪个项目”和“由谁启动”。
 
-![Runtime Inspector 展示四个全栈演示服务及其来源边界](./assets/runtime-inspector-full-stack-evidence.png)
+![Port Inspector 展示四个全栈演示服务及其来源边界](./assets/port-inspector-full-stack-evidence.png)
 
-| 服务 | 启动方式 | 端口 | Runtime Inspector 中的含义 |
+| 服务 | 启动方式 | 端口 | Port Inspector 中的含义 |
 | --- | --- | ---: | --- |
 | Vite | DeepSeek Harness 后台 Job 执行 `npm run dev` | 5173 | 当前项目、当前 Session、verified 来源，可停止 DeepSeek Harness 任务 |
 | Go API | DeepSeek Harness 后台 Job 执行 `go run .` | 8080 | 当前项目、当前 Session、verified 来源，可停止 DeepSeek Harness 任务 |
 | PostgreSQL | Docker Compose | 5432 | 当前项目 Compose 关联、镜像/容器证据，启动方未确认、仅可查看 |
 | Redis | Docker Compose | 6379 | 当前项目 Compose 关联、镜像/容器证据，启动方未确认、仅可查看 |
 
-演示收尾时，先通过 Runtime Inspector 停止 Vite，重新扫描确认 `5173` 已释放且 `8080`、`5432`、`6379` 仍在监听；再停止 Go，最后执行 `docker compose down`。这能证明处理只影响明确选中的 DeepSeek Harness 服务，不会误伤其他项目或 Docker Desktop。
+演示收尾时，先通过 Port Inspector 停止 Vite，重新扫描确认 `5173` 已释放且 `8080`、`5432`、`6379` 仍在监听；再停止 Go，最后执行 `docker compose down`。这能证明处理只影响明确选中的 DeepSeek Harness 服务，不会误伤其他项目或 Docker Desktop。
 
 ## 相关术语
 
@@ -85,11 +85,11 @@ TCP 监听端口 → 监听 PID → Windows 父进程链 → DeepSeek Harness �
 | `netstat` / `Get-NetTCPConnection` | 端口、地址和 PID | 不知道哪个 DeepSeek Harness Session 或 Tool Call 启动了进程 |
 | 任务管理器 / Process Explorer | 进程信息、父子关系和结束进程 | 不理解 DeepSeek Harness Job / Terminal 生命周期 |
 | DeepSeek Harness Jobs / Terminals | 管理已知的受管资源 | 不提供统一的 Windows 监听端口视图，也不覆盖外部进程 |
-| Runtime Inspector | 端口、项目、来源、Session、Call、生命周期 owner 和安全处理方式 | 有意不做通用系统监控或批量清理 |
+| Port Inspector | 端口、项目、来源、Session、Call、生命周期 owner 和安全处理方式 | 有意不做通用系统监控或批量清理 |
 
 ## 适合谁
 
-Runtime Inspector 适合：
+Port Inspector 适合：
 
 - 在 Windows 本地使用 DeepSeek Harness Web 的 Coding Agent 开发者；
 - 经常让 Agent 启动本地开发服务器、API、数据库或其他开发工具的人；
@@ -115,26 +115,26 @@ Windows MVP 不面向 macOS/Linux、UDP、远程主机、跨重启历史、批�
 1. **通过 npm 安装**
 
 ```powershell
-dsh plugin --profile web add dsh-runtime-inspector@latest
+dsh plugin --profile web add dsh-port-inspector@latest
 ```
 
 2. **通过 GitHub Release 下载并安装**
 
-使用 GitHub CLI 从[最新 GitHub Release](https://github.com/ianho7/dsh-runtime-inspector/releases/latest) 下载压缩包，然后安装：
+使用 GitHub CLI 从[最新 GitHub Release](https://github.com/ianho7/dsh-port-inspector/releases/latest) 下载压缩包，然后安装：
 
 ```powershell
 gh release download `
-  --repo ianho7/dsh-runtime-inspector `
-  --pattern 'dsh-runtime-inspector-*.tgz' `
-  --output 'dsh-runtime-inspector-latest.tgz'
-dsh plugin --profile web add '.\dsh-runtime-inspector-latest.tgz'
+  --repo ianho7/dsh-port-inspector `
+  --pattern 'dsh-port-inspector-*.tgz' `
+  --output 'dsh-port-inspector-latest.tgz'
+dsh plugin --profile web add '.\dsh-port-inspector-latest.tgz'
 ```
 
 3. **从源码编译并安装**
 
 ```powershell
-git clone https://github.com/ianho7/dsh-runtime-inspector.git
-cd dsh-runtime-inspector
+git clone https://github.com/ianho7/dsh-port-inspector.git
+cd dsh-port-inspector
 npm install
 npm run build
 $PackageFile = npm pack --ignore-scripts
@@ -147,12 +147,12 @@ dsh plugin --profile web add ".\$PackageFile"
 dsh web
 ```
 
-浏览器打开后，创建一个新任务，然后从侧边栏打开 **Runtime Inspector**。
+浏览器打开后，创建一个新任务，然后从侧边栏打开 **Port Inspector**。
 
 ### 调查端口
 
 1. 创建一个新的 DeepSeek Harness Session，让 Agent 启动本地服务。
-2. 在 DeepSeek Harness Web 侧边栏打开 **Runtime Inspector**；必要时点击“刷新”。
+2. 在 DeepSeek Harness Web 侧边栏打开 **Port Inspector**；必要时点击“刷新”。
 3. 查看端口、PID、应用、项目、创建时间、来源和处理方式。
 4. 受管资源选择“停止 DeepSeek Harness 任务”；符合安全条件的外部进程选择“结束该进程”。
 5. 确认后等待 fresh scan，检查界面报告的 `portReleased` 结果。
@@ -161,7 +161,7 @@ dsh web
 
 ## 产品能力
 
-- 在 DeepSeek Harness Web 侧边栏打开 Runtime Inspector 面板；
+- 在 DeepSeek Harness Web 侧边栏打开 Port Inspector 面板；
 - 显示 TCP 监听地址、端口、PID、应用、项目和本地化创建时间；
 - 对当前 Session 中已验证且成功映射的来源显示 Session、Turn、Step、Call ID、工具和用户请求；其他来源只显示实际可用的会话摘要；
 - 默认优先展示当前项目和已识别的开发环境，其他监听仍可搜索和展开；
@@ -179,7 +179,7 @@ dsh web
 
 ### 从 Agent 工具调用归因到监听端口
 
-Runtime Inspector 在 `tool/call` 阶段缓存调用证据，由 `tools/execute` 的 AsyncLocalStorage 执行帧把它带到 `spawn` 或 `spawnTerminal`。随后，根 PID 与创建时间共同形成进程身份，Job/Terminal 提供生命周期归属，Windows 祖先链再把实际监听进程连接回这次 Agent 操作。
+Port Inspector 在 `tool/call` 阶段缓存调用证据，由 `tools/execute` 的 AsyncLocalStorage 执行帧把它带到 `spawn` 或 `spawnTerminal`。随后，根 PID 与创建时间共同形成进程身份，Job/Terminal 提供生命周期归属，Windows 祖先链再把实际监听进程连接回这次 Agent 操作。
 
 ![Agent 工具调用到监听端口的归因工作流](./docs/assets/agent-tool-call.svg)
 
@@ -233,7 +233,7 @@ npm test
 
 核心 Windows MVP 已实现。需要真实 Stock DeepSeek Harness 或浏览器的验收门禁属于 opt-in 测试，具体命令和环境要求见测试与手工验收指南。
 
-完整的打包、Profile 安装、DeepSeek Harness 端口、PowerShell 外部端口和 opt-in smoke 步骤见[测试与手工验收指南](./docs/DeepSeek Harness-runtime-inspector-testing.md)。
+完整的打包、Profile 安装、DeepSeek Harness 端口、PowerShell 外部端口和 opt-in smoke 步骤见[测试与手工验收指南](./docs/dsh-port-inspector-testing.md)。
 
 ## 维护与发布
 
@@ -241,11 +241,11 @@ npm test
 
 ## 文档
 
-- [Windows MVP](./docs/DeepSeek Harness-runtime-inspector-mvp.md)
-- [Implementation Spec](./docs/DeepSeek Harness-runtime-inspector-mvp-spec.md)
-- [产品与技术决策](./docs/DeepSeek Harness-runtime-inspector-mvp-decisions.md)
-- [术语表](./docs/DeepSeek Harness-runtime-inspector-glossary.md)
-- [测试与手工验收指南](./docs/DeepSeek Harness-runtime-inspector-testing.md)
+- [Windows MVP](./docs/dsh-port-inspector-mvp.md)
+- [Implementation Spec](./docs/dsh-port-inspector-mvp-spec.md)
+- [产品与技术决策](./docs/dsh-port-inspector-mvp-decisions.md)
+- [术语表](./docs/dsh-port-inspector-glossary.md)
+- [测试与手工验收指南](./docs/dsh-port-inspector-testing.md)
 - [极简全栈演示](./demo/runtime-story/README.md)
 - [全栈演示手册与需求 Prompt](./demo/runtime-story/DeepSeek Harness-DEMO-GUIDE.md)
 - [发布指南](./docs/release.md)

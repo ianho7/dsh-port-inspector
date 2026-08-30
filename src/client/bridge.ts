@@ -8,7 +8,7 @@ import type {
   HostListenerRequest,
 } from '../host-ui.js'
 import { writeRuntimeInspectorClipboard } from './clipboard.js'
-import { RUNTIME_INSPECTOR_ROUTE } from '../runtime-inspector-route.js'
+import { RUNTIME_INSPECTOR_ROUTE } from '../port-inspector-route.js'
 
 /** Same-origin route; the Browser half never receives a process primitive. */
 export const RUNTIME_INSPECTOR_BROWSER_ROUTE = RUNTIME_INSPECTOR_ROUTE
@@ -63,7 +63,7 @@ async function request<T>(
   return value as T
 }
 
-/** Create the only Browser-facing capability used by the Runtime Inspector panel. */
+/** Create the only Browser-facing capability used by the Port Inspector panel. */
 export function createRuntimeInspectorBrowserRpc(
   fetcher: RuntimeInspectorFetcher = ((input, init) => fetch(input, init) as Promise<RuntimeInspectorFetchResponse>),
   route = RUNTIME_INSPECTOR_BROWSER_ROUTE,

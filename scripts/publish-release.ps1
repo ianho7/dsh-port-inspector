@@ -3,7 +3,7 @@ param(
     [ValidatePattern('^[a-z0-9][a-z0-9._-]*$')]
     [string]$NpmTag = 'latest',
     [string]$ArtifactDirectory = '',
-    [string]$GitHubRepo = 'ianho7/dsh-runtime-inspector'
+    [string]$GitHubRepo = 'ianho7/dsh-port-inspector'
 )
 
 Set-StrictMode -Version Latest
@@ -84,7 +84,16 @@ Invoke-External -Command 'npm.cmd' `
     -Arguments @('pack', '--pack-destination', $ArtifactDirectory) `
     -Label 'npm pack'
 
-Write-Host "`n[2/3] 上传 GitHub Release..." -ForegroundColor Cyan
+Write-Host "`n[2/3] 发布到 npm..." -ForegroundColor Cyan
+$PublishArguments = @('publish', $PackagePath, '--tag', $NpmTag)
+if ($PackageName.StartsWith('@')) {
+    $PublishArguments += @('--access', 'public')
+}
+Invoke-External -Command 'npm.cmd' `
+    -Arguments $PublishArguments `
+    -Label "npm publish $PackageName@$PackageVersion"
+
+Write-Host "`n[3/3] 上传 GitHub Release..." -ForegroundColor Cyan
 Invoke-External -Command 'gh.exe' `
     -Arguments @(
         'release', 'create', $ReleaseTag, $PackagePath,
@@ -93,15 +102,6 @@ Invoke-External -Command 'gh.exe' `
         '--generate-notes'
     ) `
     -Label "GitHub Release $ReleaseTag"
-
-Write-Host "`n[3/3] 发布到 npm..." -ForegroundColor Cyan
-$PublishArguments = @('publish', $PackagePath, '--tag', $NpmTag)
-if ($PackageName.StartsWith('@')) {
-    $PublishArguments += @('--access', 'public')
-}
-Invoke-External -Command 'npm.cmd' `
-    -Arguments $PublishArguments `
-    -Label "npm publish $PackageName@$PackageVersion"
 
 Write-Host "`n发布完成：$PackageName@$PackageVersion" -ForegroundColor Green
 Write-Host "压缩包：$PackagePath"

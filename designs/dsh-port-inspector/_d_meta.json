@@ -3,7 +3,7 @@
   "designSystems": [],
   "primaryDesignSystem": null,
   "assets": {
-    "Runtime Inspector": {
+    "Port Inspector": {
       "versions": [
         {
           "path": "index.html",
@@ -17,7 +17,7 @@
         }
       ]
     },
-    "Runtime Inspector · 开发端口": {
+    "Port Inspector · 开发端口": {
       "versions": [
         {
           "path": "development-ports.html",
@@ -31,10 +31,10 @@
         }
       ]
     },
-    "Runtime Inspector · 语义细节优化": {
+    "Port Inspector · 语义细节优化": {
       "versions": [
         {
-          "path": "runtime-inspector-semantic-refinement.html",
+          "path": "port-inspector-semantic-refinement.html",
           "createdAt": "2026-08-24T09:13:32.692Z",
           "status": "needs-review",
           "subtitle": "保留 DSH 原生 Modal，补充四种简约选中态并复用原有工具链 Logo 逻辑",
@@ -45,10 +45,10 @@
         }
       ]
     },
-    "Runtime Inspector · DSH 来源详情": {
+    "Port Inspector · DSH 来源详情": {
       "versions": [
         {
-          "path": "runtime-inspector-source-details.html",
+          "path": "port-inspector-source-details.html",
           "createdAt": "2026-08-26T00:00:00.000Z",
           "status": "needs-review",
           "subtitle": "在现有详情面板中扩展 Session、Tool Call、Agent 与归因边界",
@@ -58,7 +58,7 @@
           }
         },
         {
-          "path": "runtime-inspector-source-details-code-faithful.html",
+          "path": "port-inspector-source-details-code-faithful.html",
           "createdAt": "2026-08-26T00:00:00.000Z",
           "status": "needs-review",
           "subtitle": "直接复用 src/client/panel.ts 的 DOM 结构和 src/client/styles.ts 的生产 CSS",

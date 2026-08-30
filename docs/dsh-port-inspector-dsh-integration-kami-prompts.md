@@ -1,6 +1,6 @@
-# DSH Runtime Inspector — Kami Spatial Class Diagram Prompts
+# DSH Port Inspector — Kami Spatial Class Diagram Prompts
 
-本文档按 D:/Downloads/kami-spatial-class-diagram-prompt-template.md 更新，用于生成 dsh-runtime-inspector-dsh-integration.md 中 6 张配图：前 3 张为 classDiagram，后 3 张为 flowchart / sequenceDiagram / flowchart。
+本文档按 D:/Downloads/kami-spatial-class-diagram-prompt-template.md 更新，用于生成 dsh-port-inspector-dsh-integration.md 中 6 张配图：前 3 张为 classDiagram，后 3 张为 flowchart / sequenceDiagram / flowchart。
 
 统一输出规格：
 
@@ -23,7 +23,7 @@ Generate a Kami-style technical illustration based on the provided classDiagram 
 ## Context
 
 Project:
-DSH Runtime Inspector
+DSH Port Inspector
 
 Description:
 A same-repository DeepSeek Harness (DSH) Bundle for Windows local development. It observes TCP listeners, correlates Windows process identity and ancestry with DSH Sessions and Tool Calls when the required capabilities are available, and exposes Host-owned inspection and safe handling in DSH Web. It does not replace DSH lifecycle management, replace subprocess providers, or act as a general task manager.
@@ -101,7 +101,7 @@ classDiagram
 
 Transform this classDiagram into a refined Kami-style spatial editorial technical illustration.
 
-Do not simply draw a plain flat UML class diagram. Reinterpret the structure as a calm, publication-quality architecture figure with subtle spatial depth while preserving the original meaning. The reader should understand at a glance that package metadata and the Cordis composition patch lead to the plugin entry point, which provides the Runtime Inspector service and connects to optional DSH capabilities.
+Do not simply draw a plain flat UML class diagram. Reinterpret the structure as a calm, publication-quality architecture figure with subtle spatial depth while preserving the original meaning. The reader should understand at a glance that package metadata and the Cordis composition patch lead to the plugin entry point, which provides the Port Inspector service and connects to optional DSH capabilities.
 
 ## Structure Requirements
 
@@ -239,7 +239,7 @@ Generate a Kami-style technical illustration based on the provided classDiagram 
 ## Context
 
 Project:
-DSH Runtime Inspector
+DSH Port Inspector
 
 Description:
 A same-repository DeepSeek Harness (DSH) Bundle for Windows local development. It observes TCP listeners, correlates Windows process identity and ancestry with DSH Sessions and Tool Calls when the required capabilities are available, and exposes Host-owned inspection and safe handling in DSH Web. It does not replace DSH lifecycle management, replace subprocess providers, or act as a general task manager.
@@ -533,7 +533,7 @@ Generate a Kami-style technical illustration based on the provided classDiagram 
 ## Context
 
 Project:
-DSH Runtime Inspector
+DSH Port Inspector
 
 Description:
 A same-repository DeepSeek Harness (DSH) Bundle for Windows local development. It observes TCP listeners, correlates Windows process identity and ancestry with DSH Sessions and Tool Calls when the required capabilities are available, and exposes Host-owned inspection and safe handling in DSH Web. It does not replace DSH lifecycle management, replace subprocess providers, or act as a general task manager.
@@ -792,7 +792,7 @@ Generate a Kami-style spatial technical illustration based on the provided diagr
 ## Context
 
 Project:
-DSH Runtime Inspector
+DSH Port Inspector
 
 Description:
 A same-repository DeepSeek Harness (DSH) Bundle for Windows local development. It observes TCP listeners, correlates Windows process identity and ancestry with DSH Sessions and Tool Calls when the required capabilities are available, and exposes Host-owned inspection and safe handling in DSH Web. It does not replace DSH lifecycle management, replace subprocess providers, or act as a general task manager.
@@ -821,7 +821,7 @@ flowchart LR
         Sessions["sessions"]
     end
 
-    subgraph Host["Runtime Inspector Host 半"]
+    subgraph Host["Port Inspector Host 半"]
         Entry["src/index.ts<br/>apply(ctx)"]
         Gate["Capability gate<br/>compatibility.ts"]
         Attribution["RuntimeAttribution"]
@@ -835,7 +835,7 @@ flowchart LR
         Adapters["DSH Host adapters"]
     end
 
-    subgraph Browser["Runtime Inspector Browser 半"]
+    subgraph Browser["Port Inspector Browser 半"]
         ClientEntry["src/client/index.ts"]
         BrowserRpc["RuntimeInspectorBrowserRpc"]
         Ui["Sidebar entry + shell overlay"]
@@ -881,14 +881,14 @@ flowchart LR
 
 Transform this flowchart into a refined Kami-style spatial editorial technical illustration.
 
-Do not simply draw a plain flat flowchart. Reinterpret the structure as a publication-quality spatial architecture map that shows the relationship between DeepSeek Harness / Cordis, the Runtime Inspector Host half, and the Runtime Inspector Browser half.
+Do not simply draw a plain flat flowchart. Reinterpret the structure as a publication-quality spatial architecture map that shows the relationship between DeepSeek Harness / Cordis, the Port Inspector Host half, and the Port Inspector Browser half.
 
 The reader should understand at a glance that DSH services and event seams feed the Host-side attribution and lifecycle components, the Host owns scanning and action boundaries, and the Browser reaches the Host through a same-origin route.
 
 ## Structure Requirements
 
 - Preserve every named subgraph, node, node label, relationship, relationship direction, relationship label, and optional/dashed relationship from the source.
-- Preserve the three major regions: DeepSeek Harness / Cordis, Runtime Inspector Host half, and Runtime Inspector Browser half.
+- Preserve the three major regions: DeepSeek Harness / Cordis, Port Inspector Host half, and Port Inspector Browser half.
 - Do not invent new core components, services, databases, queues, process managers, or security layers.
 - Make RuntimeAttribution the primary focal module.
 - Make the Host RPC boundary represented by HostRpc / RuntimeInspectorHost the secondary focal module.
@@ -904,11 +904,11 @@ The reader should understand at a glance that DSH services and event seams feed 
 Use a clear left-to-right and cross-boundary reading path:
 
 - Left spatial plane: DeepSeek Harness / Cordis services and seams, including Context, Events, Internal, Tools, Subprocess, Jobs, Terminals, WebServer, ApiProxy, ClientRuntime, Slots, and Sessions.
-- Center spatial plane: Runtime Inspector Host half, with Entry and Gate leading to RuntimeAttribution.
+- Center spatial plane: Port Inspector Host half, with Entry and Gate leading to RuntimeAttribution.
 - Make RuntimeAttribution the visual center of gravity.
 - Place Origins and Lifecycle downstream of attribution.
 - Place Scanner, Terminator, PortList, Route, Adapters, and HostRpc around the Host decision boundary.
-- Right or lower-right spatial plane: Runtime Inspector Browser half, with ClientEntry, BrowserRpc, and Ui.
+- Right or lower-right spatial plane: Port Inspector Browser half, with ClientEntry, BrowserRpc, and Ui.
 - Show the Browser request path through BrowserRpc → Route → HostRpc.
 - Show the DSH Client path through ClientRuntime → Slots / Sessions → ClientEntry → Ui.
 - Use thin directional lines and preserve solid versus dashed relationships exactly.
@@ -922,7 +922,7 @@ Instead, reinterpret it as a refined spatial technical illustration with subtle 
 
 - Use three lightly layered wireframe volumetric planes for DSH, Host, and Browser.
 - Use isometric-like module blocks or lightly oblique structural slabs, while keeping all labels on readable front-facing panels.
-- Use a larger layered wireframe volume for the Runtime Inspector Host region.
+- Use a larger layered wireframe volume for the Port Inspector Host region.
 - Use thin offset outlines and restrained perspective to suggest depth.
 - Use cross-plane connectors only where the source defines a relationship.
 - Keep the spatial treatment diagrammatic, abstract, minimal, and calm.
@@ -1047,7 +1047,7 @@ Generate a Kami-style spatial technical illustration based on the provided diagr
 ## Context
 
 Project:
-DSH Runtime Inspector
+DSH Port Inspector
 
 Description:
 A same-repository DeepSeek Harness (DSH) Bundle for Windows local development. It observes TCP listeners, correlates Windows process identity and ancestry with DSH Sessions and Tool Calls when the required capabilities are available, and exposes Host-owned inspection and safe handling in DSH Web. It does not replace DSH lifecycle management, replace subprocess providers, or act as a general task manager.
@@ -1299,7 +1299,7 @@ Generate a Kami-style spatial technical illustration based on the provided diagr
 ## Context
 
 Project:
-DSH Runtime Inspector
+DSH Port Inspector
 
 Description:
 A same-repository DeepSeek Harness (DSH) Bundle for Windows local development. It observes TCP listeners, correlates Windows process identity and ancestry with DSH Sessions and Tool Calls when the required capabilities are available, and exposes Host-owned inspection and safe handling in DSH Web. It does not replace DSH lifecycle management, replace subprocess providers, or act as a general task manager.

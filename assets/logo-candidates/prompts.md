@@ -1,4 +1,4 @@
-# Runtime Inspector logo candidate prompts
+# Port Inspector logo candidate prompts
 
 All six prompts use the built-in ImageGen path. Every candidate uses the lower-right emergence composition.
 

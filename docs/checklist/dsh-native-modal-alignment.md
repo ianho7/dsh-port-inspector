@@ -2,7 +2,7 @@
 
 ## Checklist Objective
 
-将 Runtime Inspector 弹窗完整对齐 DSH 原生 Web UI，包括：
+将 Port Inspector 弹窗完整对齐 DSH 原生 Web UI，包括：
 
 - 居中 Modal、遮罩、模糊、尺寸、圆角、阴影；
 - 原生标题栏、关闭按钮；
@@ -28,7 +28,7 @@ docs/reflections/task-<task-id>-<timestamp>.md
 - [ ] `UI-02` 复核 DSH 原生实现：`SettingsRoot.tsx`、`SettingsRoot.module.css`。
 - [ ] `UI-03` 核对 DSH 可用的背景、遮罩、阴影、交互和字体 Token。
 - [ ] `UI-04` 确认 Browser Bundle 是否可以安全复用 DSH UI primitives。
-- [ ] `UI-05` 确定 Runtime Inspector 不使用只有一个菜单项的左侧导航栏，内容区直接承载“监听端口”。
+- [ ] `UI-05` 确定 Port Inspector 不使用只有一个菜单项的左侧导航栏，内容区直接承载“监听端口”。
 - [ ] `UI-06` 确定端口列表与详情仍保留，但放入原生 Modal 的右侧内容区。
 - [ ] `UI-07` 确认测试命令：`npm run typecheck`、`npm test`、`npm run build`、Web smoke。
 
@@ -49,7 +49,7 @@ docs/reflections/task-<task-id>-<timestamp>.md
 ### Phase 2：原生布局结构
 
 - [ ] `UI-20` 不新增只有一个菜单项的左侧导航栏，面板内容区使用完整宽度。
-- [ ] `UI-21` 将 `Runtime Inspector` 标题放入 54px Header。
+- [ ] `UI-21` 将 `Port Inspector` 标题放入 54px Header。
 - [ ] `UI-22` 将降级和扫描未完成状态作为 Header 内的辅助提示，仅在需要时显示。
 - [ ] `UI-23` 移除单项导航的激活态、hover 态和无效的导航交互。
 - [ ] `UI-24` 将右侧内容区拆分为原生 Header 和可滚动 Options 区域。
@@ -129,12 +129,12 @@ docs/reflections/task-<task-id>-<timestamp>.md
 
 ## Documentation Checklist
 
-- [ ] `DOC-01` 更新 `docs/dsh-runtime-inspector-testing.md` 中的弹窗验收步骤。
-- [ ] `DOC-02` 更新 `docs/dsh-runtime-inspector-mvp-spec.md` 中的 Web Modal 布局约束。
+- [ ] `DOC-01` 更新 `docs/dsh-port-inspector-testing.md` 中的弹窗验收步骤。
+- [ ] `DOC-02` 更新 `docs/dsh-port-inspector-mvp-spec.md` 中的 Web Modal 布局约束。
 - [ ] `DOC-03` 更新相关 UI 设计记录，记录使用 DSH 原生 Modal Chrome 的决定。
 - [ ] `DOC-04` 如布局改变影响架构边界，新增或更新 `docs/adr/` 决策记录。
 - [ ] `DOC-05` 补充不同窗口尺寸的截图验收说明。
-- [ ] `DOC-06` 确认文档中不出现独立 Runtime Inspector Web 服务或暗色主题描述。
+- [ ] `DOC-06` 确认文档中不出现独立 Port Inspector Web 服务或暗色主题描述。
 
 ## Cleanup Checklist
 
@@ -144,13 +144,13 @@ docs/reflections/task-<task-id>-<timestamp>.md
 - [ ] `CLEAN-04` 确认没有重复的全局 CSS 规则。
 - [ ] `CLEAN-05` 确认没有引入 DSH 仓库本地路径、环境变量或秘密信息。
 - [ ] `CLEAN-06` 确认没有新增独立 Web Server 或第二套 UI 仓库。
-- [ ] `CLEAN-07` 确认最终 diff 只包含 Runtime Inspector、测试和必要文档。
+- [ ] `CLEAN-07` 确认最终 diff 只包含 Port Inspector、测试和必要文档。
 
 ## Completion Criteria
 
 全部完成需要满足：
 
-- Runtime Inspector 使用居中的 DSH 原生 Modal 外壳；
+- Port Inspector 使用居中的 DSH 原生 Modal 外壳；
 - 具备全屏遮罩、背景模糊、原生尺寸、圆角、阴影和关闭行为；
 - 导航栏、标题栏、按钮、字体、间距和颜色 Token 与 DSH 原生 UI 一致；
 - 端口列表、详情、Logo、来源归因和操作安全语义保持不变；

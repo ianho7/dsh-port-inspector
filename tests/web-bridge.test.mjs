@@ -27,7 +27,7 @@ function host() {
   }
 }
 
-test('Host bridge dispatches only the serializable Runtime Inspector RPC surface', async () => {
+test('Host bridge dispatches only the serializable Port Inspector RPC surface', async () => {
   const result = await dispatchRuntimeInspectorRequest(host(), 'POST', `${RUNTIME_INSPECTOR_ROUTE}/inventory`, { search: 'node', currentSessionId: 'session-a' })
   assert.equal(result.status, 200)
   assert.deepEqual(result.body.query, { search: 'node', currentSessionId: 'session-a' })

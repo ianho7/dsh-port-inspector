@@ -2,7 +2,7 @@
 
 > 调研对象：`D:\project\deepseek-harness` 工作树
 > 调研日期：2026-08-26
-> 范围：只读源码研究；本稿是 Runtime Inspector 的独立调研草稿，不修改 DSH 或本仓库生产代码。
+> 范围：只读源码研究；本稿是 Port Inspector 的独立调研草稿，不修改 DSH 或本仓库生产代码。
 
 ## 摘要结论
 
@@ -150,11 +150,11 @@ Language 设置按钮的显示文本 `中文`/`English` 来自 `LanguageRow` 的
 
 ### 4.1 当前没有可复用的翻译入口
 
-- `D:\project\dsh-runtime-inspector\src\client\index.ts:1-16` 的 Client `apply(ctx)` 只创建 Browser RPC、注册 Sidebar/Overlay；它没有读取 `ctx.locale`，也没有把 locale 传给 panel。
-- `D:\project\dsh-runtime-inspector\src\client\slots.ts:4-21` 的 `RuntimeInspectorClientContext` 只声明 `slots` 和 `sessions`；当前 slot options 也只有静态的 `label`，没有 locale namespace。
-- `D:\project\dsh-runtime-inspector\src\client\panel.ts:159-176,256-297,963-1083` 直接返回中文用户文案，包含操作按钮、状态、ARIA label、搜索提示、筛选项和空状态。它没有统一的 `t(key)` 或 message table。
-- `D:\project\dsh-runtime-inspector\src\client\session-context.ts:113-147` 的 `formatDate()` 固定调用 `new Intl.DateTimeFormat('zh-CN', ...)`；这会在英文 DSH 中继续生成中文日期格式。
-- `D:\project\dsh-runtime-inspector\src\client.ts:1` 只是转出 Client `apply`/`inject`，没有额外的运行时服务。
+- `D:\project\dsh-port-inspector\src\client\index.ts:1-16` 的 Client `apply(ctx)` 只创建 Browser RPC、注册 Sidebar/Overlay；它没有读取 `ctx.locale`，也没有把 locale 传给 panel。
+- `D:\project\dsh-port-inspector\src\client\slots.ts:4-21` 的 `RuntimeInspectorClientContext` 只声明 `slots` 和 `sessions`；当前 slot options 也只有静态的 `label`，没有 locale namespace。
+- `D:\project\dsh-port-inspector\src\client\panel.ts:159-176,256-297,963-1083` 直接返回中文用户文案，包含操作按钮、状态、ARIA label、搜索提示、筛选项和空状态。它没有统一的 `t(key)` 或 message table。
+- `D:\project\dsh-port-inspector\src\client\session-context.ts:113-147` 的 `formatDate()` 固定调用 `new Intl.DateTimeFormat('zh-CN', ...)`；这会在英文 DSH 中继续生成中文日期格式。
+- `D:\project\dsh-port-inspector\src\client.ts:1` 只是转出 Client `apply`/`inject`，没有额外的运行时服务。
 
 ### 4.2 这决定了最小改动的形状
 
@@ -167,9 +167,9 @@ Language 设置按钮的显示文本 `中文`/`English` 来自 `LanguageRow` 的
 
 现有 `tests/client-panel.test.mjs` 和 `tests/client-session-context.test.mjs` 通过源码匹配和固定日期结果验证中文行为；真正实现时应把断言改为验证 key/双语结果，同时补充 `zh`、`en` 和未知 locale 的 fallback，不需要改变 Host/Browser RPC contract。
 
-## 5. 对 Runtime Inspector 的建议性结论
+## 5. 对 Port Inspector 的建议性结论
 
-如果 Runtime Inspector Browser Client 能注入 DSH locale service，应优先读取 `ctx.locale.getSnapshot().active`，用 `ctx.locale.subscribe()` 或 `locale/change` 更新自身 UI；不要建立第二份语言状态，也不要从 `navigator` 或按钮文本反推。
+如果 Port Inspector Browser Client 能注入 DSH locale service，应优先读取 `ctx.locale.getSnapshot().active`，用 `ctx.locale.subscribe()` 或 `locale/change` 更新自身 UI；不要建立第二份语言状态，也不要从 `navigator` 或按钮文本反推。
 
 如果调用点只有 DOM 而没有 Cordis context，读取 `document.documentElement.lang` 是现有实现唯一明确维护的当前语言投影，但必须等待/确认 locale client 已启动，并将 `zh-CN` 映射成内部 `zh`；启动早期读到 `en` 要标记为 provisional/unknown，而不是确认 English。
 

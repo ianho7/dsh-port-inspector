@@ -81,7 +81,7 @@ test('tracks DSH locale changes through the public subscription and can unsubscr
   assert.deepEqual(seen, ['en'])
 })
 
-test('provides the first bilingual Runtime Inspector messages', () => {
+test('provides the first bilingual Port Inspector messages', () => {
   const zh = createRuntimeInspectorTranslator('zh')
   const en = createRuntimeInspectorTranslator('en')
 
@@ -89,8 +89,8 @@ test('provides the first bilingual Runtime Inspector messages', () => {
   assert.equal(en.t('refresh'), 'Refresh')
   assert.equal(zh.t('searchPlaceholder'), '搜索端口、PID、应用或会话')
   assert.equal(en.t('searchPlaceholder'), 'Search ports, PIDs, apps, or sessions')
-  assert.equal(zh.t('closePanel'), '关闭 Runtime Inspector')
-  assert.equal(en.t('closePanel'), 'Close Runtime Inspector')
+  assert.equal(zh.t('closePanel'), '关闭 Port Inspector')
+  assert.equal(en.t('closePanel'), 'Close Port Inspector')
 })
 
 test('localizes interpolated accessibility, count, and action-result copy without changing data values', () => {

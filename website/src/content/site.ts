@@ -132,7 +132,7 @@ export const siteCopy: Record<Locale, SiteCopy> = {
       primaryCta: '安装插件',
       secondaryCta: '查看源码',
       context: 'Windows / DSH Web / TCP listeners',
-      imageAlt: 'Runtime Inspector 展示本地开发服务的端口、项目和来源信息',
+      imageAlt: 'Port Inspector 展示本地开发服务的端口、项目和来源信息',
       imageCaption: '真实 DSH Web 运行记录，端口、项目、启动方和处理方式分开表达。',
     },
     problem: {
@@ -144,7 +144,7 @@ export const siteCopy: Record<Locale, SiteCopy> = {
         '它是哪个 Session、哪次 Tool Call 启动的？',
         '停止之后，端口真的释放了吗？',
       ],
-      answer: 'Runtime Inspector 把 Windows 的监听快照和 DSH 的启动证据放到同一个视图。',
+      answer: 'Port Inspector 把 Windows 的监听快照和 DSH 的启动证据放到同一个视图。',
     },
     features: {
       eyebrow: '核心能力',
@@ -204,7 +204,7 @@ export const siteCopy: Record<Locale, SiteCopy> = {
       eyebrow: '产品证据',
       title: '不是猜测，是一条能复核的链路。',
       description: '真实界面显示端口、项目、启动方和处理方式。状态彼此独立，不把“属于哪个项目”误写成“由谁启动”。',
-      imageAlt: 'Runtime Inspector 展示 Vite、PostgreSQL、Redis 和 Go 服务的监听结果',
+      imageAlt: 'Port Inspector 展示 Vite、PostgreSQL、Redis 和 Go 服务的监听结果',
       caption: '一个全栈演示项目中的真实监听结果。Docker 服务可以属于当前项目，但启动方仍保持未确认。',
       notes: [
         {
@@ -220,8 +220,8 @@ export const siteCopy: Record<Locale, SiteCopy> = {
           description: '无法读取完整来源或权限不足时，记录仍然可见，但能力保持只读。',
         },
       ],
-      contextImageAlt: 'DeepSeek Harness 中的 runtime-story 工作区与 Runtime Inspector 入口',
-      contextCaption: '从 DSH Web 侧边栏进入 Runtime Inspector，保持在原有 Session 工作上下文中。',
+      contextImageAlt: 'DeepSeek Harness 中的 runtime-story 工作区与 Port Inspector 入口',
+      contextCaption: '从 DSH Web 侧边栏进入 Port Inspector，保持在原有 Session 工作上下文中。',
     },
     safety: {
       eyebrow: '安全边界',
@@ -258,7 +258,7 @@ export const siteCopy: Record<Locale, SiteCopy> = {
         },
         {
           title: 'DSH Web',
-          description: '通过标准 Bundle 安装，从 Web 侧边栏打开 Runtime Inspector。',
+          description: '通过标准 Bundle 安装，从 Web 侧边栏打开 Port Inspector。',
         },
         {
           title: '开发工具链',
@@ -269,9 +269,9 @@ export const siteCopy: Record<Locale, SiteCopy> = {
     install: {
       eyebrow: '立即开始',
       title: '把下一次端口冲突，变成一个可回答的问题。',
-      description: '安装 Bundle，重启目标 DSH Web Profile，然后从侧边栏打开 Runtime Inspector。',
+      description: '安装 Bundle，重启目标 DSH Web Profile，然后从侧边栏打开 Port Inspector。',
       commandLabel: '通过 npm 安装',
-      command: 'dsh plugin --profile web add dsh-runtime-inspector@latest',
+      command: 'dsh plugin --profile web add dsh-port-inspector@latest',
       copyLabel: '复制命令',
       copiedLabel: '命令已复制',
       copyFailedLabel: '复制失败，请手动选择命令',
@@ -287,7 +287,7 @@ export const siteCopy: Record<Locale, SiteCopy> = {
       items: [
         {
           title: '它会自动关闭所有后台服务吗？',
-          description: '不会。Runtime Inspector 默认只读。只有用户明确选择目标并通过身份复核后，才会进入受管关闭或外部单 PID 处理。',
+          description: '不会。Port Inspector 默认只读。只有用户明确选择目标并通过身份复核后，才会进入受管关闭或外部单 PID 处理。',
         },
         {
           title: '支持 macOS 或 Linux 吗？',
@@ -309,7 +309,7 @@ export const siteCopy: Record<Locale, SiteCopy> = {
       license: 'MIT License',
       issues: '反馈问题',
       docs: '阅读文档',
-      copyright: 'DSH Runtime Inspector，面向 DSH Web 的 Windows 本地运行时工具。',
+      copyright: 'DSH Port Inspector，面向 DSH Web 的 Windows 本地运行时工具。',
     },
   },
   en: {
@@ -331,7 +331,7 @@ export const siteCopy: Record<Locale, SiteCopy> = {
       primaryCta: 'Install the plugin',
       secondaryCta: 'View source',
       context: 'Windows / DSH Web / TCP listeners',
-      imageAlt: 'Runtime Inspector showing local development ports, projects, and process origins',
+      imageAlt: 'Port Inspector showing local development ports, projects, and process origins',
       imageCaption: 'A real DSH Web record. Port, project, starter, and handling mode stay separate.',
     },
     problem: {
@@ -343,7 +343,7 @@ export const siteCopy: Record<Locale, SiteCopy> = {
         'Which Session and Tool Call started it?',
         'Was the port really released after stopping it?',
       ],
-      answer: 'Runtime Inspector brings the Windows listener snapshot and DSH launch evidence into one view.',
+      answer: 'Port Inspector brings the Windows listener snapshot and DSH launch evidence into one view.',
     },
     features: {
       eyebrow: 'Capabilities',
@@ -403,7 +403,7 @@ export const siteCopy: Record<Locale, SiteCopy> = {
       eyebrow: 'Product evidence',
       title: 'Not a guess. A chain you can review.',
       description: 'The real interface shows the port, project, starter, and handling mode. Each state answers a different question.',
-      imageAlt: 'Runtime Inspector showing Vite, PostgreSQL, Redis, and Go listener results',
+      imageAlt: 'Port Inspector showing Vite, PostgreSQL, Redis, and Go listener results',
       caption: 'A real full-stack project snapshot. Docker services can belong to the project while their starter remains unconfirmed.',
       notes: [
         {
@@ -419,8 +419,8 @@ export const siteCopy: Record<Locale, SiteCopy> = {
           description: 'Incomplete origin evidence or permissions keep the record visible, but the handling capability stays read-only.',
         },
       ],
-      contextImageAlt: 'The runtime-story workspace and Runtime Inspector entry in DeepSeek Harness',
-      contextCaption: 'Open Runtime Inspector from the DSH Web sidebar and stay in the existing Session context.',
+      contextImageAlt: 'The runtime-story workspace and Port Inspector entry in DeepSeek Harness',
+      contextCaption: 'Open Port Inspector from the DSH Web sidebar and stay in the existing Session context.',
     },
     safety: {
       eyebrow: 'Safety boundary',
@@ -457,7 +457,7 @@ export const siteCopy: Record<Locale, SiteCopy> = {
         },
         {
           title: 'DSH Web',
-          description: 'Install as a standard Bundle and open Runtime Inspector from the Web sidebar.',
+          description: 'Install as a standard Bundle and open Port Inspector from the Web sidebar.',
         },
         {
           title: 'Development toolchains',
@@ -468,9 +468,9 @@ export const siteCopy: Record<Locale, SiteCopy> = {
     install: {
       eyebrow: 'Get started',
       title: 'Turn the next port conflict into a question you can answer.',
-      description: 'Install the Bundle, restart the target DSH Web Profile, then open Runtime Inspector from the sidebar.',
+      description: 'Install the Bundle, restart the target DSH Web Profile, then open Port Inspector from the sidebar.',
       commandLabel: 'Install with npm',
-      command: 'dsh plugin --profile web add dsh-runtime-inspector@latest',
+      command: 'dsh plugin --profile web add dsh-port-inspector@latest',
       copyLabel: 'Copy command',
       copiedLabel: 'Command copied',
       copyFailedLabel: 'Copy failed. Select the command manually.',
@@ -486,7 +486,7 @@ export const siteCopy: Record<Locale, SiteCopy> = {
       items: [
         {
           title: 'Does it automatically close every background service?',
-          description: 'No. Runtime Inspector is read-only by default. Handling starts only after an explicit selection and identity recheck.',
+          description: 'No. Port Inspector is read-only by default. Handling starts only after an explicit selection and identity recheck.',
         },
         {
           title: 'Does it support macOS or Linux?',
@@ -508,7 +508,7 @@ export const siteCopy: Record<Locale, SiteCopy> = {
       license: 'MIT License',
       issues: 'Report an issue',
       docs: 'Read the docs',
-      copyright: 'DSH Runtime Inspector, a Windows local runtime tool for DSH Web.',
+      copyright: 'DSH Port Inspector, a Windows local runtime tool for DSH Web.',
     },
   },
 };

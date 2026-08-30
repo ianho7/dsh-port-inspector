@@ -1,4 +1,4 @@
-/** Minimal browser clipboard surface used by the Runtime Inspector panel. */
+/** Minimal browser clipboard surface used by the Port Inspector panel. */
 export interface RuntimeInspectorClipboard {
   readonly writeText: (text: string) => void | Promise<void>
 }

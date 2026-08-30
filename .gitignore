@@ -10,7 +10,7 @@ demo
 /website/.astro/
 
 # Local package artifacts
-/dsh-runtime-inspector-*.tgz
+/dsh-port-inspector-*.tgz
 
 # Local logo download and normalization candidates
 /assets/toolchains/s2-candidates/

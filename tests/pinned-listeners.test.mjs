@@ -7,7 +7,7 @@ import {
 } from '../lib/client/pinned-listeners.js'
 
 function memoryStorage(initial) {
-  const values = new Map(initial === undefined ? [] : [['dsh-runtime-inspector:pins:v1', initial]])
+  const values = new Map(initial === undefined ? [] : [['dsh-port-inspector:pins:v1', initial]])
   return {
     getItem(key) { return values.get(key) ?? null },
     setItem(key, value) { values.set(key, value) },
@@ -19,7 +19,7 @@ test('versioned pin preferences survive reload and reject malformed state', () =
   const storage = memoryStorage()
   assert.equal(savePinnedListenerKeys(storage, new Set(['application:spotify.exe'])), true)
   assert.deepEqual([...loadPinnedListenerKeys(storage)], ['application:spotify.exe'])
-  assert.match(storage.value('dsh-runtime-inspector:pins:v1'), /"version":1/)
+  assert.match(storage.value('dsh-port-inspector:pins:v1'), /"version":1/)
   assert.deepEqual([...loadPinnedListenerKeys(memoryStorage('{broken'))], [])
   assert.deepEqual([...loadPinnedListenerKeys(memoryStorage('{"version":2,"keys":["application:x"]}'))], [])
 })

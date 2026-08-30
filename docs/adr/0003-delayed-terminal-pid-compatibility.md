@@ -2,7 +2,7 @@
 
 - 状态：Accepted
 - 日期：2026-08-21
-- 适用范围：DSH Runtime Inspector Windows MVP
+- 适用范围：DSH Port Inspector Windows MVP
 
 ## Context
 
@@ -29,7 +29,7 @@ Bundle 兼容修复遵守以下边界：
 ## Consequences
 
 - 当前发布不依赖 DSH 官方先合并修复，Stock DSH 原生门禁可以取得正 PID、creation identity 和 Terminal owner。
-- 兼容层依赖私有 shape，因此每个新增 DSH 版本必须单独认证后才启用这一个修复。未知版本继续使用公开 runtime contract：正常正 PID handle 仍可归因，PID 为 `0` 的 delayed Terminal 仅保持未确认；不得因此让整个 Runtime Inspector 降级。
+- 兼容层依赖私有 shape，因此每个新增 DSH 版本必须单独认证后才启用这一个修复。未知版本继续使用公开 runtime contract：正常正 PID handle 仍可归因，PID 为 `0` 的 delayed Terminal 仅保持未确认；不得因此让整个 Port Inspector 降级。
 - 这是 ADR-0001 “观察者不改变 handle 行为”的窄例外：只修复 DSH 在 readiness 前缓存的两个过期身份字段，并保留相同 handle 与 provider。
 - 上游提供公开 readiness 或正确的初始 PID 后，应删除私有 shape 分支，并保留 native 与 Windows smoke 测试作为迁移门禁。
 

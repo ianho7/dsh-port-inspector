@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="design_doc_mode" content="prototype">
-  <meta name="description" content="DSH Runtime Inspector source details high-fidelity prototype">
+  <meta name="description" content="DSH Port Inspector source details high-fidelity prototype">
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="styles.css">
-  <title>Runtime Inspector · DSH 来源详情</title>
+  <title>Port Inspector · DSH 来源详情</title>
   <!--
     Design context:
-    - Preserve the adopted Runtime Inspector visual language and two-column modal.
+    - Preserve the adopted Port Inspector visual language and two-column modal.
     - Keep the listener list unchanged; expand only the selected listener details.
     - Make Session, Tool Call, Agent preset, and attribution boundaries visible without inventing facts.
     - Prototype-only scenario dock switches verified, inferred, persistent Terminal, and external states.
@@ -204,7 +204,7 @@
     </aside>
     <main class="host-main">
       <header class="host-header">
-        <span>Workspace <strong>/ dsh-runtime-inspector</strong></span>
+        <span>Workspace <strong>/ dsh-port-inspector</strong></span>
         <small>stock dsh · local</small>
       </header>
       <div class="host-ghost" aria-hidden="true">
@@ -215,13 +215,13 @@
     </main>
   </div>
 
-  <button class="sidebar-entry is-hidden" id="open-inspector" type="button" aria-label="打开 Runtime Inspector">
+  <button class="sidebar-entry is-hidden" id="open-inspector" type="button" aria-label="打开 Port Inspector">
     <span aria-hidden="true">⌁</span>
     <span class="sidebar-entry-badge">3</span>
   </button>
 
   <div class="overlay" id="overlay" role="presentation">
-    <section class="inspector-panel" aria-label="Runtime Inspector">
+    <section class="inspector-panel" aria-label="Port Inspector">
       <header class="panel-header">
         <div class="panel-header-copy">
           <div class="panel-eyebrow">DSH WEB / LOCAL RUNTIME</div>
@@ -231,7 +231,7 @@
           </div>
           <p class="panel-subtitle">查看开发端口与 DSH 启动来源，按实际权限安全处理。</p>
         </div>
-        <button class="panel-close" id="close-inspector" type="button" aria-label="关闭 Runtime Inspector">×</button>
+        <button class="panel-close" id="close-inspector" type="button" aria-label="关闭 Port Inspector">×</button>
       </header>
 
       <div class="summary-strip" aria-label="监听摘要">
@@ -264,7 +264,7 @@
             <li class="listener-row is-selected" data-id="verified" data-search="4173 node vite runtime inspector 18472 dsh session">
               <div class="row-top"><span class="row-port">4173</span><span class="protocol-pill">TCP</span><span class="row-chevron">›</span></div>
               <div class="row-app"><strong>node</strong> · Vite dev server</div>
-              <div class="row-meta"><span class="row-project">dsh-runtime-inspector</span><span class="row-pid">PID 18472</span></div>
+              <div class="row-meta"><span class="row-project">dsh-port-inspector</span><span class="row-pid">PID 18472</span></div>
               <div class="row-actions-line"><span class="source-pill is-confirmed">✓ 由 DSH 启动</span><span class="action-pill is-managed">可停止任务</span></div>
             </li>
             <li class="listener-row" data-id="terminal" data-search="3001 node vite persistent terminal 19104 dsh session">
@@ -297,7 +297,7 @@
               <span class="protocol-pill">TCP</span>
               <span class="detail-app" id="detail-app">node · Vite dev server</span>
             </div>
-            <div class="detail-subline"><span id="detail-address">127.0.0.1:4173</span><span>·</span><span class="mono" id="detail-pid">PID 18472</span><span>·</span><span id="detail-project-short">dsh-runtime-inspector</span></div>
+            <div class="detail-subline"><span id="detail-address">127.0.0.1:4173</span><span>·</span><span class="mono" id="detail-pid">PID 18472</span><span>·</span><span id="detail-project-short">dsh-port-inspector</span></div>
           </div>
 
           <section class="detail-section">
@@ -305,7 +305,7 @@
             <dl class="fact-grid">
               <div class="fact"><dt>应用</dt><dd class="mono" id="fact-app">node.exe</dd></div>
               <div class="fact"><dt>进程创建</dt><dd id="fact-created">2026-08-26 14:42:18</dd></div>
-              <div class="fact fact-wide"><dt>项目目录</dt><dd class="mono" id="fact-project">D:\project\dsh-runtime-inspector</dd></div>
+              <div class="fact fact-wide"><dt>项目目录</dt><dd class="mono" id="fact-project">D:\project\dsh-port-inspector</dd></div>
               <div class="fact fact-wide"><dt>启动命令</dt><dd class="command-copy" id="fact-command">npm run dev -- --host 127.0.0.1 --port 4173</dd></div>
             </dl>
           </section>
@@ -313,7 +313,7 @@
           <section class="detail-section">
             <h2>会话上下文</h2>
             <dl class="fact-grid">
-              <div class="fact"><dt>Session</dt><dd id="fact-session">Runtime Inspector · 当前会话</dd></div>
+              <div class="fact"><dt>Session</dt><dd id="fact-session">Port Inspector · 当前会话</dd></div>
               <div class="fact"><dt>Session ID</dt><dd class="mono" id="fact-session-id">sess_01JY7F2N8K</dd></div>
               <div class="fact fact-wide"><dt>用户请求</dt><dd class="request-copy" id="fact-request">请在当前项目启动一个本地 HTTP 服务，监听 127.0.0.1:4173，并保持运行。</dd></div>
             </dl>
@@ -347,7 +347,7 @@
                 </div>
               </div>
               <div class="source-evidence">
-                <div class="fact"><dt>Workdir</dt><dd class="mono" id="fact-workdir">D:\project\dsh-runtime-inspector</dd></div>
+                <div class="fact"><dt>Workdir</dt><dd class="mono" id="fact-workdir">D:\project\dsh-port-inspector</dd></div>
                 <div class="fact"><dt>Spawn 类型</dt><dd class="mono" id="fact-spawn">spawn</dd></div>
               </div>
               <div class="owner-line">
@@ -394,10 +394,10 @@
         executable: "node.exe",
         pid: "18472",
         created: "2026-08-26 14:42:18",
-        project: "D:\\project\\dsh-runtime-inspector",
-        projectShort: "dsh-runtime-inspector",
+        project: "D:\\project\\dsh-port-inspector",
+        projectShort: "dsh-port-inspector",
         command: "npm run dev -- --host 127.0.0.1 --port 4173",
-        session: "Runtime Inspector · 当前会话",
+        session: "Port Inspector · 当前会话",
         sessionId: "sess_01JY7F2N8K",
         request: "请在当前项目启动一个本地 HTTP 服务，监听 127.0.0.1:4173，并保持运行。",
         preset: "coding",
@@ -411,7 +411,7 @@
         source: "verified",
         sourceLabel: "由 DSH 启动",
         sourceCopy: "此监听端口由当前会话启动，DSH 已完成身份确认。",
-        workdir: "D:\\project\\dsh-runtime-inspector",
+        workdir: "D:\\project\\dsh-port-inspector",
         spawn: "spawn",
         owner: "job · job_8d1c",
         actionTitle: "停止 DSH 任务",

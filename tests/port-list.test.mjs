@@ -11,7 +11,7 @@ function origin({
   sessionId,
   jobId,
   command = 'pwsh --token super-secret --cwd C:\\project',
-  workdir = 'C:\\projects\\runtime-inspector',
+  workdir = 'C:\\projects\\port-inspector',
 } = {}) {
   return {
     id,

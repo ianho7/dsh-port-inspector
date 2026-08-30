@@ -1,6 +1,6 @@
-# DSH Runtime Inspector：测试与手工验收指南
+# DSH Port Inspector：测试与手工验收指南
 
-> 适用范围：Windows 本地开发环境、Stock DSH Web、Runtime Inspector `0.1.1` MVP。
+> 适用范围：Windows 本地开发环境、Stock DSH Web、Port Inspector `0.1.1` MVP。
 
 ## 验收目标
 
@@ -16,14 +16,14 @@
 
 - Windows。
 - Node.js `>=22.19.0`。
-- 当前仓库：`D:\project\dsh-runtime-inspector`。
+- 当前仓库：`D:\project\dsh-port-inspector`。
 - 可运行的 Stock DSH checkout，例如 `D:\project\deepseek-harness`。
 - 目标 DSH Profile 为 `web`；如果使用其他 Profile，请替换下文命令中的名称。
 
 ## 1. 构建与确定性测试
 
 ```powershell
-cd D:\project\dsh-runtime-inspector
+cd D:\project\dsh-port-inspector
 
 npm install
 npm run typecheck
@@ -39,12 +39,12 @@ npm test
 
 ### 原生 Web UI 弹窗视觉验收
 
-Runtime Inspector 应使用与 DSH `ui-settings-general` 一致的 Modal Chrome：
+Port Inspector 应使用与 DSH `ui-settings-general` 一致的 Modal Chrome：
 
 - 弹窗在视口中水平、垂直居中，不固定在右上角。
 - 背景存在全屏半透明遮罩和背景模糊；点击遮罩可以关闭弹窗。
 - 桌面尺寸下，面板约为 `1040px` 宽、最高 `800px`，圆角为 `24px`，使用 DSH `lv3` 阴影，以容纳完整工具栏和双栏详情。
-- 面板不使用只有一个菜单项的左侧导航栏；54px Header 直接显示 `Runtime Inspector`，下方为可滚动内容区。
+- 面板不使用只有一个菜单项的左侧导航栏；54px Header 直接显示 `Port Inspector`，下方为可滚动内容区。
 - 正常状态不显示“观察模式”；仅在来源追踪降级或扫描未完成时显示对应的状态提示。
 - 来源追踪降级和扫描未完成只显示在 Header 状态胶囊及相关行说明中，不重复显示全局警告；Workspace 中存在 Compose 文件但 Docker Engine 未运行时保持静默。
 - 复制、打开目录和停止操作的反馈显示在对应详情区域；成功、警告和失败分别使用对应语义样式。复制和打开目录成功反馈在 4 秒后自动消失；停止、警告和错误结果保持可见。停止后目标行消失时结果显示在详情列顶部而不附着到新选中行。
@@ -52,7 +52,7 @@ Runtime Inspector 应使用与 DSH `ui-settings-general` 一致的 Modal Chrome�
 - Sidebar 已显示确定监听数量时，首次打开面板应立即复用相同 Session ID 与 cwd 的完整快照，不显示整页“正在读取监听端口”；Host 复查在后台继续，并以中性更新状态呈现。上下文不同的快照不得复用。
 - 端口列表列保持在面板可视高度内，由列表列自身垂直滚动；详情列保持可见并独立滚动，不随整个 Options 区域滚走。
 - 关闭按钮为 28×28px 圆形按钮；按 `Escape` 关闭弹窗，确认弹窗打开时先取消确认层。
-- 打开弹窗后焦点进入关闭按钮，关闭后焦点回到触发 Runtime Inspector 的侧边栏入口。
+- 打开弹窗后焦点进入关闭按钮，关闭后焦点回到触发 Port Inspector 的侧边栏入口。
 - 宽度低于 `960px` 的窗口仍保持居中，搜索框会独占工具栏一行；窄窗口中列表和详情可以纵向排列，不出现横向溢出。
 
 ## 2. 打包并安装到 Web Profile
@@ -60,7 +60,7 @@ Runtime Inspector 应使用与 DSH `ui-settings-general` 一致的 Modal Chrome�
 推荐使用仓库内脚本一次完成构建、打包、卸载旧插件和安装新插件：
 
 ```powershell
-cd D:\project\dsh-runtime-inspector
+cd D:\project\dsh-port-inspector
 .\scripts\reinstall-dsh-plugin.ps1
 ```
 
@@ -75,7 +75,7 @@ cd D:\project\dsh-runtime-inspector
 脚本最后的列表应包含：
 
 ```text
-dsh-runtime-inspector@0.1.1
+dsh-port-inspector@0.1.1
 ```
 
 打包日志中的 `Tarball Contents` 应只包含 `lib/**/*.js`、`lib/**/*.d.ts`、`cordis.patch.yml` 以及 npm 自动保留的 `package.json`/`README.md` 等元文件，不应出现任何 `.map` 文件。
@@ -85,17 +85,17 @@ dsh-runtime-inspector@0.1.1
 
 ## 3. 验证 DSH 会话监听
 
-在项目目录 `D:\project\dsh-runtime-inspector` 创建一个新的 DSH 会话，输入：
+在项目目录 `D:\project\dsh-port-inspector` 创建一个新的 DSH 会话，输入：
 
 ```text
 请在当前项目启动一个本地 HTTP 服务，监听 127.0.0.1:4173，并保持运行。
 ```
 
-等待 DSH 确认服务已启动，打开侧边栏 Runtime Inspector，必要时点击“刷新”。
+等待 DSH 确认服务已启动，打开侧边栏 Port Inspector，必要时点击“刷新”。
 
 端口 `4173` 应满足：
 
-- Header 显示 `Runtime Inspector`，正常状态不额外显示“观察模式”。
+- Header 显示 `Port Inspector`，正常状态不额外显示“观察模式”。
 - 启动方为“由 DSH 启动”。
 - 列表标题显示当前实际可见的监听项数量，不再显示四格统计摘要。
 - 工具栏提供“查看：开发相关 / 全部监听”“启动方：全部 / 由 DSH 启动 / 启动方未确认”和“仅显示可处理”。
@@ -130,12 +130,12 @@ Get-NetTCPConnection -LocalPort 4173 -State Listen -ErrorAction SilentlyContinue
 打开另一个 PowerShell 窗口：
 
 ```powershell
-cd D:\project\dsh-runtime-inspector
+cd D:\project\dsh-port-inspector
 
 node -e "require('http').createServer((req,res)=>res.end('ok')).listen(4174,'127.0.0.1',()=>console.log('Listening on 4174')); setInterval(()=>{},2147483647)"
 ```
 
-保持该窗口运行，回到 Runtime Inspector 并刷新。
+保持该窗口运行，回到 Port Inspector 并刷新。
 
 端口 `4174` 应满足：
 
@@ -224,4 +224,4 @@ node --test tests/dsh-web-smoke.test.mjs
    Get-NetTCPConnection -LocalPort 4173,4174 -State Listen -ErrorAction SilentlyContinue
    ```
 
-6. DSH Web 启动终端中与 `dsh-runtime-inspector` 有关的错误；先移除令牌、认证头、环境变量值和其他秘密。
+6. DSH Web 启动终端中与 `dsh-port-inspector` 有关的错误；先移除令牌、认证头、环境变量值和其他秘密。

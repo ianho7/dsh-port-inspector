@@ -7,9 +7,9 @@ import type {
   HostOpenDirectoryResult,
   RuntimeInspectorHostRpc,
 } from './host-ui.js'
-import { RUNTIME_INSPECTOR_ROUTE } from './runtime-inspector-route.js'
+import { RUNTIME_INSPECTOR_ROUTE } from './port-inspector-route.js'
 
-export { RUNTIME_INSPECTOR_ROUTE } from './runtime-inspector-route.js'
+export { RUNTIME_INSPECTOR_ROUTE } from './port-inspector-route.js'
 
 /** Stable same-origin route used by the Browser half when no typed Remote exists. */
 const MAX_BODY_BYTES = 128 * 1024

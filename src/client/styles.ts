@@ -1464,9 +1464,9 @@ const RUNTIME_INSPECTOR_CSS = String.raw`
  */
 export function installRuntimeInspectorStyles(): void {
   if (typeof document === 'undefined' || document.head === null) return
-  if (document.querySelector('style[data-dsh-runtime-inspector-css]') !== null) return
+  if (document.querySelector('style[data-dsh-port-inspector-css]') !== null) return
   const style = document.createElement('style')
-  style.setAttribute('data-dsh-runtime-inspector-css', 'true')
+  style.setAttribute('data-dsh-port-inspector-css', 'true')
   style.textContent = RUNTIME_INSPECTOR_CSS
   document.head.appendChild(style)
 }

@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 
-const defaultSiteUrl = 'https://dsh-runtime-inspector.pages.dev';
+const defaultSiteUrl = 'https://dsh-port-inspector.pages.dev';
 
 export const GET: APIRoute = ({ site }) => {
   const baseUrl = site ?? new URL(defaultSiteUrl);

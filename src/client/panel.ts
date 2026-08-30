@@ -49,7 +49,7 @@ import {
   type PanelNotice,
 } from './notices.js'
 import { ComposeContextLogo, ToolchainLogo, toolchainName } from './toolchain-logos.js'
-import runtimeInspectorLogo from '../../assets/runtime-inspector-logo.webp'
+import runtimeInspectorLogo from '../../assets/port-inspector-logo.webp'
 
 interface SidebarEntryProps {
   readonly wide?: boolean
@@ -222,9 +222,9 @@ function NoticeView({
   return React.createElement('div', {
     className: `dsh-ri-notice is-${notice.tone}${className.length === 0 ? '' : ` ${className}`}`,
     role: notice.tone === 'error' ? 'alert' : 'status',
-    'data-runtime-inspector-notice': notice.source,
-    'data-runtime-inspector-notice-tone': notice.tone,
-    ...notice.source === 'action' ? { 'data-runtime-inspector-action-result': 'result' } : {},
+    'data-port-inspector-notice': notice.source,
+    'data-port-inspector-notice-tone': notice.tone,
+    ...notice.source === 'action' ? { 'data-port-inspector-action-result': 'result' } : {},
   },
   notice.tone === 'success' ? IconCheck({ size: 14 }) : IconInfo({ size: 14 }),
   React.createElement('div', { className: 'dsh-ri-notice-content' },
@@ -376,7 +376,7 @@ function ComposePill({ t }: { readonly t: RuntimeInspectorTranslator['t'] }): Re
   return React.createElement('span', {
     className: 'dsh-ri-compose-pill',
     title: t('composeAssociation'),
-    'data-runtime-inspector-compose': 'associated',
+    'data-port-inspector-compose': 'associated',
   },
   React.createElement(ComposeContextLogo, { size: 'compact' }),
   React.createElement('span', { className: 'dsh-ri-pill-label' }, t('composeAssociation')),
@@ -397,7 +397,7 @@ function SourcePill({ row, snapshot, t }: { readonly row: HostListenerRow; reado
   const label = sourceLabel(source, t)
   return React.createElement('span', {
     className: `dsh-ri-source-pill is-${source}`,
-    'data-runtime-inspector-confidence': row.confidence,
+    'data-port-inspector-confidence': row.confidence,
     title: source === 'inferred' ? t('sourceInferredTitle') : sourceDescription(row, snapshot, t),
   },
   React.createElement('span', { className: 'dsh-ri-source-signal' }, sourceIcon(source)),
@@ -515,8 +515,8 @@ function ListenerRow({
   const executable = displayExecutable(row.executable ?? row.session?.tool, t)
   return React.createElement('li', {
     className: 'dsh-ri-row',
-    'data-runtime-inspector-row': row.listenerId,
-    'data-runtime-inspector-selected': selected ? 'true' : 'false',
+    'data-port-inspector-row': row.listenerId,
+    'data-port-inspector-selected': selected ? 'true' : 'false',
   },
   React.createElement('button', {
     type: 'button',
@@ -524,7 +524,7 @@ function ListenerRow({
     'aria-label': t('selectPortPid', { port: row.port, pid: row.pid }),
     title: t('selectPortPid', { port: row.port, pid: row.pid }),
     'aria-pressed': selected,
-    'data-runtime-inspector-select': row.listenerId,
+    'data-port-inspector-select': row.listenerId,
     onClick: () => { onSelect(row.listenerId) },
   },
     React.createElement('div', { className: 'dsh-ri-row-top' },
@@ -557,7 +557,7 @@ function ListenerRow({
     className: `dsh-ri-pin-button${pinned ? ' is-pinned' : ''}`,
     'aria-label': pinned ? t('unpinPort', { port: row.port }) : t('pinPort', { port: row.port }),
     'aria-pressed': pinned,
-    'data-runtime-inspector-pin': row.development.stableKey,
+    'data-port-inspector-pin': row.development.stableKey,
     title: pinned ? t('unpinDisplay') : t('pinDisplay'),
     onClick: () => { onTogglePin(row) },
   }, IconPin({ size: 14 })),
@@ -596,14 +596,14 @@ function LaunchChainDetails({ row, t }: { readonly row: HostListenerRow; readonl
   if (row.confidence !== 'verified' || row.launchChain === undefined || row.launchChain.length === 0) return null
   return React.createElement('section', {
     className: 'dsh-ri-detail-section',
-    'data-runtime-inspector-launch-chain': 'verified',
+    'data-port-inspector-launch-chain': 'verified',
   },
   React.createElement('h3', { className: 'dsh-ri-section-title' }, t('launchChain')),
   React.createElement('ol', { className: 'dsh-ri-launch-chain' },
     row.launchChain.map(node => React.createElement('li', {
       className: 'dsh-ri-launch-chain-node',
       key: `${node.role}:${String(node.pid)}`,
-      'data-runtime-inspector-launch-chain-role': node.role,
+      'data-port-inspector-launch-chain-role': node.role,
     },
     React.createElement('div', { className: 'dsh-ri-launch-chain-meta' },
       React.createElement('span', { className: 'dsh-ri-launch-chain-role' }, launchChainRoleLabel(node.role, t)),
@@ -674,7 +674,7 @@ function DetailPanel({
       className: row.action.kind === 'external-single-pid' ? 'dsh-ri-danger-action' : 'dsh-ri-primary-action',
       'aria-label': `${actionLabel(row.action.kind, t)}: ${t('port', { port: row.port })}`,
       title: `${actionLabel(row.action.kind, t)}: ${t('port', { port: row.port })}`,
-      'data-runtime-inspector-action': row.action.kind,
+      'data-port-inspector-action': row.action.kind,
       disabled: actionDisabled,
       onClick: () => { onRequest({ listenerId: row.listenerId, kind: row.action.kind, ...sessionContext.cwd === undefined ? {} : { currentProject: sessionContext.cwd } }) },
     }, actionLabel(row.action.kind, t))
@@ -706,7 +706,7 @@ function DetailPanel({
           className: 'dsh-ri-icon-button',
           'aria-label': t('copyPortDetails', { port: row.port }),
           title: t('copyPortDetails', { port: row.port }),
-          'data-runtime-inspector-copy': row.listenerId,
+          'data-port-inspector-copy': row.listenerId,
           disabled: actionDisabled,
           onClick: () => { onCopy(row) },
         }, IconCopy({ size: 15 })),
@@ -715,7 +715,7 @@ function DetailPanel({
           className: 'dsh-ri-icon-button',
           'aria-label': t('openPortProjectDirectory', { port: row.port }),
           title: t('openPortProjectDirectory', { port: row.port }),
-          'data-runtime-inspector-open-directory': row.listenerId,
+          'data-port-inspector-open-directory': row.listenerId,
           disabled: actionDisabled || !projectAvailable,
           onClick: () => { onOpenDirectory(row) },
         }, IconFolder({ size: 15 })),
@@ -739,7 +739,7 @@ function DetailPanel({
       ),
     ),
     React.createElement(LaunchChainDetails, { row, t }),
-    row.compose === undefined ? null : React.createElement('section', { className: 'dsh-ri-detail-section', 'data-runtime-inspector-compose-details': 'associated' },
+    row.compose === undefined ? null : React.createElement('section', { className: 'dsh-ri-detail-section', 'data-port-inspector-compose-details': 'associated' },
       React.createElement('h3', { className: 'dsh-ri-section-title' }, t('composeDetails')),
       React.createElement('dl', { className: 'dsh-ri-fact-grid' },
         React.createElement(Fact, { label: t('composeFile'), value: row.compose.relativeComposeFile, wide: true, multiline: true, technical: true }),
@@ -837,12 +837,12 @@ function ConfirmDialog({
     className: 'dsh-ri-confirm',
     role: 'alertdialog',
     'aria-modal': true,
-    'aria-labelledby': 'dsh-runtime-inspector-confirm-title',
-    'aria-describedby': 'dsh-runtime-inspector-confirm-copy',
-    'data-runtime-inspector-confirmation': 'dialog',
+    'aria-labelledby': 'dsh-port-inspector-confirm-title',
+    'aria-describedby': 'dsh-port-inspector-confirm-copy',
+    'data-port-inspector-confirmation': 'dialog',
   },
-  React.createElement('h2', { className: 'dsh-ri-confirm-title', id: 'dsh-runtime-inspector-confirm-title' }, title),
-  React.createElement('p', { className: 'dsh-ri-confirm-copy', id: 'dsh-runtime-inspector-confirm-copy' }, external
+  React.createElement('h2', { className: 'dsh-ri-confirm-title', id: 'dsh-port-inspector-confirm-title' }, title),
+  React.createElement('p', { className: 'dsh-ri-confirm-copy', id: 'dsh-port-inspector-confirm-copy' }, external
     ? t('confirmEndProcessCopy')
     : t('confirmStopTaskCopy')),
   external ? React.createElement('div', { className: 'dsh-ri-confirm-note' },
@@ -857,8 +857,8 @@ function ConfirmDialog({
     external ? null : identityItem(t('lifecycle'), row.lifecycleOwner === undefined ? t('unavailable') : `${row.lifecycleOwner.kind} · ${row.lifecycleOwner.id}`, true),
   ),
   React.createElement('div', { className: 'dsh-ri-confirm-actions' },
-    React.createElement('button', { ref: cancelButton, type: 'button', className: 'dsh-ri-secondary-action', title: t('cancel'), 'data-runtime-inspector-confirm': 'cancel', onClick: onCancel }, t('cancel')),
-    React.createElement('button', { type: 'button', className: external ? 'dsh-ri-danger-action' : 'dsh-ri-primary-action', title, 'data-runtime-inspector-confirm': 'confirm', onClick: onConfirm }, title),
+    React.createElement('button', { ref: cancelButton, type: 'button', className: 'dsh-ri-secondary-action', title: t('cancel'), 'data-port-inspector-confirm': 'cancel', onClick: onCancel }, t('cancel')),
+    React.createElement('button', { type: 'button', className: external ? 'dsh-ri-danger-action' : 'dsh-ri-primary-action', title, 'data-port-inspector-confirm': 'confirm', onClick: onConfirm }, title),
   ),
   ),
   )
@@ -908,9 +908,9 @@ function SidebarEntry({ wide = true, onOpen, rpc, sessions, locale }: SidebarEnt
     type: 'button',
     className: `dsh-ri-entry${wide ? '' : ' is-compact'}`,
     lang: translator.locale,
-    title: wide ? 'Runtime Inspector' : t('entryCompactTitle', { indicator }),
+    title: wide ? 'Port Inspector' : t('entryCompactTitle', { indicator }),
     'aria-label': t('openPanelAria', { details: accessibleLabel }),
-    'data-runtime-inspector-entry': 'open',
+    'data-port-inspector-entry': 'open',
     onClick: (event: React.MouseEvent<HTMLButtonElement>) => { onOpen(event.currentTarget) },
   },
   React.createElement('span', { className: 'dsh-ri-entry-icon' }, IconPulse({ size: 16 })),
@@ -1091,7 +1091,7 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
 
   const listenerRows = (groupRows: readonly HostListenerRow[]): React.ReactNode => React.createElement('ul', {
     className: 'dsh-ri-list',
-    'data-runtime-inspector-list': 'listeners',
+    'data-port-inspector-list': 'listeners',
   }, groupRows.map(row => React.createElement(ListenerRow, {
     key: row.listenerId,
     row,
@@ -1182,7 +1182,7 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
   return React.createElement('div', {
     className: 'dsh-ri-overlay',
     role: 'presentation',
-    'data-runtime-inspector-panel': 'overlay',
+    'data-port-inspector-panel': 'overlay',
   },
   React.createElement('div', {
     className: 'dsh-ri-mask',
@@ -1197,14 +1197,14 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
     lang: translator.locale,
     role: 'dialog',
     'aria-modal': true,
-    'aria-labelledby': 'dsh-runtime-inspector-title',
-    'data-runtime-inspector-surface': 'panel',
+    'aria-labelledby': 'dsh-port-inspector-title',
+    'data-port-inspector-surface': 'panel',
   },
   React.createElement('div', { className: 'dsh-ri-content' },
   React.createElement('header', { className: 'dsh-ri-header' },
     React.createElement('div', {
       className: 'dsh-ri-header-status',
-      'data-runtime-inspector-state': snapshot === undefined
+      'data-port-inspector-state': snapshot === undefined
         ? 'loading'
         : snapshot.scanComplete ? 'ready' : 'incomplete',
     },
@@ -1216,7 +1216,7 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
           'aria-hidden': true,
           draggable: false,
         }),
-        React.createElement('h1', { className: 'dsh-ri-header-title', id: 'dsh-runtime-inspector-title' }, 'Runtime Inspector'),
+        React.createElement('h1', { className: 'dsh-ri-header-title', id: 'dsh-port-inspector-title' }, 'Port Inspector'),
       ),
       snapshot?.mode === 'read-only-degraded'
         ? React.createElement('span', { className: 'dsh-ri-status-pill is-limited' },
@@ -1238,14 +1238,14 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
         className: 'dsh-ri-close',
         'aria-label': t('closePanel'),
         title: t('closePanel'),
-        'data-runtime-inspector-close': 'close',
+        'data-port-inspector-close': 'close',
         onClick: closePanel,
       }, IconClose({ size: 14 })),
     ),
   ),
   React.createElement('div', { className: 'dsh-ri-options' },
   snapshot === undefined && state.inventoryNotice === undefined
-    ? React.createElement('div', { className: 'dsh-ri-state', 'data-runtime-inspector-state': 'loading' },
+    ? React.createElement('div', { className: 'dsh-ri-state', 'data-port-inspector-state': 'loading' },
       React.createElement('div', null,
         React.createElement('span', { className: 'dsh-ri-state-icon' }, IconRefresh({ size: 23 })),
         React.createElement('div', { className: 'dsh-ri-empty-title' }, t('loadingListeners')),
@@ -1253,19 +1253,19 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
     )
     : null,
   snapshot === undefined && state.inventoryNotice !== undefined
-    ? React.createElement('div', { className: 'dsh-ri-state dsh-ri-inventory-failure', 'data-runtime-inspector-state': 'failure' },
+    ? React.createElement('div', { className: 'dsh-ri-state dsh-ri-inventory-failure', 'data-port-inspector-state': 'failure' },
       React.createElement(NoticeView, { notice: state.inventoryNotice, t }),
       React.createElement('button', {
         type: 'button',
         className: 'dsh-ri-primary-action',
-        'data-runtime-inspector-retry': 'inventory',
+        'data-port-inspector-retry': 'inventory',
         disabled: state.loading === true,
         onClick: refresh,
       }, IconRefresh({ size: 14 }), t('retry')),
     )
     : null,
   snapshot === undefined ? null : React.createElement(React.Fragment, null,
-    React.createElement('div', { className: 'dsh-ri-toolbar', 'data-runtime-inspector-toolbar': 'controls' },
+    React.createElement('div', { className: 'dsh-ri-toolbar', 'data-port-inspector-toolbar': 'controls' },
       React.createElement('label', { className: 'dsh-ri-search' },
         React.createElement('span', { className: 'dsh-ri-search-icon' }, IconSearch({ size: 15 })),
         React.createElement('input', {
@@ -1274,7 +1274,7 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
           placeholder: t('searchPlaceholder'),
           'aria-label': t('searchLabel'),
           title: t('searchLabel'),
-          'data-runtime-inspector-search': 'input',
+          'data-port-inspector-search': 'input',
           onChange: (event: React.ChangeEvent<HTMLInputElement>) => { setSearch(event.target.value) },
         }),
       ),
@@ -1283,7 +1283,7 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
         value: sortKey,
         'aria-label': t('sortLabel'),
         title: t('sortLabel'),
-        'data-runtime-inspector-sort': 'select',
+        'data-port-inspector-sort': 'select',
         onChange: (event: React.ChangeEvent<HTMLSelectElement>) => { setSortKey(event.target.value as SortKey) },
       },
       React.createElement('option', { value: 'port' }, t('sortPort')),
@@ -1297,7 +1297,7 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
         className: 'dsh-ri-toolbar-button',
         'aria-label': t('sortDirection'),
         title: t('sortDirection'),
-        'data-runtime-inspector-sort-direction': 'toggle',
+        'data-port-inspector-sort-direction': 'toggle',
         onClick: () => { setSortDirection(previous => previous === 'asc' ? 'desc' : 'asc') },
       }, sortDirection === 'asc' ? t('ascending') : t('descending'), React.createElement('span', null, IconChevron({ size: 13 }))),
       React.createElement('button', {
@@ -1305,7 +1305,7 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
         className: 'dsh-ri-toolbar-button',
         'aria-label': t('refresh'),
         title: t('refresh'),
-        'data-runtime-inspector-refresh': 'refresh',
+        'data-port-inspector-refresh': 'refresh',
         disabled: state.loading === true,
         onClick: refresh,
       }, IconRefresh({ size: 14 }), t('refresh')),
@@ -1322,7 +1322,7 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
             role: 'tab',
             'aria-selected': scope === key,
             title: label,
-            'data-runtime-inspector-scope': key,
+            'data-port-inspector-scope': key,
             onClick: () => { setScope(key); setOtherOpen(key === 'all') },
           }, label)),
         ),
@@ -1334,7 +1334,7 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
           value: sourceFilter,
           'aria-label': t('sourceFilter'),
           title: t('sourceFilter'),
-          'data-runtime-inspector-source-filter': 'select',
+          'data-port-inspector-source-filter': 'select',
           onChange: (event: React.ChangeEvent<HTMLSelectElement>) => { setSourceFilter(event.target.value as SourceFilterKey) },
         },
         React.createElement('option', { value: 'all' }, t('sourceAll')),
@@ -1347,7 +1347,7 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
           type: 'checkbox',
           checked: actionableOnly,
           'aria-label': t('actionableOnly'),
-          'data-runtime-inspector-actionable-only': 'toggle',
+          'data-port-inspector-actionable-only': 'toggle',
           onChange: (event: React.ChangeEvent<HTMLInputElement>) => { setActionableOnly(event.target.checked) },
         }),
         React.createElement('span', null, t('actionableOnly')),
@@ -1363,7 +1363,7 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
           React.createElement('span', { className: 'dsh-ri-column-heading-count' }, t('displayCount', { count: visibleRows.length })),
         ),
         rows.length === 0
-          ? React.createElement('div', { className: 'dsh-ri-state', 'data-runtime-inspector-state': 'empty' },
+          ? React.createElement('div', { className: 'dsh-ri-state', 'data-port-inspector-state': 'empty' },
             React.createElement('div', null,
               React.createElement('span', { className: 'dsh-ri-state-icon' }, IconSearch({ size: 23 })),
               React.createElement('div', { className: 'dsh-ri-empty-title' }, allRows.length === 0 ? t('noDiscoveredListeners') : t('noMatch')),
@@ -1373,7 +1373,7 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
           : React.createElement(React.Fragment, null,
             currentProjectRows.length === 0 ? null : React.createElement('div', {
               className: 'dsh-ri-list-group',
-              'data-runtime-inspector-group': 'current-project',
+              'data-port-inspector-group': 'current-project',
             },
             React.createElement('div', { className: 'dsh-ri-list-group-heading' },
               React.createElement('span', null, t('groupCurrentProject')),
@@ -1383,7 +1383,7 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
             ),
             developmentEnvironmentRows.length === 0 ? null : React.createElement('div', {
               className: 'dsh-ri-list-group',
-              'data-runtime-inspector-group': 'development-environment',
+              'data-port-inspector-group': 'development-environment',
             },
             React.createElement('div', { className: 'dsh-ri-list-group-heading' },
               React.createElement('span', null, t('groupDevelopmentEnvironment')),
@@ -1393,7 +1393,7 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
             ),
             pinnedRows.length === 0 ? null : React.createElement('div', {
               className: 'dsh-ri-list-group',
-              'data-runtime-inspector-group': 'pinned',
+              'data-port-inspector-group': 'pinned',
             },
             React.createElement('div', { className: 'dsh-ri-list-group-heading' },
               React.createElement('span', null, t('groupPinned')),
@@ -1403,7 +1403,7 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
             ),
             otherRows.length === 0 ? null : React.createElement('div', {
               className: 'dsh-ri-list-group',
-              'data-runtime-inspector-group': 'other',
+              'data-port-inspector-group': 'other',
             },
             showOtherRows
               ? React.createElement(React.Fragment, null,
@@ -1419,7 +1419,7 @@ function RuntimeInspectorPanel({ rpc, sessions, locale }: PanelProps): React.Rea
                 className: 'dsh-ri-other-toggle',
                 'aria-expanded': false,
                 title: t('collapsedOther', { count: otherRows.length }),
-                'data-runtime-inspector-other-toggle': 'open',
+                'data-port-inspector-other-toggle': 'open',
                 onClick: () => { setOtherOpen(true) },
               },
               React.createElement('span', null, t('collapsedOther', { count: otherRows.length })),

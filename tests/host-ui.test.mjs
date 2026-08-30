@@ -4,7 +4,7 @@ import {
   createRuntimeInspectorHost,
 } from '../lib/host-ui.js'
 
-function origin({ id = 1, sessionId = 'session-a', jobId, workdir = 'C:\\projects\\runtime-inspector', command = 'pwsh --token super-secret' } = {}) {
+function origin({ id = 1, sessionId = 'session-a', jobId, workdir = 'C:\\projects\\port-inspector', command = 'pwsh --token super-secret' } = {}) {
   return {
     id,
     rootPid: 100 + id,
@@ -24,7 +24,7 @@ function origin({ id = 1, sessionId = 'session-a', jobId, workdir = 'C:\\project
   }
 }
 
-function row({ pid = 101, port = 3000, originId, confidence = 'verified', createdAt = '1001', executable = 'C:\\Program Files\\nodejs\\node.exe', project = 'C:\\projects\\runtime-inspector' } = {}) {
+function row({ pid = 101, port = 3000, originId, confidence = 'verified', createdAt = '1001', executable = 'C:\\Program Files\\nodejs\\node.exe', project = 'C:\\projects\\port-inspector' } = {}) {
   return {
     protocol: 'tcp4',
     localAddress: '127.0.0.1',
@@ -218,14 +218,14 @@ test('Host inventory projects current-project development presentation without c
       id: 1,
       sessionId: 'session-a',
       jobId: 'job-a',
-      workdir: 'C:\\projects\\runtime-inspector',
+      workdir: 'C:\\projects\\port-inspector',
       command: 'npm exec vite -- --host 127.0.0.1',
     })],
   })
 
   const listener = host.inventory({
     currentSessionId: 'session-a',
-    currentProject: 'C:\\projects\\runtime-inspector',
+    currentProject: 'C:\\projects\\port-inspector',
   }).listeners[0]
 
   assert.deepEqual({
@@ -237,7 +237,7 @@ test('Host inventory projects current-project development presentation without c
     reasons: ['current-session', 'current-project'],
     toolchain: 'vite',
   })
-  assert.match(listener.development.stableKey, /^project:runtime-inspector-[a-z0-9]+:vite$/)
+  assert.match(listener.development.stableKey, /^project:port-inspector-[a-z0-9]+:vite$/)
   assert.doesNotMatch(listener.development.stableKey, new RegExp(String(listener.pid)))
   assert.equal(listener.confidence, 'verified')
   assert.equal(listener.action.kind, 'managed-shutdown')
@@ -451,11 +451,11 @@ test('copy returns bounded redacted details and open-directory uses only the sel
   assert.equal(opened.reason, 'project-unavailable')
   assert.deepEqual(calls.open, [])
 
-  const available = harness({ origins: [origin({ id: 1, workdir: 'C:\\projects\\runtime-inspector' })] })
+  const available = harness({ origins: [origin({ id: 1, workdir: 'C:\\projects\\port-inspector' })] })
   const availableRow = available.host.inventory().listeners[0]
   const openedAvailable = await available.host.openProjectDirectory({ listenerId: availableRow.listenerId })
   assert.equal(openedAvailable.ok, true)
-  assert.deepEqual(available.calls.open, ['C:\\projects\\runtime-inspector'])
+  assert.deepEqual(available.calls.open, ['C:\\projects\\port-inspector'])
 })
 
 test('open-directory can use the scanner project fallback for an unattributed listener', async () => {

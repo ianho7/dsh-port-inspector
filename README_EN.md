@@ -1,6 +1,6 @@
 <div align="center">
-  <img src="./assets/logo-candidates/A1-v4-rounded.png" alt="DSH Runtime Inspector logo" width="128" height="128">
-  <h1>DSH Runtime Inspector</h1>
+  <img src="./assets/logo-candidates/A1-v4-rounded.png" alt="DSH Port Inspector logo" width="128" height="128">
+  <h1>DSH Port Inspector</h1>
   <p>A port-origin tracing and safe handling tool for local Windows development in DSH Web.</p>
   <p><a href="./README.md">中文</a> | <strong>English</strong></p>
 </div>
@@ -33,11 +33,11 @@ Users eventually run into four questions:
 
    Even after a stop action, I still need to confirm that the target port was released and that services from other projects remain available. For example, stopping a frontend on port 5173 must not affect a backend listening on 5174.
 
-The underlying problem is that DeepSeek Harness does not know which service an Agent ultimately started, while Windows does not know which DeepSeek Harness Session owns a listening port. Runtime Inspector connects these views. It shows the application, project, starter, and Session/Tool Call for each listener, then rescans after every action to confirm the result.
+The underlying problem is that DeepSeek Harness does not know which service an Agent ultimately started, while Windows does not know which DeepSeek Harness Session owns a listening port. Port Inspector connects these views. It shows the application, project, starter, and Session/Tool Call for each listener, then rescans after every action to confirm the result.
 
-Background services are not automatically treated as leaks. Runtime Inspector recommends stopping a service only when the evidence is sufficient, and it distinguishes resources managed by DeepSeek Harness from processes that are not.
+Background services are not automatically treated as leaks. Port Inspector recommends stopping a service only when the evidence is sufficient, and it distinguishes resources managed by DeepSeek Harness from processes that are not.
 
-When the attribution observer, Windows process identities, and parent-process chain are all available, Runtime Inspector connects the following relationship:
+When the attribution observer, Windows process identities, and parent-process chain are all available, Port Inspector connects the following relationship:
 
 ```text
 TCP listening port → listener PID → Windows parent-process chain → DeepSeek Harness root process
@@ -48,24 +48,24 @@ TCP listening port → listener PID → Windows parent-process chain → DeepSee
 
 ### DeepSeek Harness task context
 
-The following screenshot shows the `runtime-story` workspace selected in DeepSeek Harness with the Runtime Inspector entry open. The badge shows the number of listeners that existed when the screenshot was taken.
+The following screenshot shows the `runtime-story` workspace selected in DeepSeek Harness with the Port Inspector entry open. The badge shows the number of listeners that existed when the screenshot was taken.
 
-![The runtime-story workspace and Runtime Inspector entry in DeepSeek Harness](./assets/dsh-harness-runtime-story-context.png)
+![The runtime-story workspace and Port Inspector entry in DeepSeek Harness](./assets/dsh-harness-runtime-story-context.png)
 
-### Runtime Inspector results
+### Port Inspector results
 
 The current-project group contains four records: Vite, PostgreSQL, Redis, and Go. The sidebar badge shows `4`. The Docker services have a confirmed Compose project association while their starter remains unconfirmed. These states answer two separate questions: which project the service belongs to, and who started it.
 
-![Runtime Inspector showing four full-stack demo services and their attribution boundaries](./assets/runtime-inspector-full-stack-evidence.png)
+![Port Inspector showing four full-stack demo services and their attribution boundaries](./assets/port-inspector-full-stack-evidence.png)
 
-| Service | Started with | Port | Meaning in Runtime Inspector |
+| Service | Started with | Port | Meaning in Port Inspector |
 | --- | --- | ---: | --- |
 | Vite | DeepSeek Harness background Job running `npm run dev` | 5173 | Current project, current Session, verified attribution, DSH task can be stopped |
 | Go API | DeepSeek Harness background Job running `go run .` | 8080 | Current project, current Session, verified attribution, DSH task can be stopped |
 | PostgreSQL | Docker Compose | 5432 | Current-project Compose association and image/container evidence; starter unconfirmed; view only |
 | Redis | Docker Compose | 6379 | Current-project Compose association and image/container evidence; starter unconfirmed; view only |
 
-At the end of the demo, Runtime Inspector first stops Vite and rescans to confirm that `5173` has been released while `8080`, `5432`, and `6379` are still listening. It then stops Go, followed by `docker compose down`. This demonstrates that each action affects only the explicitly selected DeepSeek Harness service without disrupting another project or Docker Desktop.
+At the end of the demo, Port Inspector first stops Vite and rescans to confirm that `5173` has been released while `8080`, `5432`, and `6379` are still listening. It then stops Go, followed by `docker compose down`. This demonstrates that each action affects only the explicitly selected DeepSeek Harness service without disrupting another project or Docker Desktop.
 
 ## Related terms
 
@@ -85,11 +85,11 @@ At the end of the demo, Runtime Inspector first stops Vite and rescans to confir
 | `netstat` / `Get-NetTCPConnection` | Ports, addresses, and PIDs | Does not identify the DeepSeek Harness Session or Tool Call that started a process |
 | Task Manager / Process Explorer | Process information, parent-child relationships, and process termination | Does not understand DeepSeek Harness Job / Terminal lifecycles |
 | DeepSeek Harness Jobs / Terminals | Manages known resources owned by DSH | Does not provide a unified view of Windows listening ports or cover external processes |
-| Runtime Inspector | Ports, projects, attribution, Sessions, Calls, Lifecycle owners, and safe handling modes | Deliberately avoids general-purpose system monitoring and bulk cleanup |
+| Port Inspector | Ports, projects, attribution, Sessions, Calls, Lifecycle owners, and safe handling modes | Deliberately avoids general-purpose system monitoring and bulk cleanup |
 
 ## Who it is for
 
-Runtime Inspector is intended for:
+Port Inspector is intended for:
 
 - Coding Agent developers who use DeepSeek Harness Web locally on Windows.
 - People who frequently ask Agents to start local development servers, APIs, databases, or other development tools.
@@ -115,26 +115,26 @@ Completely exit any running DSH Web process before installing or updating the Bu
 1. **Install from npm**
 
 ```powershell
-dsh plugin --profile web add dsh-runtime-inspector@latest
+dsh plugin --profile web add dsh-port-inspector@latest
 ```
 
 2. **Download and install from GitHub Releases**
 
-Use GitHub CLI to download the archive from the [latest GitHub Release](https://github.com/ianho7/dsh-runtime-inspector/releases/latest), then install it:
+Use GitHub CLI to download the archive from the [latest GitHub Release](https://github.com/ianho7/dsh-port-inspector/releases/latest), then install it:
 
 ```powershell
 gh release download `
-  --repo ianho7/dsh-runtime-inspector `
-  --pattern 'dsh-runtime-inspector-*.tgz' `
-  --output 'dsh-runtime-inspector-latest.tgz'
-dsh plugin --profile web add '.\dsh-runtime-inspector-latest.tgz'
+  --repo ianho7/dsh-port-inspector `
+  --pattern 'dsh-port-inspector-*.tgz' `
+  --output 'dsh-port-inspector-latest.tgz'
+dsh plugin --profile web add '.\dsh-port-inspector-latest.tgz'
 ```
 
 3. **Build and install from source**
 
 ```powershell
-git clone https://github.com/ianho7/dsh-runtime-inspector.git
-cd dsh-runtime-inspector
+git clone https://github.com/ianho7/dsh-port-inspector.git
+cd dsh-port-inspector
 npm install
 npm run build
 $PackageFile = npm pack --ignore-scripts
@@ -147,12 +147,12 @@ After installation, start DSH Web:
 dsh web
 ```
 
-When the browser opens, create a new task and open **Runtime Inspector** from the sidebar.
+When the browser opens, create a new task and open **Port Inspector** from the sidebar.
 
 ### Investigate ports
 
 1. Create a new DeepSeek Harness Session and ask the Agent to start a local service.
-2. Open **Runtime Inspector** from the DeepSeek Harness Web sidebar. Select **Refresh** if necessary.
+2. Open **Port Inspector** from the DeepSeek Harness Web sidebar. Select **Refresh** if necessary.
 3. Review the port, PID, application, project, creation time, attribution, and handling mode.
 4. For a managed resource, select **Stop DSH task**. For an external process that passes the safety requirements, select **End process**.
 5. Confirm the action, wait for a fresh scan, and check the reported `portReleased` result.
@@ -161,7 +161,7 @@ After installing or updating the Bundle, you must restart the target Profile and
 
 ## Capabilities
 
-- Opens the Runtime Inspector panel from the DeepSeek Harness Web sidebar.
+- Opens the Port Inspector panel from the DeepSeek Harness Web sidebar.
 - Displays TCP listening addresses, ports, PIDs, applications, projects, and localized creation times.
 - Shows the Session, Turn, Step, Call ID, tool, and user request for verified attribution that maps successfully to the current Session. Other Sessions expose only the available coarse-grained summary.
 - Prioritizes the current project and recognized development environments by default, while keeping other listeners searchable and expandable.
@@ -179,7 +179,7 @@ Attribution and handling permissions are evaluated independently. An `inferred` 
 
 ### From Agent tool-call attribution to listening ports
 
-Runtime Inspector caches call evidence during `tool/call`. The `tools/execute` AsyncLocalStorage execution frame carries that evidence into `spawn` or `spawnTerminal`. The root PID and creation time then form the process identity, Job/Terminal supplies lifecycle ownership, and the Windows ancestry chain connects the actual listener process back to the Agent operation.
+Port Inspector caches call evidence during `tool/call`. The `tools/execute` AsyncLocalStorage execution frame carries that evidence into `spawn` or `spawnTerminal`. The root PID and creation time then form the process identity, Job/Terminal supplies lifecycle ownership, and the Windows ancestry chain connects the actual listener process back to the Agent operation.
 
 ![Attribution workflow from an Agent tool call to a listening port](./docs/assets/agent-tool-call.svg)
 
@@ -199,7 +199,7 @@ Some Stock DeepSeek Harness and Windows ConPTY combinations initially return a `
 
 ![Asynchronous sequence from a zero Terminal PID to completed attribution](./docs/assets/async-roundtrip.svg)
 
-When the native handle already contains a positive PID, the repair path is not used. If the handle is unsupported, the Terminal exits early, or the wait times out, the capability safely degrades to `unavailable`. Runtime Inspector does not store an unverified PID or use it to establish `verified` attribution.
+When the native handle already contains a positive PID, the repair path is not used. If the handle is unsupported, the Terminal exits early, or the wait times out, the capability safely degrades to `unavailable`. Port Inspector does not store an unverified PID or use it to establish `verified` attribution.
 
 ## Read-only capability for Agents
 
@@ -215,7 +215,7 @@ The project provides a read-only `port_list` Tool for diagnosing port conflicts.
 - Supports only the Windows local execution world and TCP listeners.
 - `Verified attribution` requires a PID, creation time, and a verifiable Windows parent-process chain. Commands, directories, timestamps, or port numbers alone are not sufficient.
 - DeepSeek Harness-managed targets prefer the Job/Terminal lifecycle. A failed `Managed shutdown` never escalates automatically to forced PID termination.
-- External handling targets only one same-user PID explicitly selected by the user. Before acting, Runtime Inspector revalidates the PID, creation time, executable, user, protection level, and listener identity.
+- External handling targets only one same-user PID explicitly selected by the user. Before acting, Port Inspector revalidates the PID, creation time, executable, user, protection level, and listener identity.
 - Does not terminate external process trees, elevate privileges automatically, or read environment secrets.
 - System processes, other-user processes, protected processes, incomplete identities, and targets with insufficient permissions remain read-only.
 - The DeepSeek Harness version is diagnostic and regression metadata only. Public features are enabled independently through actual runtime-capability probes.
@@ -233,7 +233,7 @@ npm test
 
 The core Windows MVP is implemented. Gates that require a real Stock DeepSeek Harness or browser are opt-in; see the testing and manual acceptance guide for the exact commands and environment requirements.
 
-For complete packaging, Profile installation, DeepSeek Harness port, external PowerShell port, and opt-in smoke procedures, see the [testing and manual acceptance guide](./docs/dsh-runtime-inspector-testing.md).
+For complete packaging, Profile installation, DeepSeek Harness port, external PowerShell port, and opt-in smoke procedures, see the [testing and manual acceptance guide](./docs/dsh-port-inspector-testing.md).
 
 ## Maintenance and releases
 
@@ -241,11 +241,11 @@ For the maintainer workflows that publish npm/GitHub releases and manage the loc
 
 ## Documentation
 
-- [Windows MVP](./docs/dsh-runtime-inspector-mvp.md)
-- [Implementation Spec](./docs/dsh-runtime-inspector-mvp-spec.md)
-- [Product and technical decisions](./docs/dsh-runtime-inspector-mvp-decisions.md)
-- [Glossary](./docs/dsh-runtime-inspector-glossary.md)
-- [Testing and manual acceptance guide](./docs/dsh-runtime-inspector-testing.md)
+- [Windows MVP](./docs/dsh-port-inspector-mvp.md)
+- [Implementation Spec](./docs/dsh-port-inspector-mvp-spec.md)
+- [Product and technical decisions](./docs/dsh-port-inspector-mvp-decisions.md)
+- [Glossary](./docs/dsh-port-inspector-glossary.md)
+- [Testing and manual acceptance guide](./docs/dsh-port-inspector-testing.md)
 - [Minimal full-stack demo](./demo/runtime-story/README.md)
 - [Full-stack demo guide and requirements prompt](./demo/runtime-story/DSH-DEMO-GUIDE.md)
 - [Release guide](./docs/release.md)

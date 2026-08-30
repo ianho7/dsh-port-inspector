@@ -1,6 +1,6 @@
-# DSH Runtime Inspector 发布指南
+# DSH Port Inspector 发布指南
 
-本文档面向维护者，说明如何检查、构建、打包和发布 Runtime Inspector。普通用户不需要执行这些步骤；使用者只需按照 README 或 DSH 安装说明安装已发布的 Bundle。
+本文档面向维护者，说明如何检查、构建、打包和发布 Port Inspector。普通用户不需要执行这些步骤；使用者只需按照 README 或 DSH 安装说明安装已发布的 Bundle。
 
 ## 发布脚本
 

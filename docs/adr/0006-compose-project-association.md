@@ -2,7 +2,7 @@
 
 - 状态：Accepted
 - 日期：2026-08-28
-- 适用范围：DSH Runtime Inspector Windows MVP
+- 适用范围：DSH Port Inspector Windows MVP
 
 ## Context
 
@@ -30,4 +30,4 @@ Docker Desktop 发布的容器端口通常由 Docker 的 Windows 代理进程监
 - 将 `com.docker.backend`、`docker-proxy` 或 `dockerd` 伪装为 DSH root：违反 Process origin 证据链。
 - 按端口、镜像名、进程名或 Compose 项目名单独归类：无法排除多个 Workspace 的巧合。
 - 全局枚举并展示所有 Docker 容器：扩大隐私范围，也无法自然确定当前 Workspace 归属。
-- 让 Runtime Inspector 直接执行 `docker compose down` 或终止代理 PID：会越过现有 Lifecycle owner 和 Direct external termination 安全边界。
+- 让 Port Inspector 直接执行 `docker compose down` 或终止代理 PID：会越过现有 Lifecycle owner 和 Direct external termination 安全边界。

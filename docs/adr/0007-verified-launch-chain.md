@@ -2,11 +2,11 @@
 
 - 状态：Accepted
 - 日期：2026-08-28
-- 适用范围：DSH Runtime Inspector Windows MVP
+- 适用范围：DSH Port Inspector Windows MVP
 
 ## Context
 
-监听器的最终 executable 经常不是开发者在 DSH Tool Call 中输入的入口：编译型 launcher 会产生临时原生程序，脚本和包管理器会再启动运行时，未来工具也可能经过多层 wrapper。Runtime Inspector 已经用 root PID、父进程链和 creation time 建立 Verified attribution，但只展示最终 listener executable 会丢失这条可核对的事实链。
+监听器的最终 executable 经常不是开发者在 DSH Tool Call 中输入的入口：编译型 launcher 会产生临时原生程序，脚本和包管理器会再启动运行时，未来工具也可能经过多层 wrapper。Port Inspector 已经用 root PID、父进程链和 creation time 建立 Verified attribution，但只展示最终 listener executable 会丢失这条可核对的事实链。
 
 为每个生态解析 manifest、环境变量、端口约定或维护不断增长的框架规则表，会增加低可信推断和隐私范围。MVP 需要一个更小的、可跨生态的事实投影：只读取已验证 ancestry 中当前仍存活进程的系统报告命令行。
 

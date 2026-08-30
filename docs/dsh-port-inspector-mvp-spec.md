@@ -1,9 +1,9 @@
-# DSH Runtime Inspector Windows MVP：Implementation Spec
+# DSH Port Inspector Windows MVP：Implementation Spec
 
 > 状态：Implemented and accepted（Windows MVP）
 > 日期：2026-08-23
 > 回归基线：Stock DSH `dsh-0.1.0-rc.8`、`dsh-0.1.1-rc.1`、`dsh-0.1.1-rc.2`；其他版本按 Windows local runtime capability probe 启用
-> 来源：[MVP 文档](./dsh-runtime-inspector-mvp.md)、[决策记录](./dsh-runtime-inspector-mvp-decisions.md)、[ADR-0001](./adr/0001-stock-dsh-root-pid-observation.md)、[ADR-0002](./adr/0002-process-termination-policy.md)、[ADR-0003](./adr/0003-delayed-terminal-pid-compatibility.md)、[ADR-0004](./adr/0004-web-client-dual-face-bundle.md)、[ADR-0005](./adr/0005-capability-based-dsh-compatibility.md)、[ADR-0007](./adr/0007-verified-launch-chain.md)
+> 来源：[MVP 文档](./dsh-port-inspector-mvp.md)、[决策记录](./dsh-port-inspector-mvp-decisions.md)、[ADR-0001](./adr/0001-stock-dsh-root-pid-observation.md)、[ADR-0002](./adr/0002-process-termination-policy.md)、[ADR-0003](./adr/0003-delayed-terminal-pid-compatibility.md)、[ADR-0004](./adr/0004-web-client-dual-face-bundle.md)、[ADR-0005](./adr/0005-capability-based-dsh-compatibility.md)、[ADR-0007](./adr/0007-verified-launch-chain.md)
 
 ## Problem Statement
 
@@ -19,7 +19,7 @@ Coding Agent 经常启动 Vite、Next.js、Node API 等开发服务。Windows �
 
 ## Solution
 
-Runtime Inspector 作为可安装的 DSH Bundle 运行于未经修改的官方 DSH。用户安装后重启一次目标 Profile，插件通过运行时 contract probe 检查 Windows local provider、`spawn`/`spawnTerminal` 和 observer seam；版本号只进入内部诊断，不作为总开关，也不产生用户提示。能力存在时优先使用 Cordis `internal/get` waterfall：每次 `ctx.subprocess` service lookup 时返回一个 non-mutating Subprocess observer Proxy，仅包装 `spawn` 和 `spawnTerminal`。对 stock DSH 中绕过该 waterfall 的同一 `LocalSubprocessRuntime` service read，插件再安装可逆的 method-level fallback；它不替换 provider、不取得 process ownership。
+Port Inspector 作为可安装的 DSH Bundle 运行于未经修改的官方 DSH。用户安装后重启一次目标 Profile，插件通过运行时 contract probe 检查 Windows local provider、`spawn`/`spawnTerminal` 和 observer seam；版本号只进入内部诊断，不作为总开关，也不产生用户提示。能力存在时优先使用 Cordis `internal/get` waterfall：每次 `ctx.subprocess` service lookup 时返回一个 non-mutating Subprocess observer Proxy，仅包装 `spawn` 和 `spawnTerminal`。对 stock DSH 中绕过该 waterfall 的同一 `LocalSubprocessRuntime` service read，插件再安装可逆的 method-level fallback；它不替换 provider、不取得 process ownership。
 
 依赖公开可探测 contract 的能力允许在未知版本正常工作；只有 delayed Terminal PID 私有 shape 修复继续按精确回归版本启用。单项能力失败只关闭依赖它的路径：来源追踪不可用不等于外部单 PID 处理不可用，后者仍由 Windows 身份、权限和保护级别的执行时复核独立决定。
 
@@ -37,11 +37,11 @@ Runtime Inspector 作为可安装的 DSH Bundle 运行于未经修改的官方 D
 
 方案只保证当前 DSH 运行周期内、Windows local execution world 的 verified attribution。Persistent PowerShell 的首次 Terminal 创建可精确归因；同一个 persistent terminal 后续命令创建的 descendant 不承诺精确到后续 Call ID。
 
-Runtime Inspector 的 Web UI 与 Host 运行时属于同一个 DSH Bundle 和同一个源码仓库。Bundle 同时提供 Node Host 半与 Browser Client 半：Host 继续拥有扫描、归因、生命周期和终止安全边界；Browser 只渲染可信的序列化 Host RPC 结果。Web UI 不启动独立 HTTP 服务，也不直接访问 scanner、Process origin registry、Job/Terminal API 或 Windows process primitive。
+Port Inspector 的 Web UI 与 Host 运行时属于同一个 DSH Bundle 和同一个源码仓库。Bundle 同时提供 Node Host 半与 Browser Client 半：Host 继续拥有扫描、归因、生命周期和终止安全边界；Browser 只渲染可信的序列化 Host RPC 结果。Web UI 不启动独立 HTTP 服务，也不直接访问 scanner、Process origin registry、Job/Terminal API 或 Windows process primitive。
 
-Web 入口使用全局 `sidebar.footer.action`，显示端口监听/冲突状态；点击后通过 `shell.overlay` 打开完整 Runtime Inspector 面板。Browser 使用 DSH Client Bundle 机制加载，Client 源码经过 TypeScript 与兼容 DSH 的 client bundler 构建为 Browser artifact。Host 与 Browser 之间使用 DSH 现有的 Host-to-Client bridge；在认证版本中若没有 typed Remote seam，可使用受同源保护的 WebServer API route，但不得创建独立服务。
+Web 入口使用全局 `sidebar.footer.action`，显示端口监听/冲突状态；点击后通过 `shell.overlay` 打开完整 Port Inspector 面板。Browser 使用 DSH Client Bundle 机制加载，Client 源码经过 TypeScript 与兼容 DSH 的 client bundler 构建为 Browser artifact。Host 与 Browser 之间使用 DSH 现有的 Host-to-Client bridge；在认证版本中若没有 typed Remote seam，可使用受同源保护的 WebServer API route，但不得创建独立服务。
 
-Runtime Inspector 的弹窗 Chrome 对齐 DSH 原生 `ui-settings-general` Modal：全屏遮罩与背景模糊、视口居中的 `1040px` 面板、`min(800px, 100vh - 48px)` 高度、`24px` 圆角和 `--dsw-shadow-lv3` 阴影。面板不使用只有一个菜单项的左侧导航栏，使用 54px Header 直接显示 `Runtime Inspector`，下方为可滚动 Options 内容区；端口列表和详情作为面板内容中的产品专属双栏区域保留。桌面宽度下工具栏使用稳定的单行网格布局；视口宽度低于 `960px` 时搜索框独占一行，其余控件按完整控件组换行。Options 区域本身不整体垂直滚动，列表列在固定可视高度内独立滚动，详情列保持可见并独立滚动。来源追踪降级和扫描未完成只作为按需出现的 Header 状态提示，不展示默认的“观察模式”。Browser 必须支持遮罩点击关闭、document 级 Escape、打开后的初始焦点、关闭后的焦点恢复，以及窄窗口下的居中响应式布局。
+Port Inspector 的弹窗 Chrome 对齐 DSH 原生 `ui-settings-general` Modal：全屏遮罩与背景模糊、视口居中的 `1040px` 面板、`min(800px, 100vh - 48px)` 高度、`24px` 圆角和 `--dsw-shadow-lv3` 阴影。面板不使用只有一个菜单项的左侧导航栏，使用 54px Header 直接显示 `Port Inspector`，下方为可滚动 Options 内容区；端口列表和详情作为面板内容中的产品专属双栏区域保留。桌面宽度下工具栏使用稳定的单行网格布局；视口宽度低于 `960px` 时搜索框独占一行，其余控件按完整控件组换行。Options 区域本身不整体垂直滚动，列表列在固定可视高度内独立滚动，详情列保持可见并独立滚动。来源追踪降级和扫描未完成只作为按需出现的 Header 状态提示，不展示默认的“观察模式”。Browser 必须支持遮罩点击关闭、document 级 Escape、打开后的初始焦点、关闭后的焦点恢复，以及窄窗口下的居中响应式布局。
 
 Browser 注入 DSH `sessions` 服务，以当前 `sessions.list.current` 作为展示上下文：Session 显示标题，项目优先显示 Host 已确认的 origin workdir、缺失时显示经过脱敏的当前 Session cwd，用户请求从当前 conversation 中按 Call ID/root Call ID/Turn 映射。Browser 传给 Host 的 current Session ID 只影响 `current-session` 展示和 fresh scan 投影，不授予 managed 或 external action 权限。
 
@@ -71,7 +71,7 @@ Browser 注入 DSH `sessions` 服务，以当前 `sessions.list.current` 作为�
 18. As a developer who started an external same-user service, I want to terminate one explicitly selected listener after identity revalidation, so that I can resolve a port conflict without terminating its whole process tree.
 19. As a developer, I want external termination to recheck PID, creation time, and executable immediately before the action, so that PID reuse cannot cause an accidental termination.
 20. As a developer, I want protected, other-user, system, or access-denied processes to remain read-only, so that the tool does not require administrator privileges or cross security boundaries.
-21. As a DSH user, I want the plugin to avoid automatic UAC elevation, so that installing Runtime Inspector does not change the privilege level of DSH.
+21. As a DSH user, I want the plugin to avoid automatic UAC elevation, so that installing Port Inspector does not change the privilege level of DSH.
 22. As a DSH user, I want termination to trigger a fresh scan and report whether the port was released, so that I can verify the result instead of trusting a request acknowledgment.
 23. As a DSH user, I want the UI to search and sort by port, application, PID, project, and Session, so that large listener lists remain usable.
 24. As a DSH user, I want to open a known project directory and copy a listener’s redacted details, so that common investigation actions are quick and low risk.
@@ -84,12 +84,12 @@ Browser 注入 DSH `sessions` 服务，以当前 `sessions.list.current` 作为�
 31. As a DSH user, I want each unavailable runtime capability to degrade visibly and independently, so that I still receive port visibility without false attribution and retain only actions whose separate safety checks remain available.
 32. As a DSH user, I want installation, update, and removal to use the normal DSH Bundle lifecycle, so that I do not need to edit DSH source or maintain a private fork.
 33. As a DSH user, I want one restart after Bundle installation to activate the plugin, so that installation behavior follows the official DSH composition model.
-34. As a DSH user, I want unloading Runtime Inspector not to terminate existing user processes, so that observation lifecycle is independent from process ownership.
+34. As a DSH user, I want unloading Port Inspector not to terminate existing user processes, so that observation lifecycle is independent from process ownership.
 35. As a DSH maintainer, I want the plugin to declare one tested DSH compatibility baseline, so that changes to Cordis internal behavior fail closed instead of silently corrupting attribution.
 36. As a DSH maintainer, I want future upstream `subprocess/started` support to remain possible, so that the MVP’s internal observer can later migrate to a public provider-neutral lifecycle seam.
-37. As a DSH Web user, I want a persistent Runtime Inspector entry in the global sidebar, so that I can discover port conflicts without opening a separate Windows tool.
+37. As a DSH Web user, I want a persistent Port Inspector entry in the global sidebar, so that I can discover port conflicts without opening a separate Windows tool.
 38. As a DSH Web user, I want the sidebar entry to show a bounded listener/conflict count, so that I can notice a possible port problem before opening the panel.
-39. As a DSH Web user, I want the Runtime Inspector panel to open over the main Web UI, so that I can investigate listeners without losing my current Session or Conversation.
+39. As a DSH Web user, I want the Port Inspector panel to open over the main Web UI, so that I can investigate listeners without losing my current Session or Conversation.
 40. As a DSH Web user, I want the panel to show loading, empty, incomplete-scan, degraded, success, and failure states as readable text, so that a missing row is not confused with a successful scan.
 41. As a DSH Web user, I want managed Job/Terminal shutdown and external single-PID termination to be visibly different actions, so that I understand the ownership and impact before confirming.
 42. As a DSH Web user, I want the Web UI to remain read-only when compatibility, permissions, identity, or client loading is insufficient, so that a browser failure cannot expand process authority.
@@ -127,8 +127,8 @@ Browser 注入 DSH `sessions` 服务，以当前 `sessions.list.current` 作为�
 - The plugin Bundle uses the normal DSH installation model. Installation, update, or removal becomes active after a target Profile restart; no DSH source modification, private fork, or manual composition edit is required.
 - Host and Browser halves ship from one repository and one distributable Bundle. The existing Node entry remains the Host half; a separate Browser entry is exported through the package’s `./client` surface and declared through `dsh.client` for the `web` platform. The package continues to use its Bundle composition patch and includes the built Browser artifact.
 - Browser source is authored in TypeScript and compiled by a DSH-compatible client bundler into the lazy client-module format. `window.__ModuleLoader__.load` is a generated artifact contract, not hand-authored application source. Host and Browser builds must not share imports of native process code; only serializable DTOs and UI-safe types may cross the boundary.
-- The trusted UI composition uses the additive `sidebar.footer.action` entry point and the additive `shell.overlay` panel surface. The Runtime Inspector does not replace the Sidebar, Conversation, composer, or another product-owned root surface. The sidebar entry is global rather than Session-scoped because listener ownership can span Sessions.
-- Browser calls only a serializable Runtime Inspector Host RPC contract for inventory, redacted copy, project-directory opening, and confirmed actions. The transport uses the existing DSH Host-to-Client bridge; a same-origin WebServer API route is an allowed baseline adapter when the certified DSH version does not expose a typed Remote seam. The Bundle never starts a second Web server for the feature.
+- The trusted UI composition uses the additive `sidebar.footer.action` entry point and the additive `shell.overlay` panel surface. The Port Inspector does not replace the Sidebar, Conversation, composer, or another product-owned root surface. The sidebar entry is global rather than Session-scoped because listener ownership can span Sessions.
+- Browser calls only a serializable Port Inspector Host RPC contract for inventory, redacted copy, project-directory opening, and confirmed actions. The transport uses the existing DSH Host-to-Client bridge; a same-origin WebServer API route is an allowed baseline adapter when the certified DSH version does not expose a typed Remote seam. The Bundle never starts a second Web server for the feature.
 - The Web panel must distinguish loading, empty, complete inventory, incomplete scan, observing, read-only, degraded, action confirmation, action failure, and post-action fresh-scan states. Search, sort, and selected-listener state should be reproducible through URL/query state or the host application’s equivalent navigation state when that state mechanism is available.
 - Critical controls use semantic HTML or the DSH client’s accessible primitives, have visible and programmatic names, are keyboard reachable, and expose stable user-facing locators for the entry, refresh, row selection, confirmation, copy, directory-open, and action-result controls.
 - A future public `subprocess/started` upstream event remains a follow-up architecture improvement. It is not part of this MVP’s runtime dependency.
@@ -172,8 +172,8 @@ Prior art to follow includes DSH Agent initiator AsyncLocalStorage isolation tes
 - UDP listeners, macOS, Linux, full general-purpose task-manager features, history statistics, automatic cleanup, and orphan-process policy.
 - Bulk termination, a second force/escalation action, automatic UAC elevation, or termination of external process trees.
 - Direct termination from the model-facing `port_list` Tool.
-- Maintaining Runtime Inspector Browser UI in a second feature repository.
-- Starting a separate local Web server, companion page, or extra process for the Runtime Inspector UI.
+- Maintaining Port Inspector Browser UI in a second feature repository.
+- Starting a separate local Web server, companion page, or extra process for the Port Inspector UI.
 - Replacing the DSH Web Sidebar, Conversation, composer, or application root instead of using additive Client Slots.
 - Reading arbitrary process environment blocks, secrets, or full command lines without redaction.
 - Reworking DSH’s public subprocess abstraction or implementing the future provider-neutral lifecycle event.

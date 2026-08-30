@@ -4,11 +4,11 @@
 
 The repository contains the Windows MVP bundle implementation plus its specification and design records. Keep runtime code in `src/`, tests in `tests/`, and product or implementation documents under `docs/`:
 
-- `docs/dsh-runtime-inspector-mvp.md` — product scope and acceptance baseline.
-- `docs/dsh-runtime-inspector-mvp-spec.md` — implementation-ready specification.
-- `docs/dsh-runtime-inspector-root-pid-research.md` — DSH source research and evidence.
-- `docs/dsh-runtime-inspector-glossary.md` — canonical domain vocabulary.
-- `docs/dsh-runtime-inspector-testing.md` — build, package installation, manual acceptance, and opt-in Stock DSH gates.
+- `docs/dsh-port-inspector-mvp.md` — product scope and acceptance baseline.
+- `docs/dsh-port-inspector-mvp-spec.md` — implementation-ready specification.
+- `docs/dsh-port-inspector-root-pid-research.md` — DSH source research and evidence.
+- `docs/dsh-port-inspector-glossary.md` — canonical domain vocabulary.
+- `docs/dsh-port-inspector-testing.md` — build, package installation, manual acceptance, and opt-in Stock DSH gates.
 - `docs/adr/` — accepted architectural decisions, using numbered filenames.
 - `docs/agents/` — repository configuration consumed by engineering skills.
 - `src/compatibility.ts` and `src/index.ts` — compatibility gate and DSH Host plugin entrypoint.
@@ -47,7 +47,7 @@ Before committing any code or documentation change, run `git diff --check`.
 
 ## Coding Style & Naming Conventions
 
-Use Markdown headings and direct paragraphs. Preserve DSH symbol names exactly (`Process origin`, `Verified attribution`, `Lifecycle owner`, `Managed shutdown`). Name documents in lowercase kebab-case; name ADRs with a zero-padded number and descriptive slug, such as `0001-stock-dsh-root-pid-observation.md`. Keep commands, paths, and API symbols in backticks. Keep Browser code in the same package as the Host half; do not introduce a companion Web repository or standalone Runtime Inspector server.
+Use Markdown headings and direct paragraphs. Preserve DSH symbol names exactly (`Process origin`, `Verified attribution`, `Lifecycle owner`, `Managed shutdown`). Name documents in lowercase kebab-case; name ADRs with a zero-padded number and descriptive slug, such as `0001-stock-dsh-root-pid-observation.md`. Keep commands, paths, and API symbols in backticks. Keep Browser code in the same package as the Host half; do not introduce a companion Web repository or standalone Port Inspector server.
 
 ## Testing Guidelines
 
@@ -55,7 +55,7 @@ Tests use Node's built-in `node:test` runner and `.test.mjs` names. Keep unit an
 
 ## Commit & Pull Request Guidelines
 
-Recent history uses concise Conventional Commit-style subjects with an imperative scope, for example `feat(runtime-inspector): ...`, `test: ...`, and `docs: ...`. Pull requests should explain the outcome, list changed decisions or files, link the GitHub issue or local ticket when applicable, and state deterministic plus real Stock DSH validation. Include screenshots only for UI changes.
+Recent history uses concise Conventional Commit-style subjects with an imperative scope, for example `feat(port-inspector): ...`, `test: ...`, and `docs: ...`. Pull requests should explain the outcome, list changed decisions or files, link the GitHub issue or local ticket when applicable, and state deterministic plus real Stock DSH validation. Include screenshots only for UI changes.
 
 ## Architecture & Safety Notes
 
@@ -75,7 +75,7 @@ Use the repository's canonical triage roles and mappings in `docs/agents/triage-
 
 ### Verification loop
 
-For multi-step MVP work, follow the durable acceptance and evidence rules in `.scratch/dsh-runtime-inspector-mvp/loop-spec.md` and update its `state.md`; do not treat a green unit test as proof of the full DSH lifecycle.
+For multi-step MVP work, follow the durable acceptance and evidence rules in `.scratch/dsh-port-inspector-mvp/loop-spec.md` and update its `state.md`; do not treat a green unit test as proof of the full DSH lifecycle.
 
 ### Domain docs
 

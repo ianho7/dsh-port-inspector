@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="design_doc_mode" content="prototype">
-  <meta name="description" content="Runtime Inspector prototype using the production Browser DOM structure and CSS classes">
+  <meta name="description" content="Port Inspector prototype using the production Browser DOM structure and CSS classes">
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="runtime-inspector-production.css">
-  <title>Runtime Inspector · 代码一致性原型</title>
+  <link rel="stylesheet" href="port-inspector-production.css">
+  <title>Port Inspector · 代码一致性原型</title>
   <!--
     Code-faithful design context:
     - The panel DOM and class names below mirror src/client/panel.ts.
@@ -23,36 +23,36 @@
     <div class="dsh-ri-host-ghost-card"></div>
   </div>
 
-  <div class="dsh-ri-overlay" role="presentation" data-runtime-inspector-panel="overlay">
+  <div class="dsh-ri-overlay" role="presentation" data-port-inspector-panel="overlay">
     <div class="dsh-ri-mask" aria-hidden="true"></div>
-    <section class="dsh-ri-panel" role="dialog" aria-modal="true" aria-labelledby="dsh-runtime-inspector-title" data-runtime-inspector-surface="panel">
+    <section class="dsh-ri-panel" role="dialog" aria-modal="true" aria-labelledby="dsh-port-inspector-title" data-port-inspector-surface="panel">
       <div class="dsh-ri-content">
         <header class="dsh-ri-header">
-          <div class="dsh-ri-header-status" data-runtime-inspector-state="ready">
-            <h1 class="dsh-ri-header-title" id="dsh-runtime-inspector-title">Runtime Inspector</h1>
+          <div class="dsh-ri-header-status" data-port-inspector-state="ready">
+            <h1 class="dsh-ri-header-title" id="dsh-port-inspector-title">Port Inspector</h1>
           </div>
           <div class="dsh-ri-header-actions">
-            <button class="dsh-ri-close" id="close-panel" type="button" aria-label="关闭 Runtime Inspector">×</button>
+            <button class="dsh-ri-close" id="close-panel" type="button" aria-label="关闭 Port Inspector">×</button>
           </div>
         </header>
 
         <div class="dsh-ri-options">
-          <div class="dsh-ri-toolbar" data-runtime-inspector-toolbar="controls">
+          <div class="dsh-ri-toolbar" data-port-inspector-toolbar="controls">
             <label class="dsh-ri-search">
               <span class="dsh-ri-search-icon" aria-hidden="true">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="10.8" cy="10.8" r="6.6" stroke="currentColor" stroke-width="1.8"></circle><path d="m16 16 4.2 4.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
               </span>
-              <input id="search-input" type="search" placeholder="搜索端口、PID、应用或会话" aria-label="搜索占用端口" data-runtime-inspector-search="input">
+              <input id="search-input" type="search" placeholder="搜索端口、PID、应用或会话" aria-label="搜索占用端口" data-port-inspector-search="input">
             </label>
-            <select class="dsh-ri-select" aria-label="排序占用端口" data-runtime-inspector-sort="select">
+            <select class="dsh-ri-select" aria-label="排序占用端口" data-port-inspector-sort="select">
               <option value="port">按端口</option>
               <option value="application">按应用</option>
               <option value="pid">按 PID</option>
               <option value="project">按项目</option>
               <option value="session">按会话</option>
             </select>
-            <button class="dsh-ri-toolbar-button" id="sort-button" type="button" aria-label="切换排序方向" data-runtime-inspector-sort-direction="toggle">升序 <span aria-hidden="true">⌄</span></button>
-            <button class="dsh-ri-toolbar-button" id="refresh-button" type="button" aria-label="刷新端口列表" data-runtime-inspector-refresh="refresh">
+            <button class="dsh-ri-toolbar-button" id="sort-button" type="button" aria-label="切换排序方向" data-port-inspector-sort-direction="toggle">升序 <span aria-hidden="true">⌄</span></button>
+            <button class="dsh-ri-toolbar-button" id="refresh-button" type="button" aria-label="刷新端口列表" data-port-inspector-refresh="refresh">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.8-4.1L3 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path><path d="M3 4.8V9h4.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path><path d="M4 13a8 8 0 0 0 14.8 4.1L21 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path><path d="M21 19.2V15h-4.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
               刷新
             </button>
@@ -65,14 +65,14 @@
             </div>
             <label class="dsh-ri-toolbar-control dsh-ri-source-control">
               <span class="dsh-ri-control-label">启动方</span>
-              <select class="dsh-ri-select dsh-ri-source-select" aria-label="按启动方筛选" data-runtime-inspector-source-filter="select">
+              <select class="dsh-ri-select dsh-ri-source-select" aria-label="按启动方筛选" data-port-inspector-source-filter="select">
                 <option value="all">全部</option>
                 <option value="dsh">由 DSH 启动</option>
                 <option value="unconfirmed">启动方未确认</option>
               </select>
             </label>
             <label class="dsh-ri-action-toggle">
-              <input type="checkbox" aria-label="仅显示可处理" data-runtime-inspector-actionable-only="toggle">
+              <input type="checkbox" aria-label="仅显示可处理" data-port-inspector-actionable-only="toggle">
               <span>仅显示可处理</span>
             </label>
           </div>
@@ -89,11 +89,11 @@
                 <span class="dsh-ri-column-heading-count">显示 4 项</span>
               </div>
 
-              <div class="dsh-ri-list-group" data-runtime-inspector-group="current-project">
+              <div class="dsh-ri-list-group" data-port-inspector-group="current-project">
                 <div class="dsh-ri-list-group-heading"><span>当前项目</span><span>2项</span></div>
-                <ul class="dsh-ri-list" data-runtime-inspector-list="listeners">
-                  <li class="dsh-ri-row" data-runtime-inspector-row="listener-4173" data-id="verified" data-search="4173 18472 127.0.0.1 node.exe vite dsh-runtime-inspector sess_01JY7F2N8K">
-                    <button class="dsh-ri-row-button is-selected" type="button" aria-label="选择端口 4173，PID 18472" aria-pressed="true" data-runtime-inspector-select="listener-4173">
+                <ul class="dsh-ri-list" data-port-inspector-list="listeners">
+                  <li class="dsh-ri-row" data-port-inspector-row="listener-4173" data-id="verified" data-search="4173 18472 127.0.0.1 node.exe vite dsh-port-inspector sess_01JY7F2N8K">
+                    <button class="dsh-ri-row-button is-selected" type="button" aria-label="选择端口 4173，PID 18472" aria-pressed="true" data-port-inspector-select="listener-4173">
                       <div class="dsh-ri-row-top">
                         <span class="dsh-ri-port">端口 4173<span class="dsh-ri-protocol">TCP</span></span>
                         <span class="dsh-ri-source-pill is-verified" title="此监听端口由当前会话启动，DSH 已完成身份确认."><span class="dsh-ri-source-signal"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 4.2 4.2L19 6.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><span>由 DSH 启动</span></span>
@@ -105,8 +105,8 @@
                       <div class="dsh-ri-row-meta"><span>PID 18472</span><span>127.0.0.1:4173</span><span class="dsh-ri-action-pill is-managed">可停止</span></div>
                     </button>
                   </li>
-                  <li class="dsh-ri-row" data-runtime-inspector-row="listener-3001" data-id="terminal" data-search="3001 19104 127.0.0.1 node.exe vite agent-playground sess_01JY7D0T4R terminal">
-                    <button class="dsh-ri-row-button" type="button" aria-label="选择端口 3001，PID 19104" aria-pressed="false" data-runtime-inspector-select="listener-3001">
+                  <li class="dsh-ri-row" data-port-inspector-row="listener-3001" data-id="terminal" data-search="3001 19104 127.0.0.1 node.exe vite agent-playground sess_01JY7D0T4R terminal">
+                    <button class="dsh-ri-row-button" type="button" aria-label="选择端口 3001，PID 19104" aria-pressed="false" data-port-inspector-select="listener-3001">
                       <div class="dsh-ri-row-top">
                         <span class="dsh-ri-port">端口 3001<span class="dsh-ri-protocol">TCP</span></span>
                         <span class="dsh-ri-source-pill is-verified"><span class="dsh-ri-source-signal"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 4.2 4.2L19 6.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><span>由 DSH 启动</span></span>
@@ -121,11 +121,11 @@
                 </ul>
               </div>
 
-              <div class="dsh-ri-list-group" data-runtime-inspector-group="development-environment">
+              <div class="dsh-ri-list-group" data-port-inspector-group="development-environment">
                 <div class="dsh-ri-list-group-heading"><span>开发环境</span><span>2项</span></div>
-                <ul class="dsh-ri-list" data-runtime-inspector-list="listeners">
-                  <li class="dsh-ri-row" data-runtime-inspector-row="listener-3000" data-id="inferred" data-search="3000 20244 127.0.0.1 node.exe next demo-web candidate">
-                    <button class="dsh-ri-row-button" type="button" aria-label="选择端口 3000，PID 20244" aria-pressed="false" data-runtime-inspector-select="listener-3000">
+                <ul class="dsh-ri-list" data-port-inspector-list="listeners">
+                  <li class="dsh-ri-row" data-port-inspector-row="listener-3000" data-id="inferred" data-search="3000 20244 127.0.0.1 node.exe next demo-web candidate">
+                    <button class="dsh-ri-row-button" type="button" aria-label="选择端口 3000，PID 20244" aria-pressed="false" data-port-inspector-select="listener-3000">
                       <div class="dsh-ri-row-top">
                         <span class="dsh-ri-port">端口 3000<span class="dsh-ri-protocol">TCP</span></span>
                         <span class="dsh-ri-source-pill is-inferred" title="发现 DSH 线索，来源尚未确认"><span class="dsh-ri-source-signal"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7.2 16.8a5 5 0 0 1 0-9.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path><path d="M16.8 7.2a5 5 0 0 1 0 9.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path><path d="M9.5 12h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path></svg></span><span>启动方未确认</span></span>
@@ -137,8 +137,8 @@
                       <div class="dsh-ri-row-meta"><span>PID 20244</span><span>127.0.0.1:3000</span><span class="dsh-ri-action-pill is-external">可结束</span></div>
                     </button>
                   </li>
-                  <li class="dsh-ri-row" data-runtime-inspector-row="listener-9229" data-id="external" data-search="9229 16304 0.0.0.0 python.exe external unknown">
-                    <button class="dsh-ri-row-button" type="button" aria-label="选择端口 9229，PID 16304" aria-pressed="false" data-runtime-inspector-select="listener-9229">
+                  <li class="dsh-ri-row" data-port-inspector-row="listener-9229" data-id="external" data-search="9229 16304 0.0.0.0 python.exe external unknown">
+                    <button class="dsh-ri-row-button" type="button" aria-label="选择端口 9229，PID 16304" aria-pressed="false" data-port-inspector-select="listener-9229">
                       <div class="dsh-ri-row-top">
                         <span class="dsh-ri-port">端口 9229<span class="dsh-ri-protocol">TCP</span></span>
                         <span class="dsh-ri-source-pill is-unattributed"><span class="dsh-ri-source-signal"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"></circle><path d="M9.8 9a2.4 2.4 0 0 1 4.6 1c0 1.8-2.4 2-2.4 3.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M12 17.2h.01" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"></path></svg></span><span>启动方未确认</span></span>
@@ -153,7 +153,7 @@
                 </ul>
               </div>
 
-              <div class="dsh-ri-list-group" data-runtime-inspector-group="other">
+              <div class="dsh-ri-list-group" data-port-inspector-group="other">
                 <button class="dsh-ri-other-toggle" type="button" aria-expanded="false"><span>已收起 2 个其他监听</span><span aria-hidden="true">›</span></button>
               </div>
             </section>
@@ -183,7 +183,7 @@
                   <div class="dsh-ri-fact"><dt>监听地址</dt><dd id="fact-address">127.0.0.1:4173</dd></div>
                   <div class="dsh-ri-fact"><dt>相同监听</dt><dd id="fact-occurrences">—</dd></div>
                   <div class="dsh-ri-fact"><dt>创建时间</dt><dd id="fact-created">2026-08-26 14:42:18</dd></div>
-                  <div class="dsh-ri-fact is-wide"><dt>项目目录</dt><dd class="dsh-ri-prototype-fact-copy is-command" id="fact-project">D:\project\dsh-runtime-inspector</dd></div>
+                  <div class="dsh-ri-fact is-wide"><dt>项目目录</dt><dd class="dsh-ri-prototype-fact-copy is-command" id="fact-project">D:\project\dsh-port-inspector</dd></div>
                   <div class="dsh-ri-fact is-wide"><dt>启动命令</dt><dd class="dsh-ri-prototype-fact-copy is-command" id="fact-command">npm run dev -- --host 127.0.0.1 --port 4173</dd></div>
                 </dl>
               </section>
@@ -191,7 +191,7 @@
               <section class="dsh-ri-detail-section">
                 <h3 class="dsh-ri-section-title">会话上下文</h3>
                 <dl class="dsh-ri-fact-grid">
-                  <div class="dsh-ri-fact"><dt>Session</dt><dd id="fact-session">Runtime Inspector · 当前会话</dd></div>
+                  <div class="dsh-ri-fact"><dt>Session</dt><dd id="fact-session">Port Inspector · 当前会话</dd></div>
                   <div class="dsh-ri-fact"><dt>Session ID</dt><dd class="dsh-ri-prototype-fact-copy is-command" id="fact-session-id">sess_01JY7F2N8K</dd></div>
                   <div class="dsh-ri-fact"><dt>Call ID</dt><dd class="dsh-ri-prototype-fact-copy is-command" id="fact-call-id">call_7b2a41d9</dd></div>
                   <div class="dsh-ri-fact is-wide"><dt>用户请求</dt><dd class="is-multiline dsh-ri-prototype-fact-copy" id="fact-request">请在当前项目启动一个本地 HTTP 服务，监听 127.0.0.1:4173，并保持运行。</dd></div>
@@ -217,7 +217,7 @@
                   <span id="source-pill" class="dsh-ri-source-pill is-verified"><span class="dsh-ri-source-signal"><svg id="source-icon-check" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 4.2 4.2L19 6.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg><svg id="source-icon-link" width="13" height="13" viewBox="0 0 24 24" fill="none" hidden aria-hidden="true"><path d="M7.2 16.8a5 5 0 0 1 0-9.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path><path d="M16.8 7.2a5 5 0 0 1 0 9.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path><path d="M9.5 12h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path></svg><svg id="source-icon-question" width="13" height="13" viewBox="0 0 24 24" fill="none" hidden aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"></circle><path d="M9.8 9a2.4 2.4 0 0 1 4.6 1c0 1.8-2.4 2-2.4 3.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path><path d="M12 17.2h.01" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"></path></svg></span><span id="source-label">由 DSH 启动</span></span>
                   <p class="dsh-ri-source-copy" id="source-copy">此监听端口由当前会话启动，DSH 已完成身份确认。</p>
                   <dl class="dsh-ri-fact-grid dsh-ri-prototype-card-facts">
-                    <div class="dsh-ri-fact"><dt>Workdir</dt><dd class="dsh-ri-prototype-fact-copy is-command" id="fact-workdir">D:\project\dsh-runtime-inspector</dd></div>
+                    <div class="dsh-ri-fact"><dt>Workdir</dt><dd class="dsh-ri-prototype-fact-copy is-command" id="fact-workdir">D:\project\dsh-port-inspector</dd></div>
                     <div class="dsh-ri-fact"><dt>Spawn 类型</dt><dd class="dsh-ri-prototype-fact-copy is-command" id="fact-spawn">spawn</dd></div>
                   </dl>
                   <div class="dsh-ri-owner-line"><span class="dsh-ri-owner-label">DSH 生命周期</span><span class="dsh-ri-owner-pill" id="fact-owner">job · job_8d1c</span></div>
@@ -250,7 +250,7 @@
     <span class="dsh-ri-prototype-panel-note" id="scenario-note">当前页面的面板结构和 CSS 来自生产代码；底部按钮仅用于切换模拟数据。</span>
   </div>
 
-  <button class="dsh-ri-entry is-compact" id="open-panel" type="button" aria-label="打开 Runtime Inspector" hidden>
+  <button class="dsh-ri-entry is-compact" id="open-panel" type="button" aria-label="打开 Port Inspector" hidden>
     <span class="dsh-ri-entry-icon">⌁</span>
   </button>
 
@@ -258,8 +258,8 @@
     const records = {
       verified: {
         port: "4173", address: "127.0.0.1:4173", toolchain: "Vite", executable: "node.exe", pid: "18472", created: "2026-08-26 14:42:18",
-        project: "D:\\project\\dsh-runtime-inspector", command: "npm run dev -- --host 127.0.0.1 --port 4173", session: "Runtime Inspector · 当前会话", sessionId: "sess_01JY7F2N8K", request: "请在当前项目启动一个本地 HTTP 服务，监听 127.0.0.1:4173，并保持运行。",
-        preset: "coding", agentId: "sess_01JY7F2N8K", turnStep: "12 / 2", tool: "run_code", callId: "call_7b2a41d9", rootCallId: "call_7b2a41d9", model: "openai · gpt-5.6", parent: "—", source: "verified", sourceLabel: "由 DSH 启动", sourceCopy: "此监听端口由当前会话启动，DSH 已完成身份确认。", workdir: "D:\\project\\dsh-runtime-inspector", spawn: "spawn", owner: "job · job_8d1c", action: "managed-shutdown", actionLabel: "停止 DSH 任务", actionCopy: "通过 DSH 生命周期执行停止；Host 会在执行前重新校验当前身份。", note: "当前 UI 的生产 DOM 与 CSS；显示完整、已确认的 DSH 来源。"
+        project: "D:\\project\\dsh-port-inspector", command: "npm run dev -- --host 127.0.0.1 --port 4173", session: "Port Inspector · 当前会话", sessionId: "sess_01JY7F2N8K", request: "请在当前项目启动一个本地 HTTP 服务，监听 127.0.0.1:4173，并保持运行。",
+        preset: "coding", agentId: "sess_01JY7F2N8K", turnStep: "12 / 2", tool: "run_code", callId: "call_7b2a41d9", rootCallId: "call_7b2a41d9", model: "openai · gpt-5.6", parent: "—", source: "verified", sourceLabel: "由 DSH 启动", sourceCopy: "此监听端口由当前会话启动，DSH 已完成身份确认。", workdir: "D:\\project\\dsh-port-inspector", spawn: "spawn", owner: "job · job_8d1c", action: "managed-shutdown", actionLabel: "停止 DSH 任务", actionCopy: "通过 DSH 生命周期执行停止；Host 会在执行前重新校验当前身份。", note: "当前 UI 的生产 DOM 与 CSS；显示完整、已确认的 DSH 来源。"
       },
       terminal: {
         port: "3001", address: "127.0.0.1:3001", toolchain: "Vite", executable: "node.exe", pid: "19104", created: "2026-08-26 14:35:04",

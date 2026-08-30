@@ -1,6 +1,6 @@
 # 工具链 Logo 资源流水线
 
-本文档面向维护者，说明如何更新 Runtime Inspector 使用的本地工具链 Logo。Runtime Inspector 运行时不从第三方官网加载 Logo；普通用户无需执行这些命令。
+本文档面向维护者，说明如何更新 Port Inspector 使用的本地工具链 Logo。Port Inspector 运行时不从第三方官网加载 Logo；普通用户无需执行这些命令。
 
 ## 资源位置
 

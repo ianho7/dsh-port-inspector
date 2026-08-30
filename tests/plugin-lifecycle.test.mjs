@@ -239,7 +239,7 @@ test('Web bridge registers as one removable route without adding a second effect
   apply(context)
 
   assert.equal(routes.length, 1)
-  assert.equal(routes[0].path, '/api/dsh-runtime-inspector')
+  assert.equal(routes[0].path, '/api/dsh-port-inspector')
   assert.equal(effects.length, 1)
   await effects[0]()
   assert.equal(removed, true)

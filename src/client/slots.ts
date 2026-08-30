@@ -31,15 +31,15 @@ export const RUNTIME_INSPECTOR_SLOT_OPTIONS: Readonly<{
 }> = Object.freeze({
   entry: {
     name: 'sidebar.footer.action',
-    id: 'dsh-runtime-inspector',
+    id: 'dsh-port-inspector',
     order: 120,
-    label: 'Runtime Inspector',
+    label: 'Port Inspector',
   },
   panel: {
     name: 'shell.overlay',
-    id: 'dsh-runtime-inspector-panel',
+    id: 'dsh-port-inspector-panel',
     order: 120,
-    label: 'Runtime Inspector panel',
+    label: 'Port Inspector panel',
   },
 })
 

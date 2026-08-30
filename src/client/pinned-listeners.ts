@@ -1,4 +1,4 @@
-export const PINNED_LISTENERS_STORAGE_KEY = 'dsh-runtime-inspector:pins:v1'
+export const PINNED_LISTENERS_STORAGE_KEY = 'dsh-port-inspector:pins:v1'
 
 export interface ListenerPinStorage {
   getItem(key: string): string | null

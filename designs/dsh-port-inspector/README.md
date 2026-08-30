@@ -1,4 +1,4 @@
-# Runtime Inspector prototype
+# Port Inspector prototype
 
 ## Design context
 

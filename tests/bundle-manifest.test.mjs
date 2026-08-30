@@ -15,14 +15,14 @@ test('package declares an installable DSH Bundle patch', () => {
   assert.equal(manifest.dependencies.koffi, '^3.1.0')
   assert.equal(manifest.peerDependencies, undefined, 'package installation must not reject an otherwise capable DSH version')
   assert.deepEqual(manifest.files, ['lib/**/*.js', 'lib/**/*.d.ts', 'cordis.patch.yml'])
-  assert.match(patch, /id: dsh-runtime-inspector/)
-  assert.match(patch, /name: dsh-runtime-inspector/)
+  assert.match(patch, /id: dsh-port-inspector/)
+  assert.match(patch, /name: dsh-port-inspector/)
 })
 
 test('package includes the DSH lazy-CJS Browser artifact', async () => {
   const client = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8')
   assert.match(client, /window\.__ModuleLoader__\.load/)
-  assert.match(client, /dsh-runtime-inspector/)
+  assert.match(client, /dsh-port-inspector/)
   assert.match(client, /require\("react"\)/)
   assert.match(client, /data:image\/webp;base64,/)
 })

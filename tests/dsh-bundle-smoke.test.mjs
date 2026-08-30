@@ -127,10 +127,10 @@ async function runProfileOnce({ dshRoot, dshBin, home, healthFile, originsFile, 
 test('real Stock DSH loads the Bundle and disposes it without process ownership', {
   skip: !canRunStockDsh,
 }, async () => {
-  const home = await mkdtemp(join(tmpdir(), 'dsh-runtime-inspector-'))
-  const resultDir = await mkdtemp(join(tmpdir(), 'dsh-runtime-inspector-result-'))
+  const home = await mkdtemp(join(tmpdir(), 'dsh-port-inspector-'))
+  const resultDir = await mkdtemp(join(tmpdir(), 'dsh-port-inspector-result-'))
   const profile = join(home, 'profiles', 'inspector')
-  const installed = join(profile, 'node_modules', 'dsh-runtime-inspector')
+  const installed = join(profile, 'node_modules', 'dsh-port-inspector')
   const healthFile = join(home, 'health.json')
   const originsFile = join(resultDir, 'origins.json')
   const stopFile = join(home, 'stop')
@@ -155,21 +155,21 @@ test('real Stock DSH loads the Bundle and disposes it without process ownership'
     await cp(join(repoRoot, 'cordis.patch.yml'), join(installed, 'cordis.patch.yml'))
     await cp(join(repoRoot, 'lib'), join(installed, 'lib'), { recursive: true })
     await writeFile(join(profile, 'package.json'), JSON.stringify({
-      name: 'dsh-runtime-inspector-profile',
+      name: 'dsh-port-inspector-profile',
       private: true,
       dependencies: {},
-      dsh: { profile: { bundles: ['@deepseek-ai/dsh-base', 'dsh-runtime-inspector'] } },
+      dsh: { profile: { bundles: ['@deepseek-ai/dsh-base', 'dsh-port-inspector'] } },
     }, null, 2))
     await writeFile(join(profile, 'cordis.patch.yml'), [
       '- insert:',
-      '    - id: runtime-inspector-probe',
+      '    - id: port-inspector-probe',
       `      name: ${pathToFileURL(probeFile).href}`,
       '      inject: [runtimeInspector, sessions, tools, shell]',
       '',
     ].join('\n'))
     await writeFile(probeFile, [
       "import { existsSync, writeFileSync } from 'node:fs'",
-      "export const name = 'runtime-inspector-probe'",
+      "export const name = 'port-inspector-probe'",
       "export const inject = ['runtimeInspector', 'sessions', 'tools', 'shell']",
       'let retainedOrigins = []',
       'export function apply(ctx) {',

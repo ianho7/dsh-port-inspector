@@ -34,7 +34,7 @@ export function createRuntimeInspectorDshAdapters(readApiProxy: () => unknown): 
     const openPath = readOpenPath(readApiProxy)
     if (openPath === undefined) throw new Error('Host path opener unavailable')
     const response = await openPath({
-      rpcId: `dsh-runtime-inspector:${Date.now()}:${requestSequence++}`,
+      rpcId: `dsh-port-inspector:${Date.now()}:${requestSequence++}`,
       payload: { path },
     }, new AbortController().signal)
     const result = isRecord(response) ? response.result : undefined

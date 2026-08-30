@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="design_doc_mode" content="prototype" />
   <link rel="icon" href="data:," />
-  <title>Runtime Inspector · 开发端口</title>
+  <title>Port Inspector · 开发端口</title>
   <style>
     :root {
       --ink:#202734; --sub:#5f6979; --muted:#929cab; --line:#e8ebef;
@@ -60,13 +60,13 @@
 <body>
   <main class="host">
     <aside class="rail"><div class="logo">DSH</div><div class="railnav"><i></i><i></i><i></i></div><div class="avatar">A</div></aside>
-    <section class="workspace"><header class="workspace-head"><strong>Workspace</strong>&nbsp;&nbsp;/&nbsp;&nbsp; dsh-runtime-inspector</header><div class="workspace-body" aria-hidden="true"><div class="ghost-title"></div><div class="ghost-line"></div><div class="ghost-line" style="width:52%"></div><div class="ghost-card"></div></div></section>
+    <section class="workspace"><header class="workspace-head"><strong>Workspace</strong>&nbsp;&nbsp;/&nbsp;&nbsp; dsh-port-inspector</header><div class="workspace-body" aria-hidden="true"><div class="ghost-title"></div><div class="ghost-line"></div><div class="ghost-line" style="width:52%"></div><div class="ghost-card"></div></div></section>
   </main>
 
   <div class="shade">
-    <section class="panel" aria-label="Runtime Inspector 高保真原型">
+    <section class="panel" aria-label="Port Inspector 高保真原型">
       <header class="top">
-        <div class="brandline"><h1>Runtime Inspector</h1><span class="mode">观察模式</span></div>
+        <div class="brandline"><h1>Port Inspector</h1><span class="mode">观察模式</span></div>
         <div class="top-actions">
           <button class="icon-btn" id="sourcesButton" aria-label="查看识别说明" title="识别说明"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.7"/><path d="M12 10.5v5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="7.5" r="1" fill="currentColor"/></svg></button>
           <button class="icon-btn" aria-label="关闭"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
@@ -88,8 +88,8 @@
           <div class="scroll" id="scrollArea">
             <div class="search-note" id="searchNote">搜索会检查全部监听，包括默认收起的后台进程。</div>
             <div class="group development-group" data-group="current">
-              <div class="group-head"><div class="group-title"><h3>当前项目</h3><span>2</span></div><small>dsh-runtime-inspector</small></div>
-              <div class="listener selected" tabindex="0" data-id="5173" data-kind="development" data-search="5173 node vite dsh-runtime-inspector 18824 当前项目 dsh">
+              <div class="group-head"><div class="group-title"><h3>当前项目</h3><span>2</span></div><small>dsh-port-inspector</small></div>
+              <div class="listener selected" tabindex="0" data-id="5173" data-kind="development" data-search="5173 node vite dsh-port-inspector 18824 当前项目 dsh">
                 <div class="port">5173</div><div class="service"><strong>Vite dev server</strong><span>node.exe · PID 18824</span><div class="reason"><i class="reason-dot"></i>当前项目 · DSH 会话</div></div><div class="badges"><span class="pill dsh">DSH 已确认</span><span class="pill action">可停止</span></div>
               </div>
               <div class="listener" tabindex="0" data-id="3000" data-kind="development" data-search="3000 node next.js web-console 20116 当前项目 dsh">
@@ -133,10 +133,10 @@
         </section>
 
         <aside class="detail" id="detailPane">
-          <header class="detail-head"><div><div class="detail-port"><strong id="detailPort">:5173</strong><span id="detailService">Vite dev server</span></div><div class="detail-meta"><span id="detailProject">dsh-runtime-inspector</span><span>·</span><code id="detailPid">PID 18824</code><span class="pill dsh" id="detailSource">DSH 已确认</span></div></div><div class="detail-actions"><button class="icon-btn" title="复制脱敏详情" aria-label="复制脱敏详情"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="8" y="8" width="10" height="11" rx="1.5" stroke="currentColor" stroke-width="1.7"/><path d="M6 15h-.5A1.5 1.5 0 0 1 4 13.5v-9A1.5 1.5 0 0 1 5.5 3h8A1.5 1.5 0 0 1 15 4.5V5" stroke="currentColor" stroke-width="1.7"/></svg></button></div></header>
+          <header class="detail-head"><div><div class="detail-port"><strong id="detailPort">:5173</strong><span id="detailService">Vite dev server</span></div><div class="detail-meta"><span id="detailProject">dsh-port-inspector</span><span>·</span><code id="detailPid">PID 18824</code><span class="pill dsh" id="detailSource">DSH 已确认</span></div></div><div class="detail-actions"><button class="icon-btn" title="复制脱敏详情" aria-label="复制脱敏详情"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="8" y="8" width="10" height="11" rx="1.5" stroke="currentColor" stroke-width="1.7"/><path d="M6 15h-.5A1.5 1.5 0 0 1 4 13.5v-9A1.5 1.5 0 0 1 5.5 3h8A1.5 1.5 0 0 1 15 4.5V5" stroke="currentColor" stroke-width="1.7"/></svg></button></div></header>
           <section class="section"><h4>为什么显示在开发端口</h4><div class="why"><div class="why-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5v-9Z" stroke="currentColor" stroke-width="1.7"/><path d="m8.5 12 2.2 2.2 4.8-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><strong id="detailReasonTitle">当前项目服务</strong><p id="detailReason">项目目录与当前工作区一致，并由当前 DSH 会话中的 Terminal 启动。</p><div class="signal-row" id="detailSignals"><span class="signal">项目目录</span><span class="signal">父进程链</span><span class="signal">DSH Terminal</span></div></div></div></section>
-          <section class="section"><h4>监听器</h4><dl class="facts"><div class="fact"><dt>地址</dt><dd class="mono" id="detailAddress">127.0.0.1:5173</dd></div><div class="fact"><dt>协议</dt><dd class="mono">TCP4</dd></div><div class="fact"><dt>创建时间</dt><dd class="mono">2026-08-23 14:32:08</dd></div><div class="fact"><dt>项目目录</dt><dd id="detailPath">D:\project\dsh-runtime-inspector</dd></div></dl></section>
-          <section class="section" id="contextSection"><h4>会话上下文</h4><dl class="facts"><div class="fact"><dt>Session</dt><dd>dsh-runtime-inspector</dd></div><div class="fact"><dt>Call ID</dt><dd class="mono">call_7f3a…b12</dd></div><div class="fact wide"><dt>用户请求</dt><dd>启动 Vite 开发服务并监听 5173 端口</dd></div></dl></section>
+          <section class="section"><h4>监听器</h4><dl class="facts"><div class="fact"><dt>地址</dt><dd class="mono" id="detailAddress">127.0.0.1:5173</dd></div><div class="fact"><dt>协议</dt><dd class="mono">TCP4</dd></div><div class="fact"><dt>创建时间</dt><dd class="mono">2026-08-23 14:32:08</dd></div><div class="fact"><dt>项目目录</dt><dd id="detailPath">D:\project\dsh-port-inspector</dd></div></dl></section>
+          <section class="section" id="contextSection"><h4>会话上下文</h4><dl class="facts"><div class="fact"><dt>Session</dt><dd>dsh-port-inspector</dd></div><div class="fact"><dt>Call ID</dt><dd class="mono">call_7f3a…b12</dd></div><div class="fact wide"><dt>用户请求</dt><dd>启动 Vite 开发服务并监听 5173 端口</dd></div></dl></section>
           <section class="section"><h4>处理方式</h4><div class="action-card"><div class="action-card-head"><strong id="actionTitle">停止 DSH 任务</strong><span id="actionMeta">通过 Terminal owner</span></div><p id="actionCopy">将通过 DSH 生命周期关闭受管资源，并在完成后重新扫描端口。</p><button class="primary" id="actionButton"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="6" y="6" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/></svg><span>停止 DSH 任务</span></button></div></section>
         </aside>
       </div>
@@ -150,7 +150,7 @@
 
   <script>
     const details={
-      '5173':{port:'5173',service:'Vite dev server',project:'dsh-runtime-inspector',pid:'18824',source:'DSH 已确认',address:'127.0.0.1:5173',path:'D:\\project\\dsh-runtime-inspector',title:'当前项目服务',reason:'项目目录与当前工作区一致，并由当前 DSH 会话中的 Terminal 启动。',signals:['项目目录','父进程链','DSH Terminal'],managed:true},
+      '5173':{port:'5173',service:'Vite dev server',project:'dsh-port-inspector',pid:'18824',source:'DSH 已确认',address:'127.0.0.1:5173',path:'D:\\project\\dsh-port-inspector',title:'当前项目服务',reason:'项目目录与当前工作区一致，并由当前 DSH 会话中的 Terminal 启动。',signals:['项目目录','父进程链','DSH Terminal'],managed:true},
       '3000':{port:'3000',service:'Next.js dev server',project:'web-console',pid:'20116',source:'DSH 已确认',address:'0.0.0.0:3000',path:'D:\\project\\web-console',title:'DSH 会话服务',reason:'由当前 DSH 会话中的后台任务启动，并保留完整生命周期归属。',signals:['DSH Job','父进程链','项目目录'],managed:true},
       '5432':{port:'5432',service:'PostgreSQL',project:'开发环境',pid:'7316',source:'来源未确认',address:'127.0.0.1:5432',path:'未关联项目',title:'开发基础设施',reason:'可执行文件与 PostgreSQL 服务一致，作为本机开发数据库显示。端口号仅作为辅助信息。',signals:['可执行文件','服务身份','当前用户'],managed:false},
       '6379':{port:'6379',service:'Redis',project:'开发环境',pid:'12440',source:'来源未确认',address:'127.0.0.1:6379',path:'容器 redis-dev',title:'容器开发服务',reason:'Docker 发布端口与运行中的 redis-dev 容器对应。宿主代理进程不会导致它被收起。',signals:['Docker 映射','容器身份','服务端口'],managed:false},

@@ -2,7 +2,7 @@
 
 - 状态：Accepted
 - 日期：2026-08-21
-- 适用范围：DSH Runtime Inspector Windows MVP
+- 适用范围：DSH Port Inspector Windows MVP
 
 ## Context
 
