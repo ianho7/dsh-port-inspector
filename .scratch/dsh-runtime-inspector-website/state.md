@@ -11,6 +11,12 @@ status: complete
 - Browser verification passed at desktop and mobile sizes: no broken images, no mobile horizontal overflow, language navigation works, native FAQ expands, and copy feedback is readable.
 - Follow-up visual fix passed: the evidence and context screenshots now render at their native horizontal ratios (`2048×990` and `2560×1237`), and the install command wraps without horizontal overflow at desktop and mobile widths.
 - Follow-up typography fix passed: the context caption now uses the site body hierarchy (`1.04rem`, muted body color, `1.7` line-height) in both locales without viewport overflow.
+- SEO keyword research added official DeepSeek Harness terms (`DeepSeek Harness`, `deepseek-harness`, `DSH Web`, `dsh web`, `dsh plugin`, `dsh-plugin`, `agent harness`, and `Cordis`) plus product-intent port diagnostics terms; the source matrix is recorded in `docs/dsh-port-inspector-seo-keyword-research.md`.
+- Both locale pages now expose localized SEO titles/descriptions, natural keyword-bearing product copy, SoftwareApplication/WebSite JSON-LD keywords and feature lists, and matching FAQPage JSON-LD. No `meta keywords` tag was added.
+- Static SEO output check passed: `/zh/` has 30 localized keywords and `/en/` has 31, both have 4 structured features and 5 FAQ entries, and neither page has a `meta keywords` tag.
+- Root language selection now prefers the saved manual choice, then the first `zh`/`en` browser language, and falls back to `/zh/`; direct `/zh/` and `/en/` routes remain stable.
+- Cloudflare Pages no longer forces `/` to `/zh/`; the static root page owns the language decision, with a Chinese no-JavaScript fallback.
+- Static locale routing check passed: root output contains the locale script and `location.replace`, has no meta refresh, `_redirects` is not emitted, and both locale pages contain the preference-aware switch hooks.
 - `git diff --check` passed.
 
 ## Next acceptance actions

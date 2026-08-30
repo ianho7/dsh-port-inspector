@@ -1,16 +1,19 @@
 ---
 import '../styles/global.css';
-import type { Locale } from '../content/site';
+import type { ContentRow, Locale } from '../content/site';
 
 interface Props {
   locale: Locale;
   title: string;
   description: string;
+  keywords: string[];
+  featureList: string[];
+  faqItems: ContentRow[];
   canonicalPath: string;
   noindex?: boolean;
 }
 
-const { locale, title, description, canonicalPath, noindex = false } = Astro.props;
+const { locale, title, description, keywords, featureList, faqItems, canonicalPath, noindex = false } = Astro.props;
 const siteUrl = Astro.site ?? new URL('https://dsh-port-inspector.pages.dev');
 const normalizedPath = canonicalPath.endsWith('/') ? canonicalPath : `${canonicalPath}/`;
 const canonicalUrl = new URL(normalizedPath, siteUrl);
@@ -18,6 +21,7 @@ const zhUrl = new URL('/zh/', siteUrl);
 const enUrl = new URL('/en/', siteUrl);
 const logoUrl = new URL('/images/port-inspector-logo.png', siteUrl);
 const socialImageUrl = new URL('/images/port-inspector-evidence.png', siteUrl);
+const keywordString = keywords.join(', ');
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -26,8 +30,11 @@ const jsonLd = {
       '@type': 'SoftwareApplication',
       name: 'DSH Port Inspector',
       applicationCategory: 'DeveloperApplication',
+      applicationSubCategory: locale === 'zh' ? 'Windows 本地开发端口检查插件' : 'Windows local development port-inspection plugin',
       operatingSystem: 'Windows',
       description,
+      keywords: keywordString,
+      featureList,
       url: canonicalUrl.href,
       image: logoUrl.href,
       isAccessibleForFree: true,
@@ -38,7 +45,22 @@ const jsonLd = {
       '@type': 'WebSite',
       name: 'DSH Port Inspector',
       url: siteUrl.href,
+      description,
+      keywords: keywordString,
       inLanguage: locale === 'zh' ? 'zh-CN' : 'en',
+    },
+    {
+      '@type': 'FAQPage',
+      url: canonicalUrl.href,
+      inLanguage: locale === 'zh' ? 'zh-CN' : 'en',
+      mainEntity: faqItems.map((item) => ({
+        '@type': 'Question',
+        name: item.title,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: item.description,
+        },
+      })),
     },
   ],
 };
@@ -78,7 +100,22 @@ const jsonLd = {
     <a class="skip-link" href="#main-content">{locale === 'zh' ? '跳到主要内容' : 'Skip to main content'}</a>
     <slot />
     <script>
+      const localePreferenceKey = 'dsh-port-inspector-locale';
+      const localeChoices = document.querySelectorAll('[data-locale-choice]');
       const copyButtons = document.querySelectorAll('[data-copy-command]');
+
+      localeChoices.forEach((choice) => {
+        choice.addEventListener('click', () => {
+          const locale = choice.getAttribute('data-locale-choice');
+          if (locale !== 'zh' && locale !== 'en') return;
+
+          try {
+            window.localStorage.setItem(localePreferenceKey, locale);
+          } catch {
+            // Private browsing modes may deny storage; the link still works.
+          }
+        });
+      });
 
       copyButtons.forEach((button) => {
         button.addEventListener('click', async () => {

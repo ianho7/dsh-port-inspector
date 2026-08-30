@@ -1,5 +1,5 @@
 ---
-const destination = '/zh/';
+const fallbackDestination = '/zh/';
 ---
 
 <!doctype html>
@@ -8,10 +8,27 @@ const destination = '/zh/';
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
     <meta name="robots" content="noindex,follow" />
-    <meta http-equiv="refresh" content={`0;url=${destination}`} />
     <title>DSH Port Inspector</title>
+    <script is:inline>
+      (() => {
+        const localePreferenceKey = 'dsh-port-inspector-locale';
+        const storedLocale = (() => {
+          try {
+            const value = window.localStorage.getItem(localePreferenceKey);
+            return value === 'zh' || value === 'en' ? value : null;
+          } catch {
+            return null;
+          }
+        })();
+        const browserLocales = navigator.languages?.length ? navigator.languages : [navigator.language];
+        const browserLocale = browserLocales.find((value) => /^(zh|en)(-|$)/i.test(value));
+        const targetLocale = storedLocale ?? (browserLocale?.toLowerCase().startsWith('en') ? 'en' : 'zh');
+
+        window.location.replace(`/${targetLocale}/`);
+      })();
+    </script>
   </head>
   <body>
-    <p>正在前往中文首页。<a href={destination}>如果没有自动跳转，请继续访问。</a></p>
+    <p>正在根据浏览器语言选择首页。<a href={fallbackDestination}>如果没有自动跳转，请继续访问中文首页。</a></p>
   </body>
 </html>

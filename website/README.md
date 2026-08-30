@@ -30,9 +30,12 @@ npm run website:preview
 
 ## 页面结构
 
+- `/`：根据浏览器首选语言进入 `/en/` 或 `/zh/`；手动切换语言后会记住用户选择
 - `/zh/`：中文官网
 - `/en/`：English landing page
 - `/robots.txt`：爬虫规则和 sitemap 入口
 - `/sitemap.xml`：中英文页面 sitemap
+
+根路径的语言判断在浏览器端完成，适配 Cloudflare Pages 的静态部署：优先读取用户在官网中手动选择的语言，其次读取 `navigator.languages` 中第一个中文或英文偏好，其他语言回退到中文。直接访问 `/zh/` 和 `/en/` 不会被再次重定向。
 
 产品截图和 Logo 是从仓库现有 `assets/` 中复制的发布素材。官网页面只展示脱敏后的静态内容，不读取 DSH 运行时信息，也不启动本地伴随服务。

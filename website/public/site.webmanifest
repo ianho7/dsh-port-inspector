@@ -1,7 +1,7 @@
 {
   "name": "DSH Port Inspector",
   "short_name": "Port Inspector",
-  "description": "Trace local development ports back to their DSH origin and handle them safely.",
+  "description": "A Windows DSH Web plugin for DeepSeek Harness that traces local development ports safely.",
   "start_url": "/zh/",
   "display": "standalone",
   "background_color": "#f7fbff",

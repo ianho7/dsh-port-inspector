@@ -17,6 +17,9 @@ export type ContentRow = {
 };
 
 export type SiteCopy = {
+  seo: {
+    keywords: string[];
+  };
   localeLabel: string;
   languageLabel: string;
   brandDescriptor: string;
@@ -114,9 +117,43 @@ export const locales: Locale[] = ['zh', 'en'];
 
 export const siteCopy: Record<Locale, SiteCopy> = {
   zh: {
+    seo: {
+      keywords: [
+        'DeepSeek',
+        'DeepSeek Harness',
+        'deepseek-harness',
+        'DeepSeek Agent Harness',
+        'DeepSeek Harness 插件',
+        'DeepSeek Agent 插件',
+        'DSH Port Inspector',
+        'DSH Web 插件',
+        'DeepSeek Harness Web UI',
+        'DSH Web',
+        '@deepseek-ai/dsh',
+        'dsh',
+        'dsh web',
+        'dsh plugin --profile web',
+        'dsh-plugin',
+        'ai-agents',
+        '插件 Bundle',
+        'Web UI 插件',
+        '运行时检查',
+        'Windows 本地开发端口检查器',
+        'Windows 端口冲突排查',
+        '本地开发端口追踪',
+        'TCP 监听端口',
+        '进程与端口映射',
+        '端口来源追踪',
+        'Session Tool Call 归因',
+        'Coding Agent',
+        'Cordis 插件',
+        'Docker Compose 端口',
+        '安全结束进程',
+      ],
+    },
     localeLabel: '中文',
     languageLabel: '切换语言',
-    brandDescriptor: 'DSH 运行时检查器',
+    brandDescriptor: 'DeepSeek Harness 的 DSH Web 插件',
     nav: {
       features: '核心能力',
       workflow: '工作方式',
@@ -125,10 +162,10 @@ export const siteCopy: Record<Locale, SiteCopy> = {
       source: '查看源码',
     },
     hero: {
-      eyebrow: '给本地开发服务一个可核对的来源',
+      eyebrow: 'DeepSeek Harness / DSH Web 的 Windows 端口检查插件',
       title: '每一个开发端口，',
       titleAccent: '都能找到来源。',
-      description: '在 DSH Web 中看见谁正在监听、哪个 Session 启动了它，以及处理后端口是否真的释放。',
+      description: '在 DeepSeek Harness 的 DSH Web 中看见谁正在监听、哪个 Session 启动了它，以及处理后端口是否真的释放。',
       primaryCta: '安装插件',
       secondaryCta: '查看源码',
       context: 'Windows / DSH Web / TCP listeners',
@@ -149,7 +186,7 @@ export const siteCopy: Record<Locale, SiteCopy> = {
     features: {
       eyebrow: '核心能力',
       title: '从发现到收尾，证据始终在场。',
-      intro: '它不是通用任务管理器，而是面向 Coding Agent 开发场景的运行时检查和来源追踪工具。',
+      intro: '它不是通用任务管理器，而是面向 Coding Agent 的 DeepSeek Harness 运行时检查和本地端口来源追踪工具。',
       items: [
         {
           title: '看见监听',
@@ -220,8 +257,8 @@ export const siteCopy: Record<Locale, SiteCopy> = {
           description: '无法读取完整来源或权限不足时，记录仍然可见，但能力保持只读。',
         },
       ],
-      contextImageAlt: 'DeepSeek Harness 中的 runtime-story 工作区与 Port Inspector 入口',
-      contextCaption: '从 DSH Web 侧边栏进入 Port Inspector，保持在原有 Session 工作上下文中。',
+      contextImageAlt: 'DeepSeek Harness DSH Web 中的 runtime-story 工作区与 Port Inspector 插件入口',
+      contextCaption: '从 DeepSeek Harness 的 DSH Web 侧边栏进入 Port Inspector，保持在原有 Session 工作上下文中。',
     },
     safety: {
       eyebrow: '安全边界',
@@ -249,7 +286,7 @@ export const siteCopy: Record<Locale, SiteCopy> = {
     },
     support: {
       eyebrow: '支持范围',
-      title: '为 Windows 本地 Coding Agent 开发而做。',
+      title: '为 Windows 本地 DeepSeek Harness Coding Agent 开发而做。',
       intro: '第一版聚焦一个真实而高频的场景：DSH Web 在 Windows 上运行多个本地开发服务。',
       items: [
         {
@@ -269,7 +306,7 @@ export const siteCopy: Record<Locale, SiteCopy> = {
     install: {
       eyebrow: '立即开始',
       title: '把下一次端口冲突，变成一个可回答的问题。',
-      description: '安装 Bundle，重启目标 DSH Web Profile，然后从侧边栏打开 Port Inspector。',
+      description: '安装这个 DSH Web 插件，重启目标 DeepSeek Harness Web Profile，然后从侧边栏打开 Port Inspector。',
       commandLabel: '通过 npm 安装',
       command: 'dsh plugin --profile web add dsh-port-inspector@latest',
       copyLabel: '复制命令',
@@ -285,6 +322,10 @@ export const siteCopy: Record<Locale, SiteCopy> = {
       eyebrow: '常见问题',
       title: '在安装之前，先把边界讲清楚。',
       items: [
+        {
+          title: '它是 DeepSeek Harness 的什么插件？',
+          description: 'Port Inspector 是一个面向 DSH Web 的 Windows 本地开发端口检查插件。它把 TCP 监听、进程、项目、Session 和 Tool Call 放进同一条可核对的来源链路。',
+        },
         {
           title: '它会自动关闭所有后台服务吗？',
           description: '不会。Port Inspector 默认只读。只有用户明确选择目标并通过身份复核后，才会进入受管关闭或外部单 PID 处理。',
@@ -309,13 +350,48 @@ export const siteCopy: Record<Locale, SiteCopy> = {
       license: 'MIT License',
       issues: '反馈问题',
       docs: '阅读文档',
-      copyright: 'DSH Port Inspector，面向 DSH Web 的 Windows 本地运行时工具。',
+      copyright: 'DSH Port Inspector，面向 DeepSeek Harness DSH Web 的 Windows 本地开发端口工具。',
     },
   },
   en: {
+    seo: {
+      keywords: [
+        'DeepSeek',
+        'DeepSeek Harness',
+        'deepseek-harness',
+        'DeepSeek agent harness',
+        'DeepSeek Harness plugin',
+        'DeepSeek agent plugin',
+        'DSH Port Inspector',
+        'DSH Web plugin',
+        'DeepSeek Harness Web UI',
+        'DSH Web',
+        '@deepseek-ai/dsh',
+        'dsh',
+        'dsh web',
+        'dsh plugin --profile web',
+        'dsh-plugin',
+        'ai-agents',
+        'plugin bundle',
+        'Web UI plugin',
+        'runtime inspection',
+        'Windows port inspector',
+        'local development ports',
+        'Windows port conflict',
+        'TCP listeners',
+        'process-to-port mapping',
+        'port origin tracing',
+        'Session and Tool Call tracing',
+        'Coding Agent',
+        'agent harness',
+        'Cordis plugin',
+        'Docker Compose ports',
+        'safe process termination',
+      ],
+    },
     localeLabel: 'English',
     languageLabel: 'Switch language',
-    brandDescriptor: 'Runtime visibility for DSH Web',
+    brandDescriptor: 'A DeepSeek Harness DSH Web plugin',
     nav: {
       features: 'Capabilities',
       workflow: 'How it works',
@@ -324,10 +400,10 @@ export const siteCopy: Record<Locale, SiteCopy> = {
       source: 'View source',
     },
     hero: {
-      eyebrow: 'Give every local service a traceable origin',
+      eyebrow: 'A Windows port-inspector plugin for DeepSeek Harness DSH Web',
       title: 'Every local port',
       titleAccent: 'has a story.',
-      description: 'See who is listening, which DSH Session started it, and whether the port was actually released after handling.',
+      description: 'In the DeepSeek Harness DSH Web UI, see who is listening, which Session started it, and whether the port was actually released after handling.',
       primaryCta: 'Install the plugin',
       secondaryCta: 'View source',
       context: 'Windows / DSH Web / TCP listeners',
@@ -348,7 +424,7 @@ export const siteCopy: Record<Locale, SiteCopy> = {
     features: {
       eyebrow: 'Capabilities',
       title: 'From discovery to cleanup, the evidence stays in view.',
-      intro: 'It is not a general task manager. It is a runtime inspection and origin-tracing tool for Coding Agent development workflows.',
+      intro: 'It is not a general task manager. It is a DeepSeek Harness runtime inspection and local port-origin tool for Coding Agent workflows.',
       items: [
         {
           title: 'See listeners',
@@ -419,8 +495,8 @@ export const siteCopy: Record<Locale, SiteCopy> = {
           description: 'Incomplete origin evidence or permissions keep the record visible, but the handling capability stays read-only.',
         },
       ],
-      contextImageAlt: 'The runtime-story workspace and Port Inspector entry in DeepSeek Harness',
-      contextCaption: 'Open Port Inspector from the DSH Web sidebar and stay in the existing Session context.',
+      contextImageAlt: 'The runtime-story workspace and Port Inspector plugin entry in the DeepSeek Harness DSH Web UI',
+      contextCaption: 'Open Port Inspector from the DeepSeek Harness DSH Web sidebar and stay in the existing Session context.',
     },
     safety: {
       eyebrow: 'Safety boundary',
@@ -448,7 +524,7 @@ export const siteCopy: Record<Locale, SiteCopy> = {
     },
     support: {
       eyebrow: 'Support scope',
-      title: 'Made for local Windows development with Coding Agents.',
+      title: 'Made for local Windows development with DeepSeek Harness Coding Agents.',
       intro: 'The first release focuses on one frequent, real-world path: multiple local services running in DSH Web on Windows.',
       items: [
         {
@@ -468,7 +544,7 @@ export const siteCopy: Record<Locale, SiteCopy> = {
     install: {
       eyebrow: 'Get started',
       title: 'Turn the next port conflict into a question you can answer.',
-      description: 'Install the Bundle, restart the target DSH Web Profile, then open Port Inspector from the sidebar.',
+      description: 'Install this DSH Web plugin, restart the target DeepSeek Harness Web Profile, then open Port Inspector from the sidebar.',
       commandLabel: 'Install with npm',
       command: 'dsh plugin --profile web add dsh-port-inspector@latest',
       copyLabel: 'Copy command',
@@ -484,6 +560,10 @@ export const siteCopy: Record<Locale, SiteCopy> = {
       eyebrow: 'FAQ',
       title: 'A clear boundary before you install.',
       items: [
+        {
+          title: 'What kind of DeepSeek Harness plugin is it?',
+          description: 'Port Inspector is a Windows local development port-inspection plugin for DSH Web. It connects TCP listeners, processes, projects, Sessions, and Tool Calls in one reviewable origin chain.',
+        },
         {
           title: 'Does it automatically close every background service?',
           description: 'No. Port Inspector is read-only by default. Handling starts only after an explicit selection and identity recheck.',
@@ -508,7 +588,7 @@ export const siteCopy: Record<Locale, SiteCopy> = {
       license: 'MIT License',
       issues: 'Report an issue',
       docs: 'Read the docs',
-      copyright: 'DSH Port Inspector, a Windows local runtime tool for DSH Web.',
+      copyright: 'DSH Port Inspector, a Windows local development port tool for DeepSeek Harness DSH Web.',
     },
   },
 };

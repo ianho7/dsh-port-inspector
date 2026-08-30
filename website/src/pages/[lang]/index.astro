@@ -23,17 +23,20 @@ const releaseUrl = `${repoUrl}/releases/latest`;
 const docsUrl = `${repoUrl}#readme`;
 const issuesUrl = `${repoUrl}/issues`;
 const pageTitle = isZh
-  ? 'DSH Port Inspector｜让每一个开发端口都能找到来源'
-  : 'DSH Port Inspector | Every local port has a story';
+  ? 'DSH Port Inspector｜DeepSeek Harness Windows 端口检查插件'
+  : 'DSH Port Inspector | DeepSeek Harness Windows Port Plugin';
 const pageDescription = isZh
-  ? 'DSH Port Inspector 是面向 DSH Web 的 Windows 本地运行时工具，用于追踪开发端口来源并安全确认处理结果。'
-  : 'DSH Port Inspector traces local development ports back to their DSH origin and confirms safe handling on Windows.';
+  ? 'DSH Port Inspector 是 DeepSeek Harness DSH Web 的 Windows 本地开发端口检查插件，用于追踪 TCP 监听、进程来源、Session 与 Tool Call，安全排查端口冲突。'
+  : 'DSH Port Inspector is a Windows plugin for DeepSeek Harness DSH Web. Trace TCP listeners to processes, Sessions, and Tool Calls to resolve port conflicts.';
 ---
 
 <SiteLayout
   locale={locale}
   title={pageTitle}
   description={pageDescription}
+  keywords={copy.seo.keywords}
+  featureList={copy.features.items.map((item) => item.title)}
+  faqItems={copy.faq.items}
   canonicalPath={`/${locale}/`}
 >
   <header class="site-header">
@@ -54,7 +57,7 @@ const pageDescription = isZh
         <a class="nav-source" href={repoUrl} target="_blank" rel="noreferrer">{copy.nav.source}</a>
       </nav>
 
-      <a class="locale-switch" href={switchHref} aria-label={`${copy.languageLabel}: ${siteCopy[switchLocale].localeLabel}`}>
+      <a class="locale-switch" href={switchHref} data-locale-choice={switchLocale} aria-label={`${copy.languageLabel}: ${siteCopy[switchLocale].localeLabel}`}>
         {siteCopy[switchLocale].localeLabel}
       </a>
     </div>
@@ -321,7 +324,7 @@ const pageDescription = isZh
     </div>
     <div class="container footer-bottom">
       <p>{copy.footer.copyright}</p>
-      <a class="locale-switch footer-locale" href={switchHref} aria-label={`${copy.languageLabel}: ${siteCopy[switchLocale].localeLabel}`}>
+      <a class="locale-switch footer-locale" href={switchHref} data-locale-choice={switchLocale} aria-label={`${copy.languageLabel}: ${siteCopy[switchLocale].localeLabel}`}>
         {siteCopy[switchLocale].localeLabel}
       </a>
     </div>
