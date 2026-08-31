@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./assets/logo-candidates/A1-v4-rounded.png" alt="DSH Port Inspector logo" width="128" height="128">
+  <img src="./assets/logo-candidates/A1-v4-rounded.webp" alt="DSH Port Inspector logo" width="128" height="128">
   <h1>DSH Port Inspector</h1>
   <p>A port-origin tracing and safe handling tool for local Windows development in DSH Web.</p>
   <p><a href="./README.md">中文</a> | <strong>English</strong></p>
@@ -43,6 +43,19 @@ When the attribution observer, Windows process identities, and parent-process ch
 TCP listening port → listener PID → Windows parent-process chain → DeepSeek Harness root process
 → Session / Tool Call → Lifecycle owner → safe handling and port-release confirmation
 ```
+
+## Core features
+
+- 🔎 **Port overview**: See listening ports, applications, PIDs, and listening addresses across the project and system.
+- 🌈 **Source identification**: Distinguish the current Session, other DSH Sessions, and ordinary external processes.
+- 🛡️ **Safe shutdown**: Stop DSH-managed processes through an identity-verified operation.
+- 🔥 **Process termination**: Directly end external processes when their identity information is complete.
+- 📁 **Open directory**: Jump from port details to the associated project directory.
+- 🐳 **Compose detection**: Show the Compose file, service, image, container, and port mapping.
+- 🧬 **Launch chain**: View the complete relationship from the root process to the listening process.
+- 🎛️ **Quick filtering**: Search, filter, and sort by port, application, PID, project, or Session.
+- 📋 **Copy details**: Copy port, process, source, and Session information for sharing or record-keeping.
+- 🎨 **Interface sync**: Follow DSH's language, light/dark appearance, and design system automatically.
 
 ## Plugin screenshots
 

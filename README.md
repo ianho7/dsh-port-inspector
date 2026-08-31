@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./assets/logo-candidates/A1-v4-rounded.png" alt="DSH Port Inspector logo" width="128" height="128">
+  <img src="./assets/logo-candidates/A1-v4-rounded.webp" alt="DSH Port Inspector logo" width="128" height="128">
   <h1>DSH Port Inspector</h1>
   <p>DSH Web 内面向 Windows 本地开发的端口来源追踪与安全处理工具。</p>
   <p><strong>中文</strong> | <a href="./README_EN.md">English</a></p>
@@ -43,6 +43,19 @@
 TCP 监听端口 → 监听 PID → Windows 父进程链 → DeepSeek Harness 根进程
 → Session / Tool Call → 生命周期 owner → 安全处理并确认端口释放
 ```
+
+## 核心特性
+
+- 🔎 **端口总览**：集中查看项目和系统中的监听端口、应用、PID 与监听地址。
+- 🌈 **来源识别**：区分当前会话、其他 DSH 会话和普通外部进程。
+- 🛡️ **安全停止**：对 DSH 管理的进程执行经过身份校验的停止操作。
+- 🔥 **结束进程**：对身份信息完整的外部进程提供直接结束能力。
+- 📁 **打开目录**：从端口详情快速跳转到关联项目目录。
+- 🐳 **Compose 识别**：展示 Compose 文件、服务、镜像、容器和端口映射。
+- 🧬 **启动链路**：查看从根进程到监听进程的完整启动关系。
+- 🎛️ **快速筛选**：支持按端口、应用、PID、项目和会话搜索、筛选与排序。
+- 📋 **复制详情**：一键复制端口、进程、来源和会话信息，方便分享或记录。
+- 🎨 **界面同步**：自动跟随 DSH 的语言、深浅色和设计风格。
 
 ## 插件截图
 
